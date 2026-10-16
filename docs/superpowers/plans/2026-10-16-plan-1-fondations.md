@@ -3396,3 +3396,266 @@ git commit -m "Affiche les images du dossier assets via le protocole masset:// e
 | §12 export PNG | — | plan 4 |
 | §13 erreurs | fichier invalide, image introuvable, lot refusé (Tasks 4, 8, 10) | police de secours visible (plan 3), plantage (plan 6) |
 | §14 tests | Vitest + Playwright en place | client de test MCP (plan 4) |
+
+---
+
+## Amendement A (2026-10-17) — « jamais de refus à la souris »
+
+Spec §6 (principe), §6.1 (corrections automatiques) et §6.2 (ouverture tolérante). Ces changements
+**remplacent** les passages contraires des tâches ci-dessus. Les tests listés ici s'ajoutent aux tests
+des tâches concernées.
+
+### Exécution (remplace « Ordre et parallélisme »)
+
+1. Séquentiel, session principale : Task 1, Task 2, Task 3, puis **Task A0** (ci-dessous). Commit sur `main`.
+2. En parallèle, chacun dans un worktree partant de `main` :
+   - **Agent ops** : Task 4 + amendement A1, puis Task 5.
+   - **Agent format** : Task 6 + amendement A2.
+   - **Agent css** : Task 7.
+   - Session principale pendant ce temps : parties unitaires des Tasks 9 et 10 (`files.ts`, `assetPath.ts` et leurs tests).
+3. Fusion dans `main`, puis Tasks 8, 9, 10 (intégration), puis une relecture finale par un agent neuf.
+
+### Task A0 : couleurs et réalignement du texte (partagés par les agents ops et format)
+
+**Files:** Create `src/core/color.ts`, `src/core/fixes.ts` ; Test `tests/core/color.test.ts`, `tests/core/fixes.test.ts`.
+
+**Produces:**
+- `normalizeColor(input: string): string | null` — `#RGB`, `#RGBA`, `#RRGGBB`, `#RRGGBBAA`, `rgb(r, g, b)`, `rgba(r, g, b, a)` (virgules ou espaces, `a` entre 0 et 1 ou en %), les 148 noms CSS et `transparent` → `#RRGGBB` (ou `#RRGGBBAA` si alpha < 1) en majuscules ; sinon `null`.
+- `normalizeColorValue(c: unknown): Color | null` — chaîne → `normalizeColor` ; `{ style: string }` gardé tel quel ; autre → `null`.
+- `alignTextSizing(t: TextNode): boolean` — `width` hug → `textSizing: 'auto'` et `height` forcé à hug ; sinon `height` hug → `'auto-height'` ; sinon `'fixed'`. Renvoie `true` si quelque chose a changé.
+
+Tests (`tests/core/color.test.ts`) :
+```ts
+import { describe, it, expect } from 'vitest'
+import { normalizeColor, normalizeColorValue } from '../../src/core/color'
+
+describe('normalizeColor', () => {
+  it.each([
+    ['#fff', '#FFFFFF'], ['#ffff', '#FFFFFF'], ['#FFF8', '#FFFFFF88'], ['#c2410c', '#C2410C'],
+    ['#C2410C80', '#C2410C80'], ['white', '#FFFFFF'], ['RebeccaPurple', '#663399'],
+    ['transparent', '#00000000'], ['rgb(194, 65, 12)', '#C2410C'], ['rgb(194 65 12)', '#C2410C'],
+    ['rgba(0, 0, 0, 0.25)', '#00000040'], ['rgba(0,0,0,25%)', '#00000040'], ['rgba(255,255,255,1)', '#FFFFFF'],
+  ])('%s → %s', (input, expected) => expect(normalizeColor(input)).toBe(expected))
+
+  it.each(['', 'bleu', '#12', 'rgb(300, 0, 0)', 'rgba(0,0,0,2)', 'hsl(0, 0%, 0%)'])('%s → null', (input) =>
+    expect(normalizeColor(input)).toBeNull())
+
+  it('normalizeColorValue garde les références de style', () => {
+    expect(normalizeColorValue({ style: 'c00001' })).toEqual({ style: 'c00001' })
+    expect(normalizeColorValue('navy')).toBe('#000080')
+    expect(normalizeColorValue(42)).toBeNull()
+  })
+})
+```
+
+Tests (`tests/core/fixes.test.ts`) :
+```ts
+import { describe, it, expect } from 'vitest'
+import { alignTextSizing } from '../../src/core/fixes'
+import type { TextNode } from '../../src/core/types'
+import { text } from './helpers'
+
+describe('alignTextSizing', () => {
+  it('largeur fixe + hauteur hug → auto-height', () => {
+    const t = text('t00001', { width: 300 }) as TextNode
+    expect(alignTextSizing(t)).toBe(true)
+    expect(t.textSizing).toBe('auto-height')
+  })
+  it('largeur et hauteur fixes → fixed', () => {
+    const t = text('t00001', { width: 300, height: 80 }) as TextNode
+    alignTextSizing(t)
+    expect(t.textSizing).toBe('fixed')
+  })
+  it('largeur hug → auto, hauteur ramenée à hug', () => {
+    const t = text('t00001', { height: 80, textSizing: 'fixed' }) as TextNode
+    alignTextSizing(t)
+    expect(t).toMatchObject({ textSizing: 'auto', height: { mode: 'hug' } })
+  })
+  it('déjà cohérent → false', () => {
+    expect(alignTextSizing(text('t00001') as TextNode)).toBe(false)
+  })
+})
+```
+
+Commit : `Ajoute la normalisation des couleurs et le réalignement automatique du texte`.
+
+### A1 : corrections automatiques dans `applyOps` (agent ops, avec Task 4)
+
+Dans `src/core/ops.ts` :
+- Toute couleur reçue (`create` : `fills[]`, `stroke.color`, `shadows[].color`, `color` ; `update` : les mêmes clés de `set` ; `style.color.set` : `value`) passe par `normalizeColorValue`. Valeur non lisible → refus avec le chemin (`ops[i].set.fills[0]` : `couleur illisible : "bleu"`).
+- `update` d'un texte qui change `width` ou `height` **sans** `textSizing` dans `set` → `alignTextSizing` ; si changement, ajouter à `fixes` : `<nom> (<id>) : textSizing passe à "<valeur>"`.
+- `create`/`update` qui donne `x`/`y` à un enfant en flux d'un cadre automatique → `x`/`y` retirés, note dans `fixes` : `<nom> (<id>) : x/y ignorés, la position est calculée par la mise en page automatique`.
+- `style.delete` d'un style utilisé → avant de le retirer, chaque référence `{ style: id }` est remplacée par la valeur de la couleur ; chaque `textStyle: id` est retiré après avoir recopié ses propriétés de police dans le texte. Note dans `fixes` : `<n> élément(s) détaché(s) du style « <nom> »`.
+
+Tests à ajouter dans `tests/core/ops.test.ts`. Dans le test « styles nommés : créer, référencer, refuser la suppression d'un style utilisé », **retirer** les deux dernières lignes (`r2` et son `expect`) et renommer le test « styles nommés : créer et référencer ».
+```ts
+  it('supprimer un style utilisé détache les éléments', () => {
+    const doc = docWith([])
+    const r = ok(applyOps(doc, [
+      { op: 'style.color.set', id: '$fond', name: 'fond', value: '#F4F1EA' },
+      { op: 'style.text.set', id: '$t', name: 'titre', fontFamily: 'Fraunces', fontWeight: 600, fontStyle: 'normal', fontSize: 64, lineHeight: 68, letterSpacing: -1 },
+      { op: 'create', parent: pageId(doc), node: { id: '$s', type: 'shape', fills: [{ style: '$fond' }] } },
+      { op: 'create', parent: pageId(doc), node: { id: '$x', type: 'text', textStyle: '$t' } },
+    ]))
+    const r2 = ok(applyOps(r.doc, [{ op: 'style.delete', id: r.ids['$fond']! }, { op: 'style.delete', id: r.ids['$t']! }]))
+    const shape = findNode(r2.doc, r.ids['$s']!)!.node
+    expect(shape.type === 'shape' && shape.fills).toEqual(['#F4F1EA'])
+    const t = findNode(r2.doc, r.ids['$x']!)!.node as TextNode
+    expect(t.textStyle).toBeUndefined()
+    expect(t).toMatchObject({ fontFamily: 'Fraunces', fontWeight: 600, fontSize: 64, lineHeight: 68, letterSpacing: -1 })
+    expect(r2.fixes).toHaveLength(2)
+  })
+
+  it('couleurs CSS converties, couleur illisible refusée avec son chemin', () => {
+    const doc = docWith([rect('r00001', { x: 0, y: 0 })])
+    const r = ok(applyOps(doc, [{ op: 'update', id: 'r00001', set: { fills: ['white', 'rgba(0,0,0,0.25)'] } }]))
+    const shape = findNode(r.doc, 'r00001')!.node
+    expect(shape.type === 'shape' && shape.fills).toEqual(['#FFFFFF', '#00000040'])
+    const r2 = applyOps(doc, [{ op: 'update', id: 'r00001', set: { fills: ['bleu'] } }])
+    expect(r2.ok).toBe(false)
+    if (!r2.ok) expect(r2.errors[0]!.path).toBe('ops[0].set.fills[0]')
+  })
+
+  it('redimensionner un texte en largeur réaligne textSizing au lieu de refuser', () => {
+    const doc = docWith([text('t00001', { x: 0, y: 0 })])
+    const r = ok(applyOps(doc, [{ op: 'update', id: 't00001', set: { width: 300 } }]))
+    expect(findNode(r.doc, 't00001')!.node).toMatchObject({ width: 300, textSizing: 'auto-height' })
+    expect(r.fixes).toHaveLength(1)
+  })
+
+  it('x/y donnés à un enfant en flux sont ignorés, pas refusés', () => {
+    const p = frame('f00001', { x: 0, y: 0, layout: { mode: 'auto' } }) as FrameNode
+    p.children.push(rect('r00001'))
+    const r = ok(applyOps(docWith([p]), [{ op: 'update', id: 'r00001', set: { x: 40, y: 50 } }]))
+    expect(findNode(r.doc, 'r00001')!.node.x).toBeUndefined()
+    expect(r.fixes[0]).toContain('x/y ignorés')
+  })
+```
+
+### A2 : ouverture tolérante (agent format, avec Task 6)
+
+**Files:** Create `src/core/repair.ts` ; Modify `src/core/format.ts` ; Test `tests/core/repair.test.ts` et `tests/core/format.test.ts`.
+
+**Produces:**
+- `repairDocument(raw: Record<string, unknown>): { doc: unknown; warnings: Issue[] }` — appelée par `parseDocument` après les contrôles format/version et les migrations ; ne modifie pas `raw`.
+- `ParseResult` devient `{ ok: true; doc: MaquetteDocument; warnings: Issue[] } | { ok: false; errors: Issue[] }`.
+
+Comportement de `repairDocument` (chaque réparation ajoute un avertissement `{ path, message }`, chemin au format de `formatPath`) :
+1. `styles` absent ou mal formé → `{ colors: [], text: [] }` ; couleur nommée à valeur illisible → `#FF00FF` ; style de texte incomplet → complété (`Inter`, 400, `normal`, 16, 19, 0).
+2. `pages` absent ou vide → une page `Page 1` vide ; page sans `id` → nouvel id ; sans `name` → `Page <n>`.
+3. Élément qui n'est pas un objet ou dont le `type` n'est pas `frame`/`text`/`shape`/`image` → retiré.
+4. Élément lisible : les valeurs par défaut de `createNode(type)` complètent les propriétés manquantes ; propriétés inconnues retirées ; `layout` d'un cadre complété par `autoLayoutDefaults()` en mode `auto` ; couleurs passées par `normalizeColorValue` (illisible → `#FF00FF`).
+5. Identifiant absent, invalide ou en double → nouvel id.
+6. Références de style inconnues : couleur → `#FF00FF` ; `textStyle` → retiré.
+7. Règles du §6 ramenées à l'état valide le plus proche : `x`/`y` retirés d'un enfant en flux, mis à 0 s'ils manquent ailleurs ; `absolute` hors cadre automatique → `flow` ; `alignSelf` hors flux → retiré ; `hug`/`fill` impossibles → 100 px ; parent `hug` avec enfant `fill` sur le même axe → 100 px ; `min*`/`max*` hors contexte → retirés, `max` < `min` → `max` retiré ; `rowGap` sans `wrap` → retiré ; `baseline` hors `row` → `start` ; `alignTextSizing` sur chaque texte.
+8. Une valeur de mauvais type qu'aucune règle ci-dessus ne répare (ex. `opacity: "abc"`) n'est **pas** devinée : `parseDocument` refuse alors le fichier avec les erreurs de `validateDocument`.
+
+Tests à **remplacer** dans `tests/core/format.test.ts` (le premier remplace le test d'aller-retour, le deuxième remplace « document invalide selon les règles ») et un test à ajouter :
+```ts
+  it('aller-retour exact, y compris accents, guillemets, emoji et retours à la ligne', () => {
+    const doc = docWith([text('t00001', { x: 0, y: 0, content: 'Été « ok » 🌿\nligne 2' })])
+    const textOut = serializeDocument(doc)
+    expect(parseDocument(textOut)).toEqual({ ok: true, doc, warnings: [] })
+    expect(textOut.endsWith('\n')).toBe(true)
+    expect(textOut).toContain('\n  "format": "maquette"')
+    expect(textOut).toContain('Été « ok » 🌿')
+  })
+
+  it('un document qui enfreint une règle est ouvert et réparé, avec un avertissement', () => {
+    const doc = docWith([text('t00001', { content: 'sans position' })])
+    const r = parseDocument(JSON.stringify(doc))
+    expect(r.ok).toBe(true)
+    if (r.ok) {
+      expect(r.doc.pages[0]!.children[0]).toMatchObject({ x: 0, y: 0 })
+      expect(r.warnings.map((w) => w.path)).toEqual(['pages[0].children[0].x'])
+    }
+  })
+
+  it('une valeur de mauvais type non réparable : refus', () => {
+    const doc = docWith([text('t00001', { x: 0, y: 0 })]) as unknown as { pages: { children: Record<string, unknown>[] }[] }
+    doc.pages[0]!.children[0]!.opacity = 'abc'
+    const r = parseDocument(JSON.stringify(doc))
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.errors[0]!.path).toBe('pages[0].children[0].opacity')
+  })
+```
+
+Tests (`tests/core/repair.test.ts`) :
+```ts
+import { describe, it, expect } from 'vitest'
+import { repairDocument } from '../../src/core/repair'
+import { validateDocument } from '../../src/core/rules'
+import type { MaquetteDocument } from '../../src/core/types'
+
+const raw = (pages: unknown, styles: unknown = { colors: [], text: [] }) => ({ format: 'maquette', version: 1, styles, pages })
+const fix = (r: Record<string, unknown>) => {
+  const { doc, warnings } = repairDocument(r)
+  expect(validateDocument(doc as MaquetteDocument)).toEqual([])
+  return { doc: doc as MaquetteDocument, paths: warnings.map((w) => w.path) }
+}
+
+describe('repairDocument', () => {
+  it('ne touche pas un document valide', () => {
+    const r = raw([{ id: 'pAccue', name: 'Accueil', children: [] }])
+    expect(repairDocument(r)).toEqual({ doc: r, warnings: [] })
+  })
+
+  it('document sans page → une page vide', () => {
+    const { doc, paths } = fix(raw([]))
+    expect(doc.pages).toHaveLength(1)
+    expect(paths).toEqual(['pages'])
+  })
+
+  it('élément minimal écrit à la main : complété sans avertissement', () => {
+    const { doc, paths } = fix(raw([{ id: 'p1', name: 'P', children: [{ id: 'r1', type: 'shape', x: 10, y: 10 }] }]))
+    expect(doc.pages[0]!.children[0]).toMatchObject({ id: 'r1', type: 'shape', width: 100, fills: ['#D9D9D9'], visible: true })
+    expect(paths).toEqual([])
+  })
+
+  it('propriété inconnue retirée, type inconnu retiré, couleur convertie', () => {
+    const { doc, paths } = fix(raw([{ id: 'p1', name: 'P', children: [
+      { id: 'r1', type: 'shape', x: 0, y: 0, colour: 'red', fills: ['white'] },
+      { id: 'z1', type: 'video' },
+    ] }]))
+    expect(doc.pages[0]!.children).toHaveLength(1)
+    expect(doc.pages[0]!.children[0]).not.toHaveProperty('colour')
+    expect(doc.pages[0]!.children[0]).toMatchObject({ fills: ['#FFFFFF'] })
+    expect(paths).toEqual(['pages[0].children[0].colour', 'pages[0].children[0].fills[0]', 'pages[0].children[1]'])
+  })
+
+  it('identifiants en double renouvelés, références inconnues détachées', () => {
+    const { doc, paths } = fix(raw([{ id: 'p1', name: 'P', children: [
+      { id: 'r1', type: 'shape', x: 0, y: 0, fills: [{ style: 'absent' }] },
+      { id: 'r1', type: 'text', x: 0, y: 0, textStyle: 'absent' },
+    ] }]))
+    const [a, b] = doc.pages[0]!.children
+    expect(a!.type === 'shape' && a.fills).toEqual(['#FF00FF'])
+    expect(b!.id).not.toBe('r1')
+    expect(b).not.toHaveProperty('textStyle')
+    expect(paths).toEqual(['pages[0].children[0].fills[0]', 'pages[0].children[1].id', 'pages[0].children[1].textStyle'])
+  })
+
+  it('règles ramenées à l’état valide le plus proche', () => {
+    const { doc } = fix(raw([{ id: 'p1', name: 'P', children: [
+      { id: 'f1', type: 'frame', x: 0, y: 0, width: { mode: 'hug' }, layout: { mode: 'auto', rowGap: 4, align: 'baseline' }, children: [
+        { id: 'r1', type: 'shape', x: 5, y: 5, width: { mode: 'fill' } },
+        { id: 't1', type: 'text', width: 200, textSizing: 'auto' },
+      ] },
+      { id: 'r2', type: 'shape', x: 0, y: 0, width: { mode: 'hug' }, position: 'absolute', minWidth: 10 },
+    ] }]))
+    const f = doc.pages[0]!.children[0]!
+    expect(f).toMatchObject({ width: 100 })
+    expect(f.type === 'frame' && f.layout).toMatchObject({ align: 'start' })
+    expect(f.type === 'frame' && f.layout).not.toHaveProperty('rowGap')
+    expect(f.type === 'frame' && f.children[0]!.x).toBeUndefined()
+    expect(f.type === 'frame' && f.children[1]).toMatchObject({ textSizing: 'auto-height' })
+    expect(doc.pages[0]!.children[1]).toMatchObject({ width: 100, position: 'flow' })
+    expect(doc.pages[0]!.children[1]).not.toHaveProperty('minWidth')
+  })
+})
+```
+
+Dans les Tasks 8 et 9 (`App.tsx` et `commands.ts`) : quand `parsed.ok` et que `parsed.warnings` n'est pas vide,
+charger le document **et** appeler `showError` avec le message
+`<nom du fichier> ouvert avec <n> réparation(s) : <message du 1er avertissement>` (le bandeau sert aussi
+d'information). Le titre de la fenêtre porte alors « • » : le document réparé diffère du fichier.

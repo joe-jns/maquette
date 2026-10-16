@@ -208,6 +208,12 @@ référence. Pas de thèmes en v1.
 
 ## 6. Règles de validité
 
+**Principe : l'utilisateur, à la souris, ne rencontre jamais de refus.** Une action dont
+l'intention est claire est **corrigée automatiquement**, comme le fait Figma (§6.1) ; une action
+impossible n'est **pas proposée** par l'interface (choix grisé, raison au survol). Les refus ne
+concernent que les demandes mal formées (fautes de frappe de Claude, types faux, références
+inexistantes) et expliquent toujours quoi corriger.
+
 Le noyau refuse un lot d'opérations qui produirait un document invalide, et renvoie le **chemin
 exact** de chaque erreur (ex. `ops[3].width : "fill" impossible, le parent n'est pas en mise en
 page automatique`). Les règles, reprises de Figma (`docs/research/figma-model-interactions.md`) :
@@ -228,6 +234,31 @@ page automatique`). Les règles, reprises de Figma (`docs/research/figma-model-i
 
 Bascules d'interface (Figma) : redimensionner à la main ou taper une taille passe l'axe en fixe ;
 double-clic sur un bord de la boîte → hug ; Alt + double-clic → fill.
+
+### 6.1 Corrections automatiques (signalées dans `fixes`, jamais refusées)
+
+- Règle 3 : parent `hug` + enfant `fill` sur le même axe → le parent passe en fixe.
+- Texte : changer `width`/`height` sans préciser `textSizing` réaligne `textSizing` sur les
+  tailles (`width` hug → `auto` et `height` hug ; `height` hug → `auto-height` ; sinon `fixed`).
+- `x`/`y` fournis pour un enfant en flux d'un cadre automatique → ignorés.
+- Supprimer un style nommé encore utilisé → les éléments sont **détachés** : ils gardent la
+  valeur (couleur, propriétés de police) sans la référence.
+- Couleurs : toute couleur CSS lisible (`white`, `#fff`, `#ffff`, `rgb(…)`, `rgba(…)`, les 148
+  noms CSS) est convertie en `#RRGGBB` ou `#RRGGBBAA` majuscules.
+- Changer de mode de mise en page, déplacer hors d'un cadre automatique : tailles `fill`/`hug`
+  devenues impossibles figées à leur taille mesurée, positions reprises du rendu.
+
+### 6.2 Ouverture tolérante d'un fichier
+
+Un fichier n'est **refusé** que s'il est inutilisable : JSON invalide, autre format, version
+absente ou plus récente, ou structure qu'aucune réparation ne rend valide (ex. une opacité
+`"abc"`). Sinon il est **ouvert et réparé**, avec la liste des réparations affichée :
+propriétés inconnues retirées, propriétés manquantes complétées par les valeurs par défaut,
+couleurs converties, références de style inconnues détachées (couleur → `#FF00FF` visible),
+identifiants en double renouvelés, et chaque règle du §6 ramenée à l'état valide le plus proche
+(ex. `x`/`y` retirés d'un enfant en flux, `textSizing` réaligné, `rowGap` retiré sans `wrap`,
+document sans page → une page vide ajoutée). Le fichier sur disque n'est modifié qu'au prochain
+enregistrement.
 
 ## 7. Canevas et interactions
 
