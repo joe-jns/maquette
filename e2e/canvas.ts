@@ -71,3 +71,19 @@ export async function dragBy(page: Page, id: string, dx: number, dy: number, opt
   if (opts.release !== false) await page.mouse.up()
   if (opts.hold) await page.keyboard.up(opts.hold)
 }
+
+/** Centre d'une poignée de la sélection (n, ne, e, se, s, sw, w, nw). */
+export async function handleCenter(page: Page, name: string) {
+  const b = (await page.locator(`[data-handle="${name}"]`).boundingBox())!
+  return { x: b.x + b.width / 2, y: b.y + b.height / 2 }
+}
+
+export async function dragHandle(page: Page, name: string, dx: number, dy: number, hold?: 'Shift' | 'Control') {
+  const c = await handleCenter(page, name)
+  await page.mouse.move(c.x, c.y)
+  if (hold) await page.keyboard.down(hold)
+  await page.mouse.down()
+  await page.mouse.move(c.x + dx, c.y + dy, { steps: 8 })
+  await page.mouse.up()
+  if (hold) await page.keyboard.up(hold)
+}

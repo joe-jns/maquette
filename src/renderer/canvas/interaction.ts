@@ -10,7 +10,8 @@ import { distanceLines, normalizeRect, union, type Point } from './geometry'
 import { deepestHitAt, worldRectOf } from './rects'
 import { ascend, contextOf, descend, marqueeSelect, nextSibling, pickClickTarget } from './selection'
 import { matchShortcut, type CommandId } from './shortcuts'
-import { snapMove } from './snapping'
+import type { HandleName } from './Overlay'
+import { snapMove, snapValue, type Guide } from './snapping'
 
 /** Distance (px écran) avant qu'un appui devienne un glisser. */
 const DRAG_THRESHOLD = 4
@@ -27,6 +28,10 @@ type State =
   | { kind: 'press'; pointerId: number; startX: number; startY: number; target: string; collapseTo: string | null }
   | { kind: 'marquee'; pointerId: number; startX: number; startY: number; start: Point; base: string[]; active: boolean }
   | { kind: 'move'; pointerId: number; start: Point; items: { id: string; x: number; y: number }[]; bounds: Rect; targets: Rect[] }
+  | {
+      kind: 'resize'; pointerId: number; handle: HandleName; id: string; start: Point; rect: Rect
+      x0: number | undefined; y0: number | undefined; xs: number[]; ys: number[]; began: boolean
+    }
 
 /** Vrai quand la frappe doit aller à un champ de saisie (texte en édition, panneau…), pas au canevas. */
 export function typingInField(target: EventTarget | null): boolean {
@@ -124,6 +129,11 @@ export class InteractionController {
     if (e.button !== 0) return
     this.el.setPointerCapture(e.pointerId)
     const count = this.clicks.track(e.timeStamp, e.clientX, e.clientY)
+    const handle = (e.target as Element | null)?.closest?.('[data-handle]') as HTMLElement | SVGElement | null
+    if (handle) {
+      this.pressHandle(e, handle.dataset.handle as HandleName, count)
+      return
+    }
     const d = doc()
     const hit = this.hitAt(e)
 
@@ -185,6 +195,9 @@ export class InteractionController {
       case 'move':
         if (e.pointerId === s.pointerId) this.moveTo(s, e)
         return
+      case 'resize':
+        if (e.pointerId === s.pointerId) this.resizeTo(s, e)
+        return
       case 'idle':
         this.hover(e)
     }
@@ -195,6 +208,108 @@ export class InteractionController {
     if (s.kind === 'idle' || e.pointerId !== s.pointerId) return
     if (s.kind === 'press' && s.collapseTo) ui().select([s.collapseTo])
     this.endGesture()
+  }
+
+  // ——— Redimensionnement ———
+
+  private pressHandle(e: PointerEvent, handle: HandleName, count: 1 | 2): void {
+    const [id, ...rest] = ui().selection
+    if (!id || rest.length) return
+    if (count === 2 && (handle === 'n' || handle === 's' || handle === 'e' || handle === 'w')) {
+      // Double-clic sur un bord : s'adapter au contenu ; avec Alt : remplir. Sans effet si impossible.
+      const axis = handle === 'n' || handle === 's' ? 'height' : 'width'
+      docStore.getState().dispatch([{ op: 'update', id, set: { [axis]: { mode: e.altKey ? 'fill' : 'hug' } } }], e.altKey ? 'Remplir' : 'Adapter au contenu')
+      return
+    }
+    const loc = findNode(doc(), id)
+    const rect = worldRectOf(id)
+    if (!loc || !rect) return
+    const xs: number[] = []
+    const ys: number[] = []
+    const siblings = (loc.parent ? loc.parent.children : loc.page.children).filter((n) => n.id !== id && n.visible).map((n) => n.id)
+    for (const other of loc.parent ? [...siblings, loc.parent.id] : siblings) {
+      const r = worldRectOf(other)
+      if (!r) continue
+      xs.push(r.x, r.x + r.width / 2, r.x + r.width)
+      ys.push(r.y, r.y + r.height / 2, r.y + r.height)
+    }
+    this.state = {
+      kind: 'resize', pointerId: e.pointerId, handle, id, start: this.toWorld(e), rect,
+      x0: inFlow(loc) ? undefined : loc.node.x, y0: inFlow(loc) ? undefined : loc.node.y, xs, ys, began: false,
+    }
+  }
+
+  private resizeTo(s: Extract<State, { kind: 'resize' }>, e: PointerEvent): void {
+    if (!s.began) {
+      docStore.getState().beginGesture()
+      s.began = true
+    }
+    const p = this.toWorld(e)
+    const { rect, handle } = s
+    const left = handle.includes('w')
+    const right = handle.includes('e')
+    const top = handle.includes('n')
+    const bottom = handle.includes('s')
+    let l = rect.x
+    let r = rect.x + rect.width
+    let t = rect.y
+    let b = rect.y + rect.height
+    if (left) l += p.x - s.start.x
+    if (right) r += p.x - s.start.x
+    if (top) t += p.y - s.start.y
+    if (bottom) b += p.y - s.start.y
+
+    const guides: Guide[] = []
+    if (!(e.ctrlKey || e.metaKey)) {
+      const threshold = SNAP / ui().camera.zoom
+      const snapX = (v: number) => snapValue(v, s.xs, threshold)
+      const snapY = (v: number) => snapValue(v, s.ys, threshold)
+      if (left || right) {
+        const res = snapX(left ? l : r)
+        if (res.snapped !== null) {
+          if (left) l = res.value
+          else r = res.value
+          guides.push({ axis: 'x', at: res.value, from: Math.min(t, b), to: Math.max(t, b) })
+        }
+      }
+      if (top || bottom) {
+        const res = snapY(top ? t : b)
+        if (res.snapped !== null) {
+          if (top) t = res.value
+          else b = res.value
+          guides.push({ axis: 'y', at: res.value, from: Math.min(l, r), to: Math.max(l, r) })
+        }
+      }
+    }
+
+    // Maj sur un coin : proportions gardées, le côté qui a le plus bougé l'emporte.
+    if (e.shiftKey && (left || right) && (top || bottom) && rect.width > 0 && rect.height > 0) {
+      const scale = Math.max((r - l) / rect.width, (b - t) / rect.height)
+      const w = rect.width * scale
+      const h = rect.height * scale
+      if (left) l = r - w
+      else r = l + w
+      if (top) t = b - h
+      else b = t + h
+    }
+
+    // Jamais moins de 1 px : on bloque le bord qui bouge.
+    if (r - l < 1) {
+      if (left) l = r - 1
+      else r = l + 1
+    }
+    if (b - t < 1) {
+      if (top) t = b - 1
+      else b = t + 1
+    }
+
+    const set: Record<string, number> = {}
+    if (left || right) set.width = Math.round(r - l)
+    if (top || bottom) set.height = Math.round(b - t)
+    if (left && s.x0 !== undefined) set.x = Math.round(s.x0 + (l - rect.x))
+    if (top && s.y0 !== undefined) set.y = Math.round(s.y0 + (t - rect.y))
+    ui().setExtras({ guides })
+    docStore.getState().previewGesture([{ op: 'update', id: s.id, set }])
   }
 
   // ——— Déplacement libre ———
@@ -280,9 +395,9 @@ export class InteractionController {
     this.state = { kind: 'idle' }
     if (s.kind === 'pan') delete this.el.dataset.panning
     if (s.kind === 'marquee') ui().setExtras({ marquee: null })
-    if (s.kind === 'move') {
+    if (s.kind === 'move' || (s.kind === 'resize' && s.began)) {
       if (cancel) docStore.getState().cancelGesture()
-      else docStore.getState().commitGesture('Déplacer')
+      else docStore.getState().commitGesture(s.kind === 'move' ? 'Déplacer' : 'Redimensionner')
       ui().setExtras({ guides: [], gaps: [] })
     }
   }
@@ -291,7 +406,7 @@ export class InteractionController {
 
   private keyDown(e: KeyboardEvent): void {
     if (typingInField(e.target)) return
-    if (e.key === 'Escape' && this.state.kind === 'move') {
+    if (e.key === 'Escape' && (this.state.kind === 'move' || this.state.kind === 'resize')) {
       e.preventDefault()
       this.endGesture(true)
       return
