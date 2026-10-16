@@ -19,7 +19,13 @@ export async function writeFileAtomic(
   const retries = opts.retries ?? 5
   const delayMs = opts.delayMs ?? 50
   const tmp = `${target}.tmp-${process.pid}-${Date.now().toString(36)}`
-  await fs.writeFile(tmp, data, 'utf8')
+  const cleanup = () => fs.rm(tmp, { force: true }).catch(() => undefined)
+  try {
+    await fs.writeFile(tmp, data, 'utf8')
+  } catch (e) {
+    await cleanup()
+    throw e
+  }
   for (let attempt = 0; ; attempt++) {
     try {
       await fs.rename(tmp, target)
@@ -30,7 +36,7 @@ export async function writeFileAtomic(
         await sleep(delayMs * (attempt + 1))
         continue
       }
-      await fs.rm(tmp, { force: true })
+      await cleanup()
       throw e
     }
   }

@@ -54,4 +54,28 @@ describe('writeFileAtomic', () => {
     await expect(writeFileAtomic(join(dir, 'a.maquette'), 'x', { fs, delayMs: 1 })).rejects.toThrow('disque plein')
     expect(calls).toBe(1)
   })
+
+  it('une écriture qui échoue en cours de route ne laisse pas de temporaire', async () => {
+    const target = join(dir, 'a.maquette')
+    await writeFile(target, 'original', 'utf8')
+    const fs: FsLike = {
+      rm, rename,
+      writeFile: async (path, data, enc) => {
+        await writeFile(path, data.slice(0, 3), enc)
+        throw Object.assign(new Error('disque plein'), { code: 'ENOSPC' })
+      },
+    }
+    await expect(writeFileAtomic(target, 'nouveau contenu', { fs, delayMs: 1 })).rejects.toThrow('disque plein')
+    expect(await readFile(target, 'utf8')).toBe('original')
+    expect(await readdir(dir)).toEqual(['a.maquette'])
+  })
+
+  it('un nettoyage qui échoue ne masque pas l’erreur d’origine', async () => {
+    const fs: FsLike = {
+      writeFile,
+      rename: async () => { throw Object.assign(new Error('disque plein'), { code: 'ENOSPC' }) },
+      rm: async () => { throw new Error('nettoyage impossible') },
+    }
+    await expect(writeFileAtomic(join(dir, 'a.maquette'), 'x', { fs, delayMs: 1 })).rejects.toThrow('disque plein')
+  })
 })
