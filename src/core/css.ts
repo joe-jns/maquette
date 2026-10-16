@@ -43,6 +43,8 @@ export function nodeCss(node: Node, parent: FrameNode | null, styles: DocStyles,
     } else if (size.mode === 'hug') {
       if (isMain) css.flex = '0 0 auto'
       else if (!inFlow) css[axis] = 'fit-content'
+      // Sans taille, align-items: stretch étirerait l'enfant : un hug suit toujours son contenu.
+      else if (parentAuto?.align === 'stretch') css.alignSelf = 'flex-start'
     } else if (isMain) {
       css.flex = '1 1 0'
       css[axis === 'width' ? 'minWidth' : 'minHeight'] = '0px'

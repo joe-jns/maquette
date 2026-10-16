@@ -99,6 +99,13 @@ describe('nodeCss', () => {
     expect(nodeCss(parent.children[1]!, parent, styles, 1).zIndex).toBe(1)
   })
 
+  it('hug sur l’axe secondaire d’un parent en align "stretch" : reste à la taille du contenu', () => {
+    const hug = nodeCss(text('t00001'), autoRow({ align: 'stretch' }), styles)
+    expect(hug.alignSelf).toBe('flex-start')
+    expect(hug.height).toBeUndefined()
+    expect(nodeCss(text('t00002'), autoRow({ align: 'center' }), styles).alignSelf).toBeUndefined()
+  })
+
   it('couleur nommée inconnue : magenta visible', () => {
     expect(resolveColor({ style: 'absent' }, styles)).toBe(MISSING_COLOR)
   })
