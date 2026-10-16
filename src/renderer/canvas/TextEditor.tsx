@@ -31,7 +31,9 @@ export function TextEditor({ node, style }: { node: TextNode; style: CSSProperti
     uiStore.getState().setEditing(null)
     if (content === '') {
       docStore.getState().dispatch([{ op: 'delete', id: node.id }], 'Modifier le texte')
-      uiStore.getState().select([])
+      // Ne retirer que ce texte : un clic ailleurs a peut-être déjà sélectionné autre chose.
+      const ui = uiStore.getState()
+      ui.select(ui.selection.filter((id) => id !== node.id))
     } else if (content !== node.content) {
       docStore.getState().dispatch([{ op: 'update', id: node.id, set: { content } }], 'Modifier le texte')
     }

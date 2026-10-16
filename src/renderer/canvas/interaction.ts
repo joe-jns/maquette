@@ -370,9 +370,15 @@ export class InteractionController {
   }
 
   private async drop(e: DragEvent): Promise<void> {
-    const files = [...(e.dataTransfer?.files ?? [])].filter((f) => f.type.startsWith('image/') || /\.(png|jpe?g|gif|webp|svg|avif)$/i.test(f.name))
-    if (!files.length) return
+    const all = [...(e.dataTransfer?.files ?? [])]
+    if (!all.length) return
+    // Toujours intercepter : un fichier lâché non intercepté ferait naviguer la fenêtre vers lui.
     e.preventDefault()
+    const files = all.filter((f) => f.type.startsWith('image/') || /\.(png|jpe?g|gif|webp|svg|avif)$/i.test(f.name))
+    if (!files.length) {
+      docStore.getState().showError('Seules les images peuvent être déposées sur le canevas')
+      return
+    }
     const point = this.toWorld(e)
     const container = this.frameUnder(e.clientX, e.clientY)
     if (!docStore.getState().filePath) {
@@ -410,7 +416,14 @@ export class InteractionController {
     if (count === 2 && (handle === 'n' || handle === 's' || handle === 'e' || handle === 'w')) {
       // Double-clic sur un bord : s'adapter au contenu ; avec Alt : remplir. Sans effet si impossible.
       const axis = handle === 'n' || handle === 's' ? 'height' : 'width'
-      docStore.getState().dispatch([{ op: 'update', id, set: { [axis]: { mode: e.altKey ? 'fill' : 'hug' } } }], e.altKey ? 'Remplir' : 'Adapter au contenu')
+      const loc = findNode(doc(), id)
+      if (!loc) return
+      const allowed = e.altKey
+        ? inFlow(loc)
+        : loc.node.type === 'text' || (loc.node.type === 'frame' && loc.node.layout.mode === 'auto')
+      if (allowed) {
+        docStore.getState().dispatch([{ op: 'update', id, set: { [axis]: { mode: e.altKey ? 'fill' : 'hug' } } }], e.altKey ? 'Remplir' : 'Adapter au contenu')
+      }
       return
     }
     const loc = findNode(doc(), id)
@@ -709,6 +722,12 @@ export class InteractionController {
 
   private keyDown(e: KeyboardEvent): void {
     if (typingInField(e.target)) return
+    if (ui().helpOpen) {
+      const command = matchShortcut(e)
+      if (command === 'escape' || command === 'help') ui().setHelp(false)
+      e.preventDefault()
+      return
+    }
     if (e.key === 'Escape' && (this.state.kind === 'move' || this.state.kind === 'resize' || this.state.kind === 'create')) {
       e.preventDefault()
       this.endGesture(true)
@@ -818,7 +837,7 @@ export class InteractionController {
         }
         return true
       case 'enter': {
-        if (first && selection.length === 1 && findNode(d, first)?.node.type === 'text') {
+        if (first && selection.length === 1 && findNode(d, first)?.node.type === 'text' && selectable(d, first)) {
           ui().setEditing(first)
           return true
         }

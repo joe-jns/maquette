@@ -17,6 +17,7 @@ export async function openDocument(file: OpenedFile): Promise<void> {
   await window.maquette.documentLoaded(file.path)
   store.load(parsed.doc, file.path)
   uiStore.getState().select([])
+  uiStore.getState().setEditing(null)
   uiStore.getState().requestFit()
   const n = parsed.warnings.length
   if (n > 0) {
