@@ -21,8 +21,9 @@ export function buildMenu(): void {
       {
         label: 'Édition',
         submenu: [
-          { label: 'Annuler', accelerator: 'CmdOrCtrl+Z', click: send('undo') },
-          { label: 'Rétablir', accelerator: 'CmdOrCtrl+Y', click: send('redo') },
+          // Raccourcis affichés mais gérés par le canevas (sinon l'annulation se ferait deux fois).
+          { label: 'Annuler', accelerator: 'CmdOrCtrl+Z', registerAccelerator: false, click: send('undo') },
+          { label: 'Rétablir', accelerator: 'CmdOrCtrl+Y', registerAccelerator: false, click: send('redo') },
         ],
       },
       { label: 'Affichage', submenu: [{ role: 'toggleDevTools', label: 'Outils de développement' }] },

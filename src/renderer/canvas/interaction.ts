@@ -1,17 +1,21 @@
 import { findNode } from '../../core/tree'
-import type { FrameNode, MaquetteDocument } from '../../core/types'
+import type { FrameNode, MaquetteDocument, Rect } from '../../core/types'
 import { docStore } from '../state/store'
 import { uiStore } from '../state/ui'
 import { screenToWorld } from './camera'
 import { fitTo, selectionExists, zoomAroundCenter, zoomStep } from './camera-actions'
+import { inFlow, nudgeOps, topLevel } from './canvasOps'
 import { createClickTracker } from './clicks'
 import { distanceLines, normalizeRect, union, type Point } from './geometry'
 import { deepestHitAt, worldRectOf } from './rects'
 import { ascend, contextOf, descend, marqueeSelect, nextSibling, pickClickTarget } from './selection'
 import { matchShortcut, type CommandId } from './shortcuts'
+import { snapMove } from './snapping'
 
 /** Distance (px écran) avant qu'un appui devienne un glisser. */
 const DRAG_THRESHOLD = 4
+/** Portée du magnétisme, en px écran. */
+const SNAP = 5
 
 /**
  * Machine à états des gestes sur le canevas. Un seul geste à la fois ; chaque état gère le pointeur
@@ -22,6 +26,7 @@ type State =
   | { kind: 'pan'; pointerId: number; lastX: number; lastY: number }
   | { kind: 'press'; pointerId: number; startX: number; startY: number; target: string; collapseTo: string | null }
   | { kind: 'marquee'; pointerId: number; startX: number; startY: number; start: Point; base: string[]; active: boolean }
+  | { kind: 'move'; pointerId: number; start: Point; items: { id: string; x: number; y: number }[]; bounds: Rect; targets: Rect[] }
 
 /** Vrai quand la frappe doit aller à un champ de saisie (texte en édition, panneau…), pas au canevas. */
 export function typingInField(target: EventTarget | null): boolean {
@@ -173,6 +178,12 @@ export class InteractionController {
         return
       }
       case 'press':
+        if (e.pointerId === s.pointerId && Math.hypot(e.clientX - s.startX, e.clientY - s.startY) >= DRAG_THRESHOLD) {
+          this.startMove(s, e)
+        }
+        return
+      case 'move':
+        if (e.pointerId === s.pointerId) this.moveTo(s, e)
         return
       case 'idle':
         this.hover(e)
@@ -184,6 +195,65 @@ export class InteractionController {
     if (s.kind === 'idle' || e.pointerId !== s.pointerId) return
     if (s.kind === 'press' && s.collapseTo) ui().select([s.collapseTo])
     this.endGesture()
+  }
+
+  // ——— Déplacement libre ———
+
+  /** Le glisser démarre : éléments hors flux déplacés en x/y, avec magnétisme sur les voisins et le parent. */
+  private startMove(s: Extract<State, { kind: 'press' }>, e: PointerEvent): void {
+    const d = doc()
+    const locs = topLevel(d, ui().selection)
+    if (locs.length === 0 || locs.some(inFlow)) {
+      this.state = { kind: 'idle' }
+      return
+    }
+    const selected = new Set(locs.map((l) => l.node.id))
+    const targets: Rect[] = []
+    const seen = new Set<string>()
+    for (const loc of locs) {
+      const siblings = loc.parent ? loc.parent.children : loc.page.children
+      for (const n of siblings) {
+        if (selected.has(n.id) || seen.has(n.id) || !n.visible) continue
+        seen.add(n.id)
+        const r = worldRectOf(n.id)
+        if (r) targets.push(r)
+      }
+      if (loc.parent && !seen.has(loc.parent.id)) {
+        seen.add(loc.parent.id)
+        const r = worldRectOf(loc.parent.id)
+        if (r) targets.push(r)
+      }
+    }
+    const bounds = union(locs.map((l) => worldRectOf(l.node.id)).filter((r) => r !== undefined))
+    if (!bounds) {
+      this.state = { kind: 'idle' }
+      return
+    }
+    docStore.getState().beginGesture()
+    const start = this.toWorld({ clientX: s.startX, clientY: s.startY })
+    const items = locs.map((l) => ({ id: l.node.id, x: l.node.x ?? 0, y: l.node.y ?? 0 }))
+    const move: Extract<State, { kind: 'move' }> = { kind: 'move', pointerId: s.pointerId, start, items, bounds, targets }
+    this.state = move
+    ui().setHover(null)
+    this.moveTo(move, e)
+  }
+
+  private moveTo(s: Extract<State, { kind: 'move' }>, e: PointerEvent): void {
+    const p = this.toWorld(e)
+    let dx = p.x - s.start.x
+    let dy = p.y - s.start.y
+    if (e.ctrlKey || e.metaKey) {
+      ui().setExtras({ guides: [], gaps: [] })
+    } else {
+      const moved = { ...s.bounds, x: s.bounds.x + dx, y: s.bounds.y + dy }
+      const snap = snapMove(moved, s.targets, SNAP / ui().camera.zoom)
+      dx += snap.dx
+      dy += snap.dy
+      ui().setExtras({ guides: snap.guides, gaps: snap.gaps })
+    }
+    docStore.getState().previewGesture(
+      s.items.map((it) => ({ op: 'update' as const, id: it.id, set: { x: Math.round(it.x + dx), y: Math.round(it.y + dy) } })),
+    )
   }
 
   /** Survol : ce qu'un clic sélectionnerait ; avec Alt, les distances jusqu'à la sélection. */
@@ -201,17 +271,35 @@ export class InteractionController {
     }
   }
 
-  /** Fin d'un geste, y compris quand la fenêtre perd le focus ou la capture du pointeur. */
-  private endGesture(): void {
-    if (this.state.kind === 'pan') delete this.el.dataset.panning
-    if (this.state.kind === 'marquee') ui().setExtras({ marquee: null })
+  /**
+   * Fin d'un geste, y compris quand la fenêtre perd le focus ou la capture du pointeur : un geste en
+   * cours est validé (une entrée d'historique), ou annulé si `cancel`.
+   */
+  private endGesture(cancel = false): void {
+    const s = this.state
     this.state = { kind: 'idle' }
+    if (s.kind === 'pan') delete this.el.dataset.panning
+    if (s.kind === 'marquee') ui().setExtras({ marquee: null })
+    if (s.kind === 'move') {
+      if (cancel) docStore.getState().cancelGesture()
+      else docStore.getState().commitGesture('Déplacer')
+      ui().setExtras({ guides: [], gaps: [] })
+    }
   }
 
   // ——— Clavier ———
 
   private keyDown(e: KeyboardEvent): void {
     if (typingInField(e.target)) return
+    if (e.key === 'Escape' && this.state.kind === 'move') {
+      e.preventDefault()
+      this.endGesture(true)
+      return
+    }
+    if (this.state.kind !== 'idle' && this.state.kind !== 'pan') {
+      e.preventDefault()
+      return
+    }
     if (e.key === ' ') {
       e.preventDefault()
       this.spaceDown = true
@@ -276,6 +364,29 @@ export class InteractionController {
         const loc = context ? findNode(d, context) : null
         const children = loc ? (loc.node as FrameNode).children : currentPageChildren(d)
         ui().select(children.filter((n) => selectable(d, n.id)).map((n) => n.id))
+        return true
+      }
+      case 'undo':
+        docStore.getState().undo()
+        return true
+      case 'redo':
+        docStore.getState().redo()
+        return true
+      case 'nudgeLeft':
+      case 'nudgeRight':
+      case 'nudgeUp':
+      case 'nudgeDown':
+      case 'nudgeLeft10':
+      case 'nudgeRight10':
+      case 'nudgeUp10':
+      case 'nudgeDown10': {
+        if (!first) return true
+        const step = command.endsWith('10') ? 10 : 1
+        const dir = command.replace('nudge', '').replace('10', '')
+        const dx = dir === 'Left' ? -step : dir === 'Right' ? step : 0
+        const dy = dir === 'Up' ? -step : dir === 'Down' ? step : 0
+        const built = nudgeOps(d, selection, dx, dy)
+        if (built.ops.length) docStore.getState().dispatch(built.ops, 'Déplacer')
         return true
       }
       default:
