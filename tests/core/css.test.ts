@@ -106,6 +106,12 @@ describe('nodeCss', () => {
     expect(nodeCss(text('t00002'), autoRow({ align: 'center' }), styles).alignSelf).toBeUndefined()
   })
 
+  it('fill sur l’axe secondaire : l’étirement l’emporte sur un alignSelf explicite', () => {
+    const css = nodeCss(rect('r00001', { width: 50, height: { mode: 'fill' }, alignSelf: 'center' }), autoRow(), styles)
+    expect(css.alignSelf).toBe('stretch')
+    expect(nodeCss(rect('r00002', { width: 50, height: 20, alignSelf: 'center' }), autoRow(), styles).alignSelf).toBe('center')
+  })
+
   it('couleur nommée inconnue : magenta visible', () => {
     expect(resolveColor({ style: 'absent' }, styles)).toBe(MISSING_COLOR)
   })

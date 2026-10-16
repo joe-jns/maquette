@@ -34,6 +34,7 @@ export function nodeCss(node: Node, parent: FrameNode | null, styles: DocStyles,
     css.top = px(node.y ?? 0)
   }
 
+  let crossFill = false
   for (const axis of ['width', 'height'] as Axis[]) {
     const size = node[axis]
     const isMain = parentAuto !== null && inFlow && (parentAuto.direction === 'row') === (axis === 'width')
@@ -50,13 +51,15 @@ export function nodeCss(node: Node, parent: FrameNode | null, styles: DocStyles,
       css[axis === 'width' ? 'minWidth' : 'minHeight'] = '0px'
     } else {
       css.alignSelf = 'stretch'
+      crossFill = inFlow
     }
   }
   if (node.minWidth !== undefined) css.minWidth = px(node.minWidth)
   if (node.maxWidth !== undefined) css.maxWidth = px(node.maxWidth)
   if (node.minHeight !== undefined) css.minHeight = px(node.minHeight)
   if (node.maxHeight !== undefined) css.maxHeight = px(node.maxHeight)
-  if (node.alignSelf !== undefined) css.alignSelf = FLEX_ALIGN[node.alignSelf]
+  // fill sur l'axe secondaire = étirement : un alignSelf explicite ne doit pas l'annuler.
+  if (node.alignSelf !== undefined && !crossFill) css.alignSelf = FLEX_ALIGN[node.alignSelf]
   if (parentAuto?.reverseZ && parent) css.zIndex = parent.children.length - index
 
   if (node.opacity !== 1) css.opacity = node.opacity
