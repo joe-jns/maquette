@@ -219,7 +219,7 @@ export function repairDocument(raw: Record<string, unknown>): { doc: unknown; wa
       const l = given.layout
       if (isObj(l) && l.mode === 'auto') node.layout = { ...autoLayoutDefaults(), ...dropUnknown(l, AUTO_LAYOUT_KEYS, [...s, 'layout']) }
       else if (isObj(l) && l.mode === 'free') node.layout = dropUnknown(l, new Set(['mode']), [...s, 'layout'], 'propriété sans effet en placement libre')
-      else node.layout = l
+      else warn([...s, 'layout'], 'mise en page illisible : remplacée par le placement libre')
     }
 
     // Couleurs et références de style

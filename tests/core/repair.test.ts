@@ -68,4 +68,13 @@ describe('repairDocument', () => {
     expect(doc.pages[0]!.children[1]).toMatchObject({ width: 100, position: 'flow' })
     expect(doc.pages[0]!.children[1]).not.toHaveProperty('minWidth')
   })
+
+  it('mise en page illisible → placement libre, avec avertissement', () => {
+    const { doc, paths } = fix(raw([{ id: 'p1', name: 'P', children: [
+      { id: 'f1', type: 'frame', x: 0, y: 0, layout: { mode: 'grid' }, children: [{ id: 'r1', type: 'shape', x: 4, y: 4 }] },
+    ] }]))
+    const f = doc.pages[0]!.children[0]!
+    expect(f.type === 'frame' && f.layout).toEqual({ mode: 'free' })
+    expect(paths).toEqual(['pages[0].children[0].layout'])
+  })
 })
