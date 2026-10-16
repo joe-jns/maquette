@@ -377,6 +377,25 @@ valeur « Mixte » en sélection multiple. Choix d'un style nommé ou valeur lib
 Les schémas des outils sont dérivés des schémas Zod du noyau. Pas d'outil qui exécute du
 JavaScript arbitraire. Les éléments modifiés par Claude clignotent brièvement d'un contour coloré.
 
+### Économie de tokens (exigence)
+
+L'utilisateur a constaté que Pen consomme beaucoup de son abonnement. Causes observées dans Pen :
+≈ 13 000 tokens de skill ajoutés au prompt de chaque conversation, effort `high` par défaut,
+réponses d'outils volumineuses (état « riche » du document, captures jusqu'à 1568 px) qui restent
+dans le contexte et sont relues à chaque tour. Maquette fait l'inverse :
+
+- **Réponses compactes par défaut** : `lire_document` renvoie un résumé (pages, cadres de premier
+  niveau, nombre d'éléments) ; `lire_elements` a une profondeur par défaut de 1 et omet les
+  valeurs par défaut ; `appliquer` ne renvoie que les identifiants créés, les corrections
+  (`fixes`) et les erreurs — jamais le document.
+- **Captures sur demande seulement**, largeur par défaut 800 px, JPEG ; jamais renvoyées
+  automatiquement après une modification.
+- **Descriptions d'outils courtes** ; la documentation détaillée est dans le skill, chargé quand
+  il sert (pas recopié dans le prompt système).
+- **Chat intégré (v2)** : effort `medium` par défaut, réglable.
+- Mesure : une session type (créer une section hero de 15 éléments, la corriger deux fois) doit
+  coûter nettement moins que la même avec Pen ; le plan 4 inclut ce banc d'essai.
+
 ### v2 — chat intégré (fixé maintenant pour ne pas le bloquer)
 
 - L'app lance Claude par l'Agent SDK (`query()`), avec l'exécutable `claude` déjà installé et
