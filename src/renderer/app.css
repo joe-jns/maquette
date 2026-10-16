@@ -22,3 +22,16 @@ body { font-family: system-ui, sans-serif; background: #e5e5e5; color: #111; }
   background: #fffffff2; color: #333; font: 500 12px/1 system-ui, sans-serif; box-shadow: 0 1px 3px #0002;
   font-variant-numeric: tabular-nums;
 }
+.canvas[data-tool='frame'], .canvas[data-tool='rect'], .canvas[data-tool='ellipse'] { cursor: crosshair; }
+.canvas[data-tool='text'] { cursor: text; }
+.toolbar {
+  position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 5;
+  display: flex; gap: 2px; padding: 4px; border-radius: 10px; background: #1e1e1e; box-shadow: 0 2px 10px #0003;
+}
+.toolbar button {
+  display: grid; place-items: center; width: 34px; height: 34px; border: 0; border-radius: 7px;
+  background: transparent; color: #e5e5e5; cursor: pointer;
+}
+.toolbar button:hover { background: #ffffff1a; }
+.toolbar button[aria-pressed='true'] { background: #0d99ff; color: #fff; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

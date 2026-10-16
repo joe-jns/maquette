@@ -87,3 +87,18 @@ export async function dragHandle(page: Page, name: string, dx: number, dy: numbe
   await page.mouse.up()
   if (hold) await page.keyboard.up(hold)
 }
+
+/** Point écran correspondant à un point du monde (caméra lue dans l'interface). */
+export async function screenOf(page: Page, x: number, y: number) {
+  const cam = await page.evaluate(() => (window as unknown as { __maquetteUi: { getState(): { camera: { x: number; y: number; zoom: number } } } }).__maquetteUi.getState().camera)
+  return { x: x * cam.zoom + cam.x, y: y * cam.zoom + cam.y }
+}
+
+export const pageChildren = (page: Page) =>
+  page.evaluate(() => (window as unknown as { __maquetteStore: { getState(): { doc: { pages: { children: Record<string, unknown>[] }[] } } } }).__maquetteStore.getState().doc.pages[0]!.children)
+
+export const uiState = (page: Page) =>
+  page.evaluate(() => {
+    const s = (window as unknown as { __maquetteUi: { getState(): { tool: string; selection: string[]; editingTextId: string | null } } }).__maquetteUi.getState()
+    return { tool: s.tool, selection: s.selection, editing: s.editingTextId }
+  })

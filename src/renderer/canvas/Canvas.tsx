@@ -6,6 +6,7 @@ import { fitTo } from './camera-actions'
 import { InteractionController } from './interaction'
 import { NodeView } from './NodeView'
 import { Overlay } from './Overlay'
+import { Toolbar } from './Toolbar'
 
 export function Canvas() {
   const page = useDoc((s) => s.doc.pages.find((p) => p.id === s.pageId) ?? s.doc.pages[0]!)
@@ -70,6 +71,7 @@ export function Canvas() {
         ))}
       </div>
       <Overlay />
+      <Toolbar />
       <div className="zoom-badge" data-testid="zoom">{formatZoom(camera.zoom)}</div>
     </div>
   )

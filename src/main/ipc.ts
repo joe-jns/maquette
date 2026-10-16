@@ -1,8 +1,9 @@
 import { BrowserWindow, dialog, ipcMain } from 'electron'
 import { readFile } from 'node:fs/promises'
-import type { OpenedFile } from '../shared/ipc'
+import type { ImageImport, OpenedFile } from '../shared/ipc'
 import { writeFileAtomic } from './files'
-import { acceptPath, allowedSavePath, offerPath, savedTo } from './state'
+import { importImage } from './images'
+import { acceptPath, allowedSavePath, getCurrentDir, offerPath, savedTo } from './state'
 
 const FILTERS = [{ name: 'Maquette', extensions: ['maquette'] }]
 
@@ -23,6 +24,16 @@ export function registerFileIpc(fileArg: string | undefined): void {
     if (res.canceled || !path) return null
     offerPath(path)
     return { path, text: await readFile(path, 'utf8') }
+  })
+
+  ipcMain.handle('image:import', async (_event, args: { name: string; bytes: Uint8Array }): Promise<ImageImport> => {
+    const dir = getCurrentDir()
+    if (!dir) return { ok: false, message: 'Enregistrez d’abord le document : les images vont dans son dossier assets/' }
+    try {
+      return { ok: true, ...(await importImage(dir, args.name, args.bytes)) }
+    } catch (e) {
+      return { ok: false, message: (e as Error).message }
+    }
   })
 
   ipcMain.handle('doc:loaded', (_event, path: string | null): boolean => acceptPath(path))

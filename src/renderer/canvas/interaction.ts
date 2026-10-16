@@ -1,8 +1,10 @@
 import type { Op } from '../../core/ops'
 import { containsId, findNode } from '../../core/tree'
 import type { FrameNode, MaquetteDocument, Rect } from '../../core/types'
+import { runCommand } from '../state/commands'
 import { docStore } from '../state/store'
-import { uiStore } from '../state/ui'
+import { uiStore, type Tool } from '../state/ui'
+import { assetUrl } from './assetUrl'
 import { screenToWorld } from './camera'
 import { fitTo, selectionExists, zoomAroundCenter, zoomStep } from './camera-actions'
 import { inFlow, nudgeOps, topLevel } from './canvasOps'
@@ -14,6 +16,18 @@ import { insertionIndex, insertionMarker } from './reorder'
 import { matchShortcut, type CommandId } from './shortcuts'
 import type { HandleName } from './Overlay'
 import { snapMove, snapValue, type Guide } from './snapping'
+
+const TOOLS = { 'tool.move': 'move', 'tool.frame': 'frame', 'tool.rect': 'rect', 'tool.ellipse': 'ellipse', 'tool.text': 'text' } as const
+
+/** Taille naturelle d'une image servie par masset:// (1 × 1 si elle ne se charge pas). */
+function naturalSize(url: string): Promise<{ width: number; height: number }> {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.onload = () => resolve({ width: img.naturalWidth || 1, height: img.naturalHeight || 1 })
+    img.onerror = () => resolve({ width: 1, height: 1 })
+    img.src = url
+  })
+}
 
 /** Distance (px écran) avant qu'un appui devienne un glisser. */
 const DRAG_THRESHOLD = 4
@@ -31,9 +45,16 @@ type State =
   | { kind: 'marquee'; pointerId: number; startX: number; startY: number; start: Point; base: string[]; active: boolean }
   | MoveState
   | {
+      kind: 'create'; pointerId: number; tool: Exclude<Tool, 'move'>; start: Point; startX: number; startY: number
+      container: Container; began: boolean; createdId: string | null
+    }
+  | {
       kind: 'resize'; pointerId: number; handle: HandleName; id: string; start: Point; rect: Rect
       x0: number | undefined; y0: number | undefined; xs: number[]; ys: number[]; began: boolean
     }
+
+/** Un cadre (ou la page) qui reçoit un nouvel élément, avec son rectangle dans le monde. */
+interface Container { id: string; frame: FrameNode | null; rect: Rect }
 
 interface MoveState {
   kind: 'move'
@@ -105,6 +126,8 @@ export class InteractionController {
     this.on(el, 'pointerleave', () => ui().setHover(null))
     this.on(el, 'lostpointercapture', () => this.endGesture())
     this.on(el, 'auxclick', (e) => e.preventDefault())
+    this.on(el, 'dragover', (e) => this.dragOver(e as DragEvent))
+    this.on(el, 'drop', (e) => void this.drop(e as DragEvent))
     this.on(window, 'keydown', (e) => this.keyDown(e as KeyboardEvent))
     this.on(window, 'keyup', (e) => this.keyUp(e as KeyboardEvent))
     this.on(window, 'blur', () => {
@@ -137,6 +160,8 @@ export class InteractionController {
 
   private pointerDown(e: PointerEvent): void {
     if (this.state.kind !== 'idle') return
+    // Les éléments d'interface posés sur le canevas (barre d'outils…) gèrent leurs propres clics.
+    if ((e.target as Element | null)?.closest?.('[data-ui]')) return
     if (e.button === 1 || (e.button === 0 && this.spaceDown)) {
       e.preventDefault()
       this.el.setPointerCapture(e.pointerId)
@@ -147,6 +172,15 @@ export class InteractionController {
     if (e.button !== 0) return
     this.el.setPointerCapture(e.pointerId)
     const count = this.clicks.track(e.timeStamp, e.clientX, e.clientY)
+    const tool = ui().tool
+    if (tool !== 'move') {
+      const start = this.toWorld(e)
+      this.state = {
+        kind: 'create', pointerId: e.pointerId, tool, start, startX: e.clientX, startY: e.clientY,
+        container: this.frameUnder(e.clientX, e.clientY), began: false, createdId: null,
+      }
+      return
+    }
     const handle = (e.target as Element | null)?.closest?.('[data-handle]') as HTMLElement | SVGElement | null
     if (handle) {
       this.pressHandle(e, handle.dataset.handle as HandleName, count)
@@ -216,6 +250,16 @@ export class InteractionController {
       case 'resize':
         if (e.pointerId === s.pointerId) this.resizeTo(s, e)
         return
+      case 'create':
+        if (e.pointerId !== s.pointerId) return
+        if (!s.began && Math.hypot(e.clientX - s.startX, e.clientY - s.startY) < DRAG_THRESHOLD) return
+        if (s.tool === 'text') return
+        if (!s.began) {
+          docStore.getState().beginGesture()
+          s.began = true
+        }
+        this.drawTo(s, e)
+        return
       case 'idle':
         this.hover(e)
     }
@@ -225,7 +269,113 @@ export class InteractionController {
     const s = this.state
     if (s.kind === 'idle' || e.pointerId !== s.pointerId) return
     if (s.kind === 'press' && s.collapseTo) ui().select([s.collapseTo])
+    if (s.kind === 'create' && !s.began) {
+      // Simple clic : taille par défaut, coin haut-gauche au point cliqué.
+      this.state = { kind: 'idle' }
+      const result = docStore.getState().dispatch([this.createOp(s, null)], 'Créer')
+      if (result.ok) this.afterCreate(s.tool, result.ids['$new'] ?? null)
+      return
+    }
     this.endGesture()
+  }
+
+  // ——— Création ———
+
+  /** Cadre (ou page) le plus profond sous un point de l'écran, visible et déverrouillé. */
+  private frameUnder(clientX: number, clientY: number): Container {
+    const d = doc()
+    const seen = new Set<string>()
+    for (const el of document.elementsFromPoint(clientX, clientY)) {
+      const id = (el as HTMLElement).closest<HTMLElement>('[data-node-id]')?.dataset.nodeId
+      if (!id || seen.has(id)) continue
+      seen.add(id)
+      const loc = findNode(d, id)
+      if (!loc || loc.node.type !== 'frame' || !selectable(d, id)) continue
+      const rect = worldRectOf(id)
+      if (rect) return { id, frame: loc.node, rect }
+    }
+    return { id: docStore.getState().pageId, frame: null, rect: { x: 0, y: 0, width: 0, height: 0 } }
+  }
+
+  /** Opération qui crée l'élément de l'outil : `rect` dessiné, ou taille par défaut au point de départ. */
+  private createOp(s: Extract<State, { kind: 'create' }>, rect: Rect | null): Op {
+    const kind =
+      s.tool === 'frame' ? { type: 'frame' as const }
+      : s.tool === 'text' ? { type: 'text' as const }
+      : { type: 'shape' as const, shape: s.tool === 'ellipse' ? ('ellipse' as const) : ('rectangle' as const) }
+    const size = rect ? { width: Math.max(1, Math.round(rect.width)), height: Math.max(1, Math.round(rect.height)) } : {}
+    const at = rect ?? { x: s.start.x, y: s.start.y, width: 0, height: 0 }
+    const layout = s.container.frame?.layout
+    if (s.container.frame && layout?.mode === 'auto') {
+      const rects = s.container.frame.children.filter((c) => c.position === 'flow').map((c) => worldRectOf(c.id)).filter((r) => r !== undefined)
+      const index = insertionIndex(rects, layout.direction, s.start, layout.wrap)
+      return { op: 'create', parent: s.container.id, index, node: { id: '$new', ...kind, ...size } }
+    }
+    return {
+      op: 'create', parent: s.container.id,
+      node: { id: '$new', ...kind, ...size, x: Math.round(at.x - s.container.rect.x), y: Math.round(at.y - s.container.rect.y) },
+    }
+  }
+
+  private drawTo(s: Extract<State, { kind: 'create' }>, e: PointerEvent): void {
+    const p = this.toWorld(e)
+    let end = p
+    if (e.shiftKey) {
+      const side = Math.max(Math.abs(p.x - s.start.x), Math.abs(p.y - s.start.y))
+      end = { x: s.start.x + Math.sign(p.x - s.start.x || 1) * side, y: s.start.y + Math.sign(p.y - s.start.y || 1) * side }
+    }
+    const result = docStore.getState().previewGesture([this.createOp(s, normalizeRect(s.start, end))])
+    if (result.ok) s.createdId = result.ids['$new'] ?? null
+  }
+
+  /** Après une création : l'élément est sélectionné, retour à l'outil Déplacer, un texte s'ouvre en édition. */
+  private afterCreate(tool: Tool, id: string | null): void {
+    ui().setTool('move')
+    if (!id) return
+    ui().select([id])
+    if (tool === 'text') ui().setEditing(id)
+  }
+
+  // ——— Dépôt d'images ———
+
+  private dragOver(e: DragEvent): void {
+    if ([...(e.dataTransfer?.items ?? [])].some((i) => i.kind === 'file')) {
+      e.preventDefault()
+      if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy'
+    }
+  }
+
+  private async drop(e: DragEvent): Promise<void> {
+    const files = [...(e.dataTransfer?.files ?? [])].filter((f) => f.type.startsWith('image/') || /\.(png|jpe?g|gif|webp|svg|avif)$/i.test(f.name))
+    if (!files.length) return
+    e.preventDefault()
+    const point = this.toWorld(e)
+    const container = this.frameUnder(e.clientX, e.clientY)
+    if (!docStore.getState().filePath) {
+      await runCommand('save-as')
+      if (!docStore.getState().filePath) return
+    }
+    const created: string[] = []
+    for (const [i, file] of files.entries()) {
+      const res = await window.maquette.importImage(file.name, new Uint8Array(await file.arrayBuffer()))
+      if (!res.ok) {
+        docStore.getState().showError(`${file.name} : ${res.message}`)
+        continue
+      }
+      const natural = await naturalSize(assetUrl(res.src))
+      const scale = natural.width > 800 ? 800 / natural.width : 1
+      const node = {
+        id: '$img', type: 'image' as const, name: file.name.replace(/\.[^.]+$/, ''), src: res.src,
+        width: Math.max(1, Math.round(natural.width * scale)), height: Math.max(1, Math.round(natural.height * scale)),
+      }
+      const auto = container.frame?.layout.mode === 'auto'
+      const op: Op = auto
+        ? { op: 'create', parent: container.id, node }
+        : { op: 'create', parent: container.id, node: { ...node, x: Math.round(point.x - container.rect.x + i * 20), y: Math.round(point.y - container.rect.y + i * 20) } }
+      const result = docStore.getState().dispatch([op], 'Importer une image')
+      if (result.ok && result.ids['$img']) created.push(result.ids['$img'])
+    }
+    if (created.length) ui().select(created)
   }
 
   // ——— Redimensionnement ———
@@ -511,6 +661,13 @@ export class InteractionController {
     this.state = { kind: 'idle' }
     if (s.kind === 'pan') delete this.el.dataset.panning
     if (s.kind === 'marquee') ui().setExtras({ marquee: null })
+    if (s.kind === 'create' && s.began) {
+      if (cancel) docStore.getState().cancelGesture()
+      else {
+        docStore.getState().commitGesture('Créer')
+        this.afterCreate(s.tool, s.createdId)
+      }
+    }
     if (s.kind === 'move' || (s.kind === 'resize' && s.began)) {
       if (!cancel && s.kind === 'move' && s.drop && s.single) {
         docStore.getState().previewGesture([{ op: 'move', id: s.single.id, parent: s.drop.parent, index: s.drop.index }])
@@ -525,7 +682,7 @@ export class InteractionController {
 
   private keyDown(e: KeyboardEvent): void {
     if (typingInField(e.target)) return
-    if (e.key === 'Escape' && (this.state.kind === 'move' || this.state.kind === 'resize')) {
+    if (e.key === 'Escape' && (this.state.kind === 'move' || this.state.kind === 'resize' || this.state.kind === 'create')) {
       e.preventDefault()
       this.endGesture(true)
       return
@@ -574,6 +731,10 @@ export class InteractionController {
         if (selectionExists()) fitTo(selection, 220)
         return true
       case 'escape':
+        if (ui().tool !== 'move') {
+          ui().setTool('move')
+          return true
+        }
         if (first) {
           const parent = ascend(d, first)
           ui().select(parent ? [parent] : [])
@@ -600,6 +761,13 @@ export class InteractionController {
         ui().select(children.filter((n) => selectable(d, n.id)).map((n) => n.id))
         return true
       }
+      case 'tool.move':
+      case 'tool.frame':
+      case 'tool.rect':
+      case 'tool.ellipse':
+      case 'tool.text':
+        ui().setTool(TOOLS[command])
+        return true
       case 'undo':
         docStore.getState().undo()
         return true
