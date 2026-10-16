@@ -1,9 +1,11 @@
 import { current, enablePatches, isDraft, produceWithPatches, type Patch } from 'immer'
+import { normalizeColor, normalizeColorValue } from './color'
 import { autoLayoutDefaults, createNode } from './defaults'
+import { alignTextSizing } from './fixes'
 import { newId } from './ids'
 import { validateDocument, type Issue } from './rules'
 import { collectIds, containsId, findNode, isFill, isHug, walk } from './tree'
-import type { AutoLayout, Axis, FrameNode, MaquetteDocument, Node, NodeInput, Page, Rect, TextNode, TextStyle } from './types'
+import type { AutoLayout, Axis, Color, FrameNode, MaquetteDocument, Node, NodeInput, Page, Rect, TextNode, TextStyle } from './types'
 
 enablePatches()
 
@@ -144,12 +146,16 @@ function applyOne(ctx: Ctx, op: Op, i: number): void {
       if ('children' in op.node && op.node.children !== undefined) {
         fail(i, 'node.children', 'créer les enfants avec des opérations "create" séparées (parent: "$…")')
       }
-      const { id: requested, ...input } = op.node
-      const node = createNode(resolveRefs(ctx, input, i, 'node') as NodeInput, allocate(ctx, requested, i, 'node.id'))
-      if (!(isAutoContainer(c) && node.position === 'flow')) {
+      const { id: requested, ...rawInput } = op.node
+      const input = resolveRefs(ctx, rawInput, i, 'node') as Record<string, unknown>
+      normalizeColorFields(input, i, 'node')
+      const node = createNode(input as NodeInput, allocate(ctx, requested, i, 'node.id'))
+      if (isAutoContainer(c) && node.position === 'flow') ignoreFlowXY(ctx, node)
+      else {
         node.x ??= 0
         node.y ??= 0
       }
+      if (node.type === 'text' && ('width' in input || 'height' in input) && !('textSizing' in input)) realignText(ctx, node)
       const list = childrenOf(c)
       list.splice(clampIndex(op.index, list.length), 0, node)
       return
@@ -159,19 +165,25 @@ function applyOne(ctx: Ctx, op: Op, i: number): void {
       if (!loc) return fail(i, 'id', `élément introuvable : ${op.id}`)
       const node = loc.node
       const bag = node as unknown as Record<string, unknown>
-      for (const [key, value] of Object.entries(op.set)) {
+      for (const key of Object.keys(op.set)) {
         if (LOCKED_KEYS.has(key)) fail(i, `set.${key}`, `champ non modifiable : ${key}`)
+      }
+      // resolveRefs reconstruit objets et tableaux : `set` est une copie, jamais partagée avec l'appelant.
+      const set = resolveRefs(ctx, op.set, i, 'set')
+      normalizeColorFields(set, i, 'set')
+      for (const [key, value] of Object.entries(set)) {
         if (key === 'layout') {
           setLayout(ctx, node, value, i)
           continue
         }
         if (value === null) delete bag[key]
-        else if (key === 'textStyle' && typeof value === 'string') bag[key] = resolve(ctx, value, i, 'set.textStyle')
-        else bag[key] = structuredClone(resolveRefs(ctx, value, i, `set.${key}`))
+        else bag[key] = value
       }
-      if (node.type === 'text' && FONT_KEYS.some((k) => k in op.set) && !('textStyle' in op.set)) {
-        delete (node as TextNode).textStyle
+      if (node.type === 'text' && FONT_KEYS.some((k) => k in set) && !('textStyle' in set)) {
+        delete node.textStyle
       }
+      if (node.type === 'text' && ('width' in set || 'height' in set) && !('textSizing' in set)) realignText(ctx, node)
+      if (loc.parent?.layout.mode === 'auto' && node.position === 'flow') ignoreFlowXY(ctx, node)
       return
     }
     case 'move': {
@@ -220,9 +232,11 @@ function applyOne(ctx: Ctx, op: Op, i: number): void {
       return
     }
     case 'style.color.set': {
+      const value = (typeof op.value === 'string' ? normalizeColor(op.value) : null)
+        ?? fail(i, 'value', `couleur illisible : ${JSON.stringify(op.value)}`)
       const existing = findStyle(ctx, ctx.draft.styles.colors, op.id, i)
-      if (existing) Object.assign(existing, { name: op.name, value: op.value })
-      else ctx.draft.styles.colors.push({ id: allocate(ctx, op.id, i, 'id'), name: op.name, value: op.value })
+      if (existing) Object.assign(existing, { name: op.name, value })
+      else ctx.draft.styles.colors.push({ id: allocate(ctx, op.id, i, 'id'), name: op.name, value })
       return
     }
     case 'style.text.set': {
@@ -234,12 +248,20 @@ function applyOne(ctx: Ctx, op: Op, i: number): void {
     }
     case 'style.delete': {
       const id = resolve(ctx, op.id, i, 'id')
-      for (const list of [ctx.draft.styles.colors, ctx.draft.styles.text] as { id: string }[][]) {
-        const index = list.findIndex((s) => s.id === id)
-        if (index >= 0) {
-          list.splice(index, 1)
-          return
-        }
+      const { colors, text } = ctx.draft.styles
+      const ci = colors.findIndex((s) => s.id === id)
+      if (ci >= 0) {
+        const style = colors[ci]!
+        noteDetached(ctx, detachColorStyle(ctx, style.id, style.value), style.name)
+        colors.splice(ci, 1)
+        return
+      }
+      const ti = text.findIndex((s) => s.id === id)
+      if (ti >= 0) {
+        const style = text[ti]!
+        noteDetached(ctx, detachTextStyle(ctx, style), style.name)
+        text.splice(ti, 1)
+        return
       }
       return fail(i, 'id', `style introuvable : ${op.id}`)
     }
@@ -297,4 +319,69 @@ function normalizeHugFill(ctx: Ctx): void {
       }
     }
   })
+}
+
+/** Convertit les couleurs CSS lisibles d'une saisie (fills, stroke.color, shadows[].color, color) ; refuse les illisibles. */
+function normalizeColorFields(bag: Record<string, unknown>, i: number, prefix: string): void {
+  const norm = (c: unknown, path: string): Color =>
+    normalizeColorValue(c) ?? fail(i, path, `couleur illisible : ${JSON.stringify(c)}`)
+  const isObj = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === 'object' && !Array.isArray(v)
+  if (Array.isArray(bag.fills)) bag.fills = bag.fills.map((c, k) => norm(c, `${prefix}.fills[${k}]`))
+  if (isObj(bag.stroke) && 'color' in bag.stroke) bag.stroke.color = norm(bag.stroke.color, `${prefix}.stroke.color`)
+  if (Array.isArray(bag.shadows)) {
+    bag.shadows.forEach((sh, k) => {
+      if (isObj(sh) && 'color' in sh) sh.color = norm(sh.color, `${prefix}.shadows[${k}].color`)
+    })
+  }
+  if (bag.color !== undefined && bag.color !== null) bag.color = norm(bag.color, `${prefix}.color`)
+}
+
+/** §6.1 : un enfant en flux d'un cadre automatique n'a pas de x/y ; ils sont retirés, pas refusés. */
+function ignoreFlowXY(ctx: Ctx, node: Node): void {
+  if (node.x === undefined && node.y === undefined) return
+  delete node.x
+  delete node.y
+  ctx.fixes.push(`${node.name} (${node.id}) : x/y ignorés, la position est calculée par la mise en page automatique`)
+}
+
+/** §6.1 : changer la taille d'un texte sans préciser textSizing réaligne textSizing. */
+function realignText(ctx: Ctx, node: TextNode): void {
+  if (alignTextSizing(node)) ctx.fixes.push(`${node.name} (${node.id}) : textSizing passe à "${node.textSizing}"`)
+}
+
+function noteDetached(ctx: Ctx, count: number, name: string): void {
+  if (count > 0) ctx.fixes.push(`${count} élément(s) détaché(s) du style « ${name} »`)
+}
+
+/** Remplace chaque `{ style: id }` par la valeur de la couleur ; renvoie le nombre d'éléments touchés. */
+function detachColorStyle(ctx: Ctx, id: string, value: string): number {
+  let count = 0
+  walk(ctx.draft, ({ node }) => {
+    let touched = false
+    const fix = (c: Color): Color => {
+      if (typeof c !== 'object' || c.style !== id) return c
+      touched = true
+      return value
+    }
+    // Affectations élément par élément : une valeur inchangée ne produit aucun patch.
+    if ('fills' in node) node.fills.forEach((c, k) => { node.fills[k] = fix(c) })
+    if ('stroke' in node && node.stroke) node.stroke.color = fix(node.stroke.color)
+    if ('shadows' in node) node.shadows.forEach((sh) => { sh.color = fix(sh.color) })
+    if (node.type === 'text') node.color = fix(node.color)
+    if (touched) count++
+  })
+  return count
+}
+
+/** Recopie les propriétés de police du style dans chaque texte qui le référence, puis retire la référence. */
+function detachTextStyle(ctx: Ctx, style: TextStyle): number {
+  let count = 0
+  const { id, name: _name, ...font } = style
+  walk(ctx.draft, ({ node }) => {
+    if (node.type !== 'text' || node.textStyle !== id) return
+    Object.assign(node, font)
+    delete node.textStyle
+    count++
+  })
+  return count
 }

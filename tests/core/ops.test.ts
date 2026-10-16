@@ -134,7 +134,7 @@ describe('applyOps', () => {
     expect(r.doc.pages.map((p) => p.name)).toEqual(['Page 1', 'Nous joindre'])
   })
 
-  it('styles nommés : créer, référencer, refuser la suppression d’un style utilisé', () => {
+  it('styles nommés : créer et référencer', () => {
     const doc = docWith([])
     const r = ok(applyOps(doc, [
       { op: 'style.color.set', id: '$fond', name: 'fond', value: '#F4F1EA' },
@@ -144,8 +144,6 @@ describe('applyOps', () => {
     expect(r.doc.styles.colors[0]).toEqual({ id: styleId, name: 'fond', value: '#F4F1EA' })
     const shape = r.doc.pages[0]!.children[0]!
     expect(shape.type === 'shape' && shape.fills[0]).toEqual({ style: styleId })
-    const r2 = applyOps(r.doc, [{ op: 'style.delete', id: styleId }])
-    expect(r2.ok).toBe(false)
   })
 
   it('modifier la police d’un texte détache son style de texte', () => {
@@ -181,5 +179,47 @@ describe('applyOps', () => {
       { op: 'create', parent: pageId(doc), node: { type: 'text', content: 'Été « ok » 🌿' } },
     ]))
     expect(applyPatches(r.doc, r.inversePatches)).toEqual(doc)
+  })
+
+  it('supprimer un style utilisé détache les éléments', () => {
+    const doc = docWith([])
+    const r = ok(applyOps(doc, [
+      { op: 'style.color.set', id: '$fond', name: 'fond', value: '#F4F1EA' },
+      { op: 'style.text.set', id: '$t', name: 'titre', fontFamily: 'Fraunces', fontWeight: 600, fontStyle: 'normal', fontSize: 64, lineHeight: 68, letterSpacing: -1 },
+      { op: 'create', parent: pageId(doc), node: { id: '$s', type: 'shape', fills: [{ style: '$fond' }] } },
+      { op: 'create', parent: pageId(doc), node: { id: '$x', type: 'text', textStyle: '$t' } },
+    ]))
+    const r2 = ok(applyOps(r.doc, [{ op: 'style.delete', id: r.ids['$fond']! }, { op: 'style.delete', id: r.ids['$t']! }]))
+    const shape = findNode(r2.doc, r.ids['$s']!)!.node
+    expect(shape.type === 'shape' && shape.fills).toEqual(['#F4F1EA'])
+    const t = findNode(r2.doc, r.ids['$x']!)!.node as TextNode
+    expect(t.textStyle).toBeUndefined()
+    expect(t).toMatchObject({ fontFamily: 'Fraunces', fontWeight: 600, fontSize: 64, lineHeight: 68, letterSpacing: -1 })
+    expect(r2.fixes).toHaveLength(2)
+  })
+
+  it('couleurs CSS converties, couleur illisible refusée avec son chemin', () => {
+    const doc = docWith([rect('r00001', { x: 0, y: 0 })])
+    const r = ok(applyOps(doc, [{ op: 'update', id: 'r00001', set: { fills: ['white', 'rgba(0,0,0,0.25)'] } }]))
+    const shape = findNode(r.doc, 'r00001')!.node
+    expect(shape.type === 'shape' && shape.fills).toEqual(['#FFFFFF', '#00000040'])
+    const r2 = applyOps(doc, [{ op: 'update', id: 'r00001', set: { fills: ['bleu'] } }])
+    expect(r2.ok).toBe(false)
+    if (!r2.ok) expect(r2.errors[0]!.path).toBe('ops[0].set.fills[0]')
+  })
+
+  it('redimensionner un texte en largeur réaligne textSizing au lieu de refuser', () => {
+    const doc = docWith([text('t00001', { x: 0, y: 0 })])
+    const r = ok(applyOps(doc, [{ op: 'update', id: 't00001', set: { width: 300 } }]))
+    expect(findNode(r.doc, 't00001')!.node).toMatchObject({ width: 300, textSizing: 'auto-height' })
+    expect(r.fixes).toHaveLength(1)
+  })
+
+  it('x/y donnés à un enfant en flux sont ignorés, pas refusés', () => {
+    const p = frame('f00001', { x: 0, y: 0, layout: { mode: 'auto' } }) as FrameNode
+    p.children.push(rect('r00001'))
+    const r = ok(applyOps(docWith([p]), [{ op: 'update', id: 'r00001', set: { x: 40, y: 50 } }]))
+    expect(findNode(r.doc, 'r00001')!.node.x).toBeUndefined()
+    expect(r.fixes[0]).toContain('x/y ignorés')
   })
 })
