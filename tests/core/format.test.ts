@@ -6,8 +6,7 @@ describe('format .maquette', () => {
   it('aller-retour exact, y compris accents, guillemets, emoji et retours à la ligne', () => {
     const doc = docWith([text('t00001', { x: 0, y: 0, content: 'Été « ok » 🌿\nligne 2' })])
     const textOut = serializeDocument(doc)
-    const back = parseDocument(textOut)
-    expect(back).toEqual({ ok: true, doc })
+    expect(parseDocument(textOut)).toEqual({ ok: true, doc, warnings: [] })
     expect(textOut.endsWith('\n')).toBe(true)
     expect(textOut).toContain('\n  "format": "maquette"')
     expect(textOut).toContain('Été « ok » 🌿')
@@ -37,10 +36,21 @@ describe('format .maquette', () => {
     if (!r.ok) expect(r.errors[0]!.path).toBe('version')
   })
 
-  it('document invalide selon les règles : erreurs avec chemin', () => {
+  it('un document qui enfreint une règle est ouvert et réparé, avec un avertissement', () => {
     const doc = docWith([text('t00001', { content: 'sans position' })])
     const r = parseDocument(JSON.stringify(doc))
+    expect(r.ok).toBe(true)
+    if (r.ok) {
+      expect(r.doc.pages[0]!.children[0]).toMatchObject({ x: 0, y: 0 })
+      expect(r.warnings.map((w) => w.path)).toEqual(['pages[0].children[0].x'])
+    }
+  })
+
+  it('une valeur de mauvais type non réparable : refus', () => {
+    const doc = docWith([text('t00001', { x: 0, y: 0 })]) as unknown as { pages: { children: Record<string, unknown>[] }[] }
+    doc.pages[0]!.children[0]!.opacity = 'abc'
+    const r = parseDocument(JSON.stringify(doc))
     expect(r.ok).toBe(false)
-    if (!r.ok) expect(r.errors[0]!.path).toBe('pages[0].children[0].x')
+    if (!r.ok) expect(r.errors[0]!.path).toBe('pages[0].children[0].opacity')
   })
 })

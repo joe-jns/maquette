@@ -1,3 +1,4 @@
+import { repairDocument } from './repair'
 import { validateDocument, type Issue } from './rules'
 import type { MaquetteDocument } from './types'
 
@@ -6,7 +7,7 @@ export const CURRENT_VERSION = 1
 /** migrations[n] transforme un document du format n en format n + 1. */
 const migrations: Record<number, (doc: Record<string, unknown>) => Record<string, unknown>> = {}
 
-export type ParseResult = { ok: true; doc: MaquetteDocument } | { ok: false; errors: Issue[] }
+export type ParseResult = { ok: true; doc: MaquetteDocument; warnings: Issue[] } | { ok: false; errors: Issue[] }
 
 const refuse = (path: string, message: string): ParseResult => ({ ok: false, errors: [{ path, message }] })
 
@@ -36,9 +37,11 @@ export function parseDocument(text: string): ParseResult {
     if (!migrate) return refuse('version', `aucune mise à niveau connue depuis le format ${n}`)
     data = migrate(data)
   }
-  const issues = validateDocument(data as unknown as MaquetteDocument)
+  // Ouverture tolérante (spec §6.2) : réparer ce qui peut l'être, refuser seulement le reste.
+  const { doc, warnings } = repairDocument(data)
+  const issues = validateDocument(doc as MaquetteDocument)
   if (issues.length) return { ok: false, errors: issues }
-  return { ok: true, doc: data as unknown as MaquetteDocument }
+  return { ok: true, doc: doc as MaquetteDocument, warnings }
 }
 
 export function serializeDocument(doc: MaquetteDocument): string {
