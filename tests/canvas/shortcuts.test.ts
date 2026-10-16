@@ -55,4 +55,11 @@ describe('raccourcis', () => {
     expect(ids.size).toBe(SHORTCUTS.length)
     expect(SHORTCUTS.find((s) => s.id === 'duplicate')).toMatchObject({ keys: 'Ctrl+D', group: 'Édition' })
   })
+
+  it('AZERTY : ] et [ arrivent par AltGr (= Ctrl+Alt), - est sur la touche 6', () => {
+    expect(matchShortcut(k(']', 'Minus', { ctrlKey: true, altKey: true }))).toBe('forward')
+    expect(matchShortcut(k('[', 'Digit5', { ctrlKey: true, altKey: true }))).toBe('backward')
+    expect(matchShortcut(k('-', 'Digit6', { ctrlKey: true }))).toBe('zoomOut')
+    expect(matchShortcut(k('+', 'Equal', { ctrlKey: true, shiftKey: true }))).toBe('zoomIn')
+  })
 })

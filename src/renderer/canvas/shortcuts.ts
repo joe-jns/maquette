@@ -139,6 +139,12 @@ const BINDINGS: Binding[] = [
   code('zoomFit', ['Digit1'], { shift: true }),
   code('zoomSelection', ['Digit2'], { shift: true }),
   { id: 'help', key: ['?'], shift: 'any' },
+
+  // AZERTY : ] et [ se tapent avec AltGr, que Windows transmet comme Ctrl+Alt ; - et + sont ailleurs.
+  { id: 'forward', key: [']'], ctrl: true, alt: true },
+  { id: 'backward', key: ['['], ctrl: true, alt: true },
+  { id: 'zoomOut', key: ['-'], ctrl: true, shift: 'any' },
+  { id: 'zoomIn', key: ['+', '='], ctrl: true, shift: 'any' },
 ]
 
 function matches(b: Binding, e: KeyLike): boolean {
