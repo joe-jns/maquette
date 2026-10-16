@@ -162,6 +162,7 @@ export class InteractionController {
     if (this.state.kind !== 'idle') return
     // Les éléments d'interface posés sur le canevas (barre d'outils…) gèrent leurs propres clics.
     if ((e.target as Element | null)?.closest?.('[data-ui]')) return
+    if ((e.target as Element | null)?.closest?.('[data-editing]')) return
     if (e.button === 1 || (e.button === 0 && this.spaceDown)) {
       e.preventDefault()
       this.el.setPointerCapture(e.pointerId)
@@ -204,6 +205,16 @@ export class InteractionController {
       target = pickClickTarget(d, hit, { deep: false, context: only })
     } else {
       target = pickClickTarget(d, hit, { deep: e.ctrlKey || e.metaKey, context: currentContext(), rectOf: worldRectOf })
+    }
+
+    if (count === 2 && selection.length === 1 && only === target && findNode(d, target)?.node.type === 'text') {
+      // Sans preventDefault, l'action par défaut du clic rendrait aussitôt le focus à la page et
+      // fermerait l'éditeur qui vient de s'ouvrir.
+      e.preventDefault()
+      this.el.releasePointerCapture(e.pointerId)
+      this.state = { kind: 'idle' }
+      ui().setEditing(target)
+      return
     }
 
     let collapseTo: string | null = null
@@ -741,6 +752,10 @@ export class InteractionController {
         }
         return true
       case 'enter': {
+        if (first && selection.length === 1 && findNode(d, first)?.node.type === 'text') {
+          ui().setEditing(first)
+          return true
+        }
         const child = first && selection.length === 1 ? descend(d, first) : null
         if (child) ui().select([child])
         return true

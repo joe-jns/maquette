@@ -1,8 +1,10 @@
 import { memo, useState, type CSSProperties } from 'react'
 import { frameStrokeCss, nodeCss } from '../../core/css'
-import type { FrameNode, ImageNode, Node } from '../../core/types'
+import type { FrameNode, ImageNode, Node, TextNode } from '../../core/types'
 import { useDoc } from '../state/store'
+import { useUi } from '../state/ui'
 import { assetUrl } from './assetUrl'
+import { TextEditor } from './TextEditor'
 
 /**
  * Un élément du document en vraie balise HTML. Mémoïsé : grâce au partage de structure d'Immer, un
@@ -24,13 +26,19 @@ export const NodeView = memo(function NodeView({ node, parent, index }: { node: 
       )
     }
     case 'text':
-      return <div data-node-id={node.id} style={style}>{node.content}</div>
+      return <TextView node={node} style={style} />
     case 'shape':
       return <div data-node-id={node.id} style={style} />
     case 'image':
       return <ImageView node={node} style={style} />
   }
 })
+
+function TextView({ node, style }: { node: TextNode; style: CSSProperties }) {
+  const editing = useUi((s) => s.editingTextId === node.id)
+  if (editing) return <TextEditor node={node} style={style} />
+  return <div data-node-id={node.id} style={style}>{node.content}</div>
+}
 
 function ImageView({ node, style }: { node: ImageNode; style: CSSProperties }) {
   const [failedSrc, setFailedSrc] = useState<string | null>(null)
