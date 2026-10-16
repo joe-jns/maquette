@@ -90,3 +90,37 @@ test('double-clic sur le bord d’un rectangle : rien ne se passe, aucune erreur
   expect(errors).toEqual([])
   await app.close()
 })
+
+test('après Ctrl+Z, la sélection ne garde pas un élément disparu', async () => {
+  const { app, page } = await launch([scene])
+  await settled(page, 'rBleu1')
+  await page.keyboard.press('r')
+  const p = await screenOf(page, 100, 420)
+  await page.mouse.click(p.x, p.y)
+  expect((await uiState(page)).selection).toHaveLength(1)
+  await page.keyboard.press('Control+z')
+  await expect.poll(async () => (await uiState(page)).selection).toEqual([])
+  await app.close()
+})
+
+test('déposer deux images : une seule annulation les retire toutes les deux', async () => {
+  const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+  const dir = await mkdtemp(join(tmpdir(), 'deux images '))
+  const file = join(dir, 'scène.maquette')
+  await copyFile(scene, file)
+  const { app, page } = await launch([file])
+  await settled(page, 'rBleu1')
+  const p = await screenOf(page, 120, 420)
+  await page.evaluate(({ b64, x, y }) => {
+    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))
+    const data = new DataTransfer()
+    data.items.add(new File([bytes], 'a.png', { type: 'image/png' }))
+    data.items.add(new File([bytes, new Uint8Array([0])], 'b.png', { type: 'image/png' }))
+    const target = document.querySelector('[data-testid="canvas"]')!
+    target.dispatchEvent(new DragEvent('drop', { dataTransfer: data, clientX: x, clientY: y, bubbles: true, cancelable: true }))
+  }, { b64: PNG, x: p.x, y: p.y })
+  await expect.poll(async () => (await pageChildren(page)).filter((n) => n.type === 'image').length).toBe(2)
+  await page.keyboard.press('Control+z')
+  expect((await pageChildren(page)).filter((n) => n.type === 'image')).toHaveLength(0)
+  await app.close()
+})

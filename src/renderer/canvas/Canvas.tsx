@@ -1,8 +1,9 @@
 import { useEffect, useLayoutEffect, useRef } from 'react'
-import { useDoc } from '../state/store'
+import { findNode } from '../../core/tree'
+import { docStore, useDoc } from '../state/store'
 import { uiStore, useUi } from '../state/ui'
 import { wheelPan, wheelZoomFactor, zoomAt } from './camera'
-import { fitTo } from './camera-actions'
+import { fitTo, stopCameraAnimation } from './camera-actions'
 import { InteractionController } from './interaction'
 import { NodeView } from './NodeView'
 import { Overlay } from './Overlay'
@@ -30,6 +31,7 @@ export function Canvas() {
     const el = ref.current!
     const onWheel = (e: WheelEvent) => {
       e.preventDefault()
+      stopCameraAnimation()
       const ui = uiStore.getState()
       const box = el.getBoundingClientRect()
       const point = { x: e.clientX - box.left, y: e.clientY - box.top }
@@ -44,6 +46,18 @@ export function Canvas() {
     el.addEventListener('wheel', onWheel, { passive: false })
     return () => el.removeEventListener('wheel', onWheel)
   }, [])
+
+  // La sélection ne garde jamais un élément disparu (annulation, suppression, ouverture d'un document).
+  useEffect(
+    () =>
+      docStore.subscribe((state) => {
+        const ui = uiStore.getState()
+        const alive = ui.selection.filter((id) => findNode(state.doc, id) !== null)
+        if (alive.length !== ui.selection.length) ui.select(alive)
+        if (ui.hoverId && !findNode(state.doc, ui.hoverId)) ui.setHover(null)
+      }),
+    [],
+  )
 
   // Gestes souris et clavier.
   useEffect(() => {

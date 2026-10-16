@@ -6,7 +6,7 @@ import { docStore } from '../state/store'
 import { uiStore, type Tool } from '../state/ui'
 import { assetUrl } from './assetUrl'
 import { screenToWorld } from './camera'
-import { fitTo, selectionExists, zoomAroundCenter, zoomStep } from './camera-actions'
+import { fitTo, selectionExists, stopCameraAnimation, zoomAroundCenter, zoomStep } from './camera-actions'
 import {
   addAutoLayoutOps, deleteOps, duplicateOps, inFlow, nudgeOps, topLevel, wrapInFrameOps, zOrderOps, type CommandOps,
 } from './canvasOps'
@@ -247,6 +247,7 @@ export class InteractionController {
       case 'pan': {
         if (e.pointerId !== s.pointerId) return
         const u = ui()
+        stopCameraAnimation()
         u.setCamera({ ...u.camera, x: u.camera.x + e.clientX - s.lastX, y: u.camera.y + e.clientY - s.lastY })
         this.state = { ...s, lastX: e.clientX, lastY: e.clientY }
         return
@@ -385,7 +386,9 @@ export class InteractionController {
       await runCommand('save-as')
       if (!docStore.getState().filePath) return
     }
-    const created: string[] = []
+    // Toutes les images d'un même dépôt : une seule opération groupée, donc une seule annulation.
+    const ops: Op[] = []
+    const temps: string[] = []
     for (const [i, file] of files.entries()) {
       const res = await window.maquette.importImage(file.name, new Uint8Array(await file.arrayBuffer()))
       if (!res.ok) {
@@ -394,18 +397,21 @@ export class InteractionController {
       }
       const natural = await naturalSize(assetUrl(res.src))
       const scale = natural.width > 800 ? 800 / natural.width : 1
+      const temp = `$img${i}`
       const node = {
-        id: '$img', type: 'image' as const, name: file.name.replace(/\.[^.]+$/, ''), src: res.src,
+        id: temp, type: 'image' as const, name: file.name.replace(/\.[^.]+$/, ''), src: res.src,
         width: Math.max(1, Math.round(natural.width * scale)), height: Math.max(1, Math.round(natural.height * scale)),
       }
       const auto = container.frame?.layout.mode === 'auto'
       const op: Op = auto
         ? { op: 'create', parent: container.id, node }
         : { op: 'create', parent: container.id, node: { ...node, x: Math.round(point.x - container.rect.x + i * 20), y: Math.round(point.y - container.rect.y + i * 20) } }
-      const result = docStore.getState().dispatch([op], 'Importer une image')
-      if (result.ok && result.ids['$img']) created.push(result.ids['$img'])
+      ops.push(op)
+      temps.push(temp)
     }
-    if (created.length) ui().select(created)
+    if (!ops.length) return
+    const result = docStore.getState().dispatch(ops, ops.length > 1 ? 'Importer des images' : 'Importer une image')
+    if (result.ok) ui().select(temps.map((t) => result.ids[t]).filter((id) => id !== undefined))
   }
 
   // ——— Redimensionnement ———

@@ -9,6 +9,11 @@ import { worldRectOf } from './rects'
 
 let animation = 0
 
+/** Interrompt un cadrage animé (une action manuelle sur la vue l'emporte). */
+export function stopCameraAnimation(): void {
+  cancelAnimationFrame(animation)
+}
+
 /** Déplace la caméra, en douceur sur `durationMs` (zoom interpolé en échelle logarithmique). */
 export function moveCamera(target: Camera, durationMs = 0): void {
   cancelAnimationFrame(animation)
