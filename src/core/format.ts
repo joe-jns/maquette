@@ -14,7 +14,8 @@ const refuse = (path: string, message: string): ParseResult => ({ ok: false, err
 export function parseDocument(text: string): ParseResult {
   let raw: unknown
   try {
-    raw = JSON.parse(text.replace(/^FEFF/, ''))
+    // Certains éditeurs Windows (PowerShell 5.1, anciens Bloc-notes) commencent le fichier par un BOM.
+    raw = JSON.parse(text.replace(/^﻿/, ''))
   } catch (e) {
     return refuse('', `JSON invalide : ${(e as Error).message}`)
   }
