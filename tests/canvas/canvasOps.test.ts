@@ -97,4 +97,15 @@ describe('commandes du canevas', () => {
     expect(ids((findNode(run(b2, nudgeOps(b2, ['A'], 1, 0)).doc, 'F1')!.node as FrameNode).children)).toEqual(['B', 'A'])
     expect(nudgeOps(b2, ['A'], 0, 1).ops).toEqual([])
   })
+
+  it('encadrer un enfant « fill » : le cadre remplit aussi, il ne retombe pas à 100 px', () => {
+    const f = frame('F1', { x: 0, y: 0, width: 500, layout: { mode: 'auto', direction: 'column' } }) as FrameNode
+    f.children.push(rect('A', { width: { mode: 'fill' }, height: 40 }), rect('B', { width: 80, height: 40 }))
+    const base = docWith([f])
+    const measure: Measure = (id) => (id === 'A' ? { x: 0, y: 0, width: 500, height: 40 } : undefined)
+    const { doc, select } = run(base, wrapInFrameOps(base, ['A'], measure), measure)
+    expect(findNode(doc, select[0]!)!.node).toMatchObject({ width: { mode: 'fill' }, height: { mode: 'hug' } })
+    const both = run(base, wrapInFrameOps(base, ['A', 'B'], measure), measure)
+    expect(findNode(both.doc, both.select[0]!)!.node).toMatchObject({ width: 500 })
+  })
 })

@@ -1,6 +1,6 @@
 import type { Measure, Op } from '../../core/ops'
-import { findNode, walk, type NodeLocation } from '../../core/tree'
-import type { FrameNode, MaquetteDocument, Node, NodeInput, Rect } from '../../core/types'
+import { findNode, isFill, walk, type NodeLocation } from '../../core/tree'
+import type { FrameNode, MaquetteDocument, Node, NodeInput, Rect, Size } from '../../core/types'
 
 /** Lot d'opérations d'une commande et sélection à poser après application (identifiants réels ou `$…`). */
 export interface CommandOps { ops: Op[]; select: string[] }
@@ -165,9 +165,21 @@ export function wrapInFrameOps(
 
   if (anyFlow) {
     const direction = common?.layout.mode === 'auto' ? common.layout.direction : 'column'
+    // Par axe : tous les enfants « fill » → le cadre remplit aussi ; certains seulement → taille
+    // mesurée de l'ensemble (un cadre « hug » avec un enfant « fill » serait figé à une taille inconnue).
+    const box = (rects: Rect[], axis: 'width' | 'height') =>
+      axis === 'width'
+        ? Math.max(...rects.map((r) => r.x + r.width)) - Math.min(...rects.map((r) => r.x))
+        : Math.max(...rects.map((r) => r.y + r.height)) - Math.min(...rects.map((r) => r.y))
+    const sizeFor = (axis: 'width' | 'height'): Size => {
+      const fills = locs.filter((loc) => isFill(loc.node[axis])).length
+      if (fills === 0) return { mode: 'hug' }
+      if (fills === locs.length) return { mode: 'fill' }
+      return Math.round(box(locs.map((loc) => rectIn(loc.node, measure)), axis))
+    }
     ops.push({
       op: 'create', parent, index,
-      node: { id: wrapper, type: 'frame', name: 'Cadre', fills: [], width: { mode: 'hug' }, height: { mode: 'hug' }, layout: { mode: 'auto', direction } },
+      node: { id: wrapper, type: 'frame', name: 'Cadre', fills: [], width: sizeFor('width'), height: sizeFor('height'), layout: { mode: 'auto', direction } },
     })
     for (const loc of locs) {
       ops.push({ op: 'move', id: loc.node.id, parent: wrapper })
