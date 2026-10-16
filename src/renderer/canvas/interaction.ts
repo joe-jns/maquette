@@ -1,4 +1,5 @@
-import { findNode } from '../../core/tree'
+import type { Op } from '../../core/ops'
+import { containsId, findNode } from '../../core/tree'
 import type { FrameNode, MaquetteDocument, Rect } from '../../core/types'
 import { docStore } from '../state/store'
 import { uiStore } from '../state/ui'
@@ -9,6 +10,7 @@ import { createClickTracker } from './clicks'
 import { distanceLines, normalizeRect, union, type Point } from './geometry'
 import { deepestHitAt, worldRectOf } from './rects'
 import { ascend, contextOf, descend, marqueeSelect, nextSibling, pickClickTarget } from './selection'
+import { insertionIndex, insertionMarker } from './reorder'
 import { matchShortcut, type CommandId } from './shortcuts'
 import type { HandleName } from './Overlay'
 import { snapMove, snapValue, type Guide } from './snapping'
@@ -27,11 +29,27 @@ type State =
   | { kind: 'pan'; pointerId: number; lastX: number; lastY: number }
   | { kind: 'press'; pointerId: number; startX: number; startY: number; target: string; collapseTo: string | null }
   | { kind: 'marquee'; pointerId: number; startX: number; startY: number; start: Point; base: string[]; active: boolean }
-  | { kind: 'move'; pointerId: number; start: Point; items: { id: string; x: number; y: number }[]; bounds: Rect; targets: Rect[] }
+  | MoveState
   | {
       kind: 'resize'; pointerId: number; handle: HandleName; id: string; start: Point; rect: Rect
       x0: number | undefined; y0: number | undefined; xs: number[]; ys: number[]; began: boolean
     }
+
+interface MoveState {
+  kind: 'move'
+  pointerId: number
+  start: Point
+  items: { id: string; x: number; y: number }[]
+  bounds: Rect
+  targets: Rect[]
+  /** Un seul élément tiré : il peut être réordonné ou changer de parent. */
+  single: { id: string; parent: string; pageId: string; flow: boolean; grab: Point } | null
+  /** Enfants des cadres automatiques survolés, mesurés à l'entrée (sans l'élément tiré). */
+  cache: Map<string, Rect[]>
+  /** Dépôt prévu dans un autre cadre automatique, appliqué au relâchement. */
+  drop: { parent: string; index: number; marker: { x1: number; y1: number; x2: number; y2: number } } | null
+  lastKey: string
+}
 
 /** Vrai quand la frappe doit aller à un champ de saisie (texte en édition, panneau…), pas au canevas. */
 export function typingInField(target: EventTarget | null): boolean {
@@ -312,13 +330,13 @@ export class InteractionController {
     docStore.getState().previewGesture([{ op: 'update', id: s.id, set }])
   }
 
-  // ——— Déplacement libre ———
+  // ——— Déplacer (libre, réordonner, changer de parent) ———
 
-  /** Le glisser démarre : éléments hors flux déplacés en x/y, avec magnétisme sur les voisins et le parent. */
+  /** Le glisser démarre. Plusieurs éléments : déplacement libre seulement. Un seul : il peut changer de place. */
   private startMove(s: Extract<State, { kind: 'press' }>, e: PointerEvent): void {
     const d = doc()
     const locs = topLevel(d, ui().selection)
-    if (locs.length === 0 || locs.some(inFlow)) {
+    if (locs.length === 0 || (locs.length > 1 && locs.some(inFlow))) {
       this.state = { kind: 'idle' }
       return
     }
@@ -347,28 +365,126 @@ export class InteractionController {
     docStore.getState().beginGesture()
     const start = this.toWorld({ clientX: s.startX, clientY: s.startY })
     const items = locs.map((l) => ({ id: l.node.id, x: l.node.x ?? 0, y: l.node.y ?? 0 }))
-    const move: Extract<State, { kind: 'move' }> = { kind: 'move', pointerId: s.pointerId, start, items, bounds, targets }
+    const [only] = locs
+    const single =
+      locs.length === 1 && only
+        ? {
+            id: only.node.id,
+            parent: only.parent?.id ?? only.page.id,
+            pageId: only.page.id,
+            flow: inFlow(only),
+            grab: { x: start.x - bounds.x, y: start.y - bounds.y },
+          }
+        : null
+    const move: MoveState = {
+      kind: 'move', pointerId: s.pointerId, start, items, bounds, targets, single, cache: new Map(), drop: null, lastKey: '',
+    }
     this.state = move
     ui().setHover(null)
     this.moveTo(move, e)
   }
 
-  private moveTo(s: Extract<State, { kind: 'move' }>, e: PointerEvent): void {
+  /**
+   * Cadre (ou page) sous le pointeur où l'élément tiré pourrait aller : le plus profond, hors de
+   * l'élément lui-même, visible, déverrouillé et assez grand pour le contenir (son parent actuel est
+   * toujours accepté).
+   */
+  private containerUnder(e: PointerEvent, single: NonNullable<MoveState['single']>, size: Rect) {
+    const d = doc()
+    const dragged = findNode(d, single.id)?.node
+    const seen = new Set<string>()
+    for (const el of document.elementsFromPoint(e.clientX, e.clientY)) {
+      const id = (el as HTMLElement).closest<HTMLElement>('[data-node-id]')?.dataset.nodeId
+      if (!id || seen.has(id)) continue
+      seen.add(id)
+      if (dragged && containsId(dragged, id)) continue
+      const loc = findNode(d, id)
+      if (!loc || loc.node.type !== 'frame' || !selectable(d, id)) continue
+      const rect = worldRectOf(id)
+      if (!rect) continue
+      if (id !== single.parent && (rect.width < size.width || rect.height < size.height)) continue
+      return { id, frame: loc.node, rect }
+    }
+    return { id: single.pageId, frame: null, rect: { x: 0, y: 0, width: 0, height: 0 } }
+  }
+
+  /** Rectangles des enfants d'un cadre automatique, sans l'élément tiré, mesurés une fois à l'entrée. */
+  private childRects(s: MoveState, frame: FrameNode, draggedId: string): Rect[] {
+    let rects = s.cache.get(frame.id)
+    if (!rects) {
+      rects = frame.children
+        .filter((c) => c.id !== draggedId && c.position === 'flow')
+        .map((c) => worldRectOf(c.id))
+        .filter((r) => r !== undefined)
+      s.cache.set(frame.id, rects)
+    }
+    return rects
+  }
+
+  private moveTo(s: MoveState, e: PointerEvent): void {
     const p = this.toWorld(e)
     let dx = p.x - s.start.x
     let dy = p.y - s.start.y
-    if (e.ctrlKey || e.metaKey) {
-      ui().setExtras({ guides: [], gaps: [] })
-    } else {
-      const moved = { ...s.bounds, x: s.bounds.x + dx, y: s.bounds.y + dy }
-      const snap = snapMove(moved, s.targets, SNAP / ui().camera.zoom)
-      dx += snap.dx
-      dy += snap.dy
-      ui().setExtras({ guides: snap.guides, gaps: snap.gaps })
+    const single = s.single
+    const container = single ? this.containerUnder(e, single, s.bounds) : null
+
+    // 1. Même parent, libre ou page : déplacement en x/y avec magnétisme.
+    if (!single || !container || (container.id === single.parent && !single.flow)) {
+      this.setDrop(s, null)
+      if (e.ctrlKey || e.metaKey) {
+        ui().setExtras({ guides: [], gaps: [] })
+      } else {
+        const moved = { ...s.bounds, x: s.bounds.x + dx, y: s.bounds.y + dy }
+        const snap = snapMove(moved, s.targets, SNAP / ui().camera.zoom)
+        dx += snap.dx
+        dy += snap.dy
+        ui().setExtras({ guides: snap.guides, gaps: snap.gaps })
+      }
+      this.preview(
+        s,
+        s.items.map((it) => ({ op: 'update' as const, id: it.id, set: { x: Math.round(it.x + dx), y: Math.round(it.y + dy) } })),
+      )
+      return
     }
-    docStore.getState().previewGesture(
-      s.items.map((it) => ({ op: 'update' as const, id: it.id, set: { x: Math.round(it.x + dx), y: Math.round(it.y + dy) } })),
-    )
+    ui().setExtras({ guides: [], gaps: [] })
+    const layout = container.frame?.layout
+
+    // 2. Cadre automatique : point d'insertion.
+    if (container.frame && layout?.mode === 'auto') {
+      const rects = this.childRects(s, container.frame, single.id)
+      const index = insertionIndex(rects, layout.direction, p, layout.wrap)
+      if (container.id === single.parent && single.flow) {
+        // Son propre cadre : réordonnancement en direct, frères animés.
+        this.setDrop(s, null)
+        this.preview(s, [{ op: 'move', id: single.id, parent: container.id, index }], container.id)
+      } else {
+        // Un autre cadre : trait d'insertion, dépôt au relâchement.
+        this.preview(s, [])
+        this.setDrop(s, { parent: container.id, index, marker: insertionMarker(rects, layout.direction, index, container.rect) })
+      }
+      return
+    }
+
+    // 3. Cadre libre ou page, autre que le parent : l'élément suit le pointeur et change de parent.
+    this.setDrop(s, null)
+    const x = Math.round(p.x - single.grab.x - container.rect.x)
+    const y = Math.round(p.y - single.grab.y - container.rect.y)
+    this.preview(s, [{ op: 'move', id: single.id, parent: container.id, x, y }])
+  }
+
+  private setDrop(s: MoveState, drop: MoveState['drop']): void {
+    s.drop = drop
+    ui().setExtras({ insertion: drop?.marker ?? null })
+  }
+
+  /** Aperçu depuis l'état de départ ; anime les frères d'un cadre automatique quand l'ordre change. */
+  private preview(s: MoveState, ops: Op[], animateIn?: string): void {
+    const key = JSON.stringify(ops)
+    if (key === s.lastKey) return
+    s.lastKey = key
+    const before = animateIn ? childScreenRects(animateIn) : null
+    docStore.getState().previewGesture(ops)
+    if (before && animateIn) requestAnimationFrame(() => flip(animateIn, before, s.single?.id ?? ''))
   }
 
   /** Survol : ce qu'un clic sélectionnerait ; avec Alt, les distances jusqu'à la sélection. */
@@ -396,9 +512,12 @@ export class InteractionController {
     if (s.kind === 'pan') delete this.el.dataset.panning
     if (s.kind === 'marquee') ui().setExtras({ marquee: null })
     if (s.kind === 'move' || (s.kind === 'resize' && s.began)) {
+      if (!cancel && s.kind === 'move' && s.drop && s.single) {
+        docStore.getState().previewGesture([{ op: 'move', id: s.single.id, parent: s.drop.parent, index: s.drop.index }])
+      }
       if (cancel) docStore.getState().cancelGesture()
       else docStore.getState().commitGesture(s.kind === 'move' ? 'Déplacer' : 'Redimensionner')
-      ui().setExtras({ guides: [], gaps: [] })
+      ui().setExtras({ guides: [], gaps: [], insertion: null })
     }
   }
 
@@ -508,4 +627,33 @@ export class InteractionController {
         return false
     }
   }
+}
+
+/** Positions écran des enfants d'un cadre, avant un changement d'ordre. */
+function childScreenRects(frameId: string): Map<string, DOMRect> {
+  const out = new Map<string, DOMRect>()
+  const frame = document.querySelector(`[data-node-id="${CSS.escape(frameId)}"]`)
+  frame?.querySelectorAll<HTMLElement>(':scope > [data-node-id]').forEach((el) => out.set(el.dataset.nodeId!, el.getBoundingClientRect()))
+  return out
+}
+
+/** Animation FLIP : chaque frère part de son ancienne place et glisse vers la nouvelle (150 ms). */
+function flip(frameId: string, before: Map<string, DOMRect>, skip: string): void {
+  const frame = document.querySelector(`[data-node-id="${CSS.escape(frameId)}"]`)
+  const zoom = uiStore.getState().camera.zoom
+  frame?.querySelectorAll<HTMLElement>(':scope > [data-node-id]').forEach((el) => {
+    const id = el.dataset.nodeId!
+    const old = before.get(id)
+    if (!old || id === skip) return
+    const now = el.getBoundingClientRect()
+    const dx = (old.left - now.left) / zoom
+    const dy = (old.top - now.top) / zoom
+    if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return
+    el.style.transition = 'none'
+    el.style.translate = `${dx}px ${dy}px`
+    void el.offsetWidth
+    el.style.transition = 'translate 150ms ease-out'
+    el.style.translate = ''
+    el.addEventListener('transitionend', () => { el.style.transition = '' }, { once: true })
+  })
 }

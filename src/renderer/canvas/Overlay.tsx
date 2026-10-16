@@ -59,7 +59,7 @@ export function Overlay() {
     <svg className="overlay" data-testid="overlay" aria-hidden>
       {camera.zoom >= 4 && <PixelGrid camera={camera} />}
 
-      {rects.hover && <RectPath r={toScreen(camera, rects.hover)} stroke={ACCENT} width={1.5} />}
+      {rects.hover && <RectPath r={toScreen(camera, rects.hover)} stroke={ACCENT} width={1.5} testId="hover" />}
 
       {rects.selected.length > 1 &&
         rects.selected.map((r, i) => <RectPath key={i} r={toScreen(camera, r)} stroke={ACCENT} width={1} />)}
@@ -128,8 +128,8 @@ const round = (n: number) => {
 
 const rectAttrs = (r: Rect) => ({ x: r.x, y: r.y, width: Math.max(0, r.width), height: Math.max(0, r.height) })
 
-function RectPath({ r, stroke, width }: { r: Rect; stroke: string; width: number }) {
-  return <rect {...rectAttrs(r)} fill="none" stroke={stroke} strokeWidth={width} />
+function RectPath({ r, stroke, width, testId }: { r: Rect; stroke: string; width: number; testId?: string }) {
+  return <rect data-testid={testId} {...rectAttrs(r)} fill="none" stroke={stroke} strokeWidth={width} />
 }
 
 function SizeLabel({ x, y, text, color = ACCENT }: { x: number; y: number; text: string; color?: string }) {

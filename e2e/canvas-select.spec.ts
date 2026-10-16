@@ -65,3 +65,18 @@ test('la sélection affiche 8 poignées et la taille ; Entrée, Tab, Ctrl+A', as
   expect(await selection(page)).toEqual(['fHero1'])
   await app.close()
 })
+
+test('survol : contour de ce qu’un clic sélectionnerait ; Alt montre les distances', async () => {
+  const { app, page } = await launch([scene])
+  await settled(page, 'rVert1')
+  const c = await centerOf(page, 'rVert1')
+  await page.mouse.move(c.x, c.y)
+  await expect(page.getByTestId('hover')).toHaveCount(1)
+  await clickOn(page, 'rBleu1')
+  await page.keyboard.down('Alt')
+  await page.mouse.move(c.x + 1, c.y)
+  await expect(page.locator('[data-distance]')).not.toHaveCount(0)
+  await page.keyboard.up('Alt')
+  await expect(page.locator('[data-distance]')).toHaveCount(0)
+  await app.close()
+})
