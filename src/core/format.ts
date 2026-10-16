@@ -14,7 +14,7 @@ const refuse = (path: string, message: string): ParseResult => ({ ok: false, err
 export function parseDocument(text: string): ParseResult {
   let raw: unknown
   try {
-    raw = JSON.parse(text)
+    raw = JSON.parse(text.replace(/^FEFF/, ''))
   } catch (e) {
     return refuse('', `JSON invalide : ${(e as Error).message}`)
   }

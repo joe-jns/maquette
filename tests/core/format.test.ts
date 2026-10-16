@@ -53,4 +53,9 @@ describe('format .maquette', () => {
     expect(r.ok).toBe(false)
     if (!r.ok) expect(r.errors[0]!.path).toBe('pages[0].children[0].opacity')
   })
+
+  it('un fichier commençant par un BOM UTF-8 (éditeurs Windows) s’ouvre', () => {
+    const doc = docWith([text('t00001', { x: 0, y: 0 })])
+    expect(parseDocument('﻿' + serializeDocument(doc))).toEqual({ ok: true, doc, warnings: [] })
+  })
 })
