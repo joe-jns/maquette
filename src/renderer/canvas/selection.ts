@@ -56,10 +56,12 @@ export function pickClickTarget(
   return chain[k]!
 }
 
-/** Premier enfant d'un cadre (Entrée), `null` s'il n'en a pas. */
+const reachable = (n: { visible: boolean; locked: boolean }) => n.visible && !n.locked
+
+/** Premier enfant visible et déverrouillé d'un cadre (Entrée), `null` s'il n'en a pas. */
 export function descend(doc: MaquetteDocument, id: string): string | null {
   const node = findNode(doc, id)?.node
-  return node?.type === 'frame' ? node.children[0]?.id ?? null : null
+  return node?.type === 'frame' ? node.children.find(reachable)?.id ?? null : null
 }
 
 /** Parent de l'élément (Maj+Entrée), `null` sur la page. */
@@ -67,12 +69,16 @@ export function ascend(doc: MaquetteDocument, id: string): string | null {
   return contextOf(doc, id)
 }
 
-/** Frère suivant (`dir` = 1) ou précédent (-1), en boucle. */
+/** Frère suivant (`dir` = 1) ou précédent (-1), en boucle, en sautant les masqués et verrouillés. */
 export function nextSibling(doc: MaquetteDocument, id: string, dir: 1 | -1): string {
   const loc = findNode(doc, id)
   if (!loc) return id
   const list = loc.parent ? loc.parent.children : loc.page.children
-  return list[(loc.index + dir + list.length) % list.length]!.id
+  for (let step = 1; step < list.length; step++) {
+    const candidate = list[(loc.index + dir * step + list.length * step) % list.length]!
+    if (reachable(candidate)) return candidate.id
+  }
+  return id
 }
 
 /**

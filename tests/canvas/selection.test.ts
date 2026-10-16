@@ -49,4 +49,14 @@ describe('règles de sélection', () => {
     expect(marqueeSelect(doc, pageId, null, (id) => rects[id], { x: -10, y: -10, width: 1000, height: 50 })).toEqual(['F1', 'R1'])
     expect(marqueeSelect(doc, pageId, 'F1', (id) => rects[id], { x: -10, y: 25, width: 30, height: 10 })).toEqual(['F2'])
   })
+
+  it('Tab et Entrée sautent les éléments masqués ou verrouillés', () => {
+    const f = frame('F9', { x: 0, y: 0, layout: { mode: 'auto' } }) as FrameNode
+    f.children.push(text('H1', { visible: false }), text('L1', { locked: true }), text('V1'), text('V2'))
+    const d = docWith([f])
+    expect(descend(d, 'F9')).toBe('V1')
+    expect(nextSibling(d, 'V1', 1)).toBe('V2')
+    expect(nextSibling(d, 'V2', 1)).toBe('V1')
+    expect(nextSibling(d, 'V1', -1)).toBe('V2')
+  })
 })
