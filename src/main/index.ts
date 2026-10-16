@@ -1,7 +1,7 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
-import { readFile } from 'node:fs/promises'
+import { app, BrowserWindow } from 'electron'
 import { join } from 'node:path'
-import type { OpenedFile } from '../shared/ipc'
+import { registerFileIpc } from './ipc'
+import { buildMenu } from './menu'
 
 const fileArg = process.argv.slice(1).find((a) => a.toLowerCase().endsWith('.maquette'))
 
@@ -28,12 +28,10 @@ function createWindow(): BrowserWindow {
   return win
 }
 
-ipcMain.handle('doc:initial', async (): Promise<OpenedFile | null> => {
-  if (!fileArg) return null
-  return { path: fileArg, text: await readFile(fileArg, 'utf8') }
-})
+registerFileIpc(fileArg)
 
 app.whenReady().then(() => {
+  buildMenu()
   createWindow()
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()

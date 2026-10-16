@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { DocumentView } from './canvas/DocumentView'
 import { domMeasure } from './canvas/measure'
+import { runCommand } from './state/commands'
 import { fileName, openDocument } from './state/openDocument'
 import { docStore, useDoc } from './state/store'
 
@@ -14,6 +15,7 @@ export function App() {
     void window.maquette.getInitialDocument().then((file) => {
       if (file) openDocument(file)
     })
+    return window.maquette.onMenu((cmd) => void runCommand(cmd))
   }, [])
 
   useEffect(() => {

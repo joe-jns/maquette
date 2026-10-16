@@ -3,4 +3,7 @@ export type MenuCommand = 'new' | 'open' | 'save' | 'save-as' | 'undo' | 'redo'
 
 export interface MaquetteApi {
   getInitialDocument(): Promise<OpenedFile | null>
+  openFile(): Promise<OpenedFile | null>
+  saveFile(path: string | null, text: string): Promise<string | null>
+  onMenu(cb: (cmd: MenuCommand) => void): () => void
 }
