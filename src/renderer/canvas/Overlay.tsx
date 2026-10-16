@@ -100,6 +100,17 @@ export function Overlay() {
         return <line key={`e${i}`} data-gap x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={GUIDE} strokeWidth={1} strokeDasharray="3 2" />
       })}
 
+      {extras.ghost && (
+        <rect
+          data-testid="ghost"
+          {...rectAttrs(toScreen(camera, extras.ghost))}
+          fill={`${ACCENT}22`}
+          stroke={ACCENT}
+          strokeWidth={1}
+          strokeDasharray="4 3"
+        />
+      )}
+
       {extras.insertion && (() => {
         const a = worldToScreen(camera, { x: extras.insertion.x1, y: extras.insertion.y1 })
         const b = worldToScreen(camera, { x: extras.insertion.x2, y: extras.insertion.y2 })

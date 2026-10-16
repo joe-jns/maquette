@@ -633,7 +633,8 @@ export class InteractionController {
       } else {
         // Un autre cadre : trait d'insertion, dépôt au relâchement.
         this.preview(s, [])
-        this.setDrop(s, { parent: container.id, index, marker: insertionMarker(rects, layout.direction, index, container.rect) })
+        const ghost = { x: p.x - single.grab.x, y: p.y - single.grab.y, width: s.bounds.width, height: s.bounds.height }
+        this.setDrop(s, { parent: container.id, index, marker: insertionMarker(rects, layout.direction, index, container.rect) }, ghost)
       }
       return
     }
@@ -645,9 +646,9 @@ export class InteractionController {
     this.preview(s, [{ op: 'move', id: single.id, parent: container.id, x, y }])
   }
 
-  private setDrop(s: MoveState, drop: MoveState['drop']): void {
+  private setDrop(s: MoveState, drop: MoveState['drop'], ghost: Rect | null = null): void {
     s.drop = drop
-    ui().setExtras({ insertion: drop?.marker ?? null })
+    ui().setExtras({ insertion: drop?.marker ?? null, ghost })
   }
 
   /** Aperçu depuis l'état de départ ; anime les frères d'un cadre automatique quand l'ordre change. */
@@ -697,7 +698,7 @@ export class InteractionController {
       }
       if (cancel) docStore.getState().cancelGesture()
       else docStore.getState().commitGesture(s.kind === 'move' ? 'Déplacer' : 'Redimensionner')
-      ui().setExtras({ guides: [], gaps: [], insertion: null })
+      ui().setExtras({ guides: [], gaps: [], insertion: null, ghost: null })
     }
   }
 

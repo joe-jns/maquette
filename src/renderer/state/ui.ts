@@ -13,6 +13,8 @@ export interface OverlayExtras {
   marquee: Rect | null
   insertion: { x1: number; y1: number; x2: number; y2: number } | null
   distances: DistanceLine[]
+  /** Silhouette de l'élément tiré quand il va être déposé ailleurs. */
+  ghost: Rect | null
 }
 
 export interface UiState {
@@ -39,7 +41,7 @@ export interface UiState {
   clearExtras(): void
 }
 
-const NO_EXTRAS: OverlayExtras = { guides: [], gaps: [], marquee: null, insertion: null, distances: [] }
+const NO_EXTRAS: OverlayExtras = { guides: [], gaps: [], marquee: null, insertion: null, distances: [], ghost: null }
 
 export const uiStore = createStore<UiState>()((set) => ({
   camera: { x: 0, y: 0, zoom: 1 },

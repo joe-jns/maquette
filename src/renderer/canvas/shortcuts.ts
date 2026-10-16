@@ -55,7 +55,7 @@ const TABLE: Record<CommandId, Omit<Shortcut, 'id'>> = {
   prevSibling: { keys: 'Maj+Tab', label: 'Élément précédent', group: 'Sélection' },
 
   wrapInFrame: { keys: 'Ctrl+Alt+G', label: 'Mettre dans un cadre', group: 'Disposition' },
-  addAutoLayout: { keys: 'Maj+A', label: 'Ajouter une disposition automatique', group: 'Disposition' },
+  addAutoLayout: { keys: 'Maj+A', label: 'Passer en mise en page automatique', group: 'Disposition' },
   forward: { keys: 'Ctrl+]', label: 'Avancer d’un plan', group: 'Disposition' },
   backward: { keys: 'Ctrl+[', label: 'Reculer d’un plan', group: 'Disposition' },
   front: { keys: 'Ctrl+Maj+]', label: 'Mettre au premier plan', group: 'Disposition' },
