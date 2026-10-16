@@ -2,12 +2,12 @@ import { BrowserWindow, dialog, ipcMain } from 'electron'
 import { readFile } from 'node:fs/promises'
 import type { OpenedFile } from '../shared/ipc'
 import { writeFileAtomic } from './files'
-import { setCurrentPath } from './state'
+import { acceptPath, allowedSavePath, offerPath, savedTo } from './state'
 
 const FILTERS = [{ name: 'Maquette', extensions: ['maquette'] }]
 
 export function registerFileIpc(fileArg: string | undefined): void {
-  if (fileArg) setCurrentPath(fileArg)
+  if (fileArg) offerPath(fileArg)
 
   ipcMain.handle('doc:initial', async (): Promise<OpenedFile | null> => {
     if (!fileArg) return null
@@ -21,12 +21,15 @@ export function registerFileIpc(fileArg: string | undefined): void {
       : await dialog.showOpenDialog({ filters: FILTERS, properties: ['openFile'] })
     const path = res.filePaths[0]
     if (res.canceled || !path) return null
-    setCurrentPath(path)
+    offerPath(path)
     return { path, text: await readFile(path, 'utf8') }
   })
 
+  ipcMain.handle('doc:loaded', (_event, path: string | null): boolean => acceptPath(path))
+
   ipcMain.handle('file:save', async (event, args: { path: string | null; text: string }): Promise<string | null> => {
-    let target = args.path
+    // Sans boîte de dialogue, on n'écrit que dans le document courant.
+    let target = allowedSavePath(args.path)
     if (!target) {
       const win = BrowserWindow.fromWebContents(event.sender)
       const options = { filters: FILTERS, defaultPath: 'Sans titre.maquette' }
@@ -35,7 +38,7 @@ export function registerFileIpc(fileArg: string | undefined): void {
       target = res.filePath.toLowerCase().endsWith('.maquette') ? res.filePath : `${res.filePath}.maquette`
     }
     await writeFileAtomic(target, args.text)
-    setCurrentPath(target)
+    savedTo(target)
     return target
   })
 }

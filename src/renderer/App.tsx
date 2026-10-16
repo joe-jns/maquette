@@ -13,7 +13,7 @@ export function App() {
   useEffect(() => {
     docStore.getState().setMeasure(domMeasure)
     void window.maquette.getInitialDocument().then((file) => {
-      if (file) openDocument(file)
+      if (file) void openDocument(file)
     })
     return window.maquette.onMenu((cmd) => void runCommand(cmd))
   }, [])

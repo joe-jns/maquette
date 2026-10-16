@@ -21,12 +21,15 @@ export async function runCommand(cmd: MenuCommand): Promise<void> {
   const store = docStore.getState()
   switch (cmd) {
     case 'new':
-      if (confirmDiscard()) store.load(newDocument(), null)
+      if (confirmDiscard()) {
+        await window.maquette.documentLoaded(null)
+        store.load(newDocument(), null)
+      }
       return
     case 'open': {
       if (!confirmDiscard()) return
       const file = await window.maquette.openFile()
-      if (file) openDocument(file)
+      if (file) await openDocument(file)
       return
     }
     case 'save':
