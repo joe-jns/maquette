@@ -1,5 +1,8 @@
 import { useEffect } from 'react'
 import { Canvas } from './canvas/Canvas'
+import { LeftPanel } from './panels/LeftPanel'
+import { RightPanel } from './panels/RightPanel'
+import './panels/panels.css'
 import { domMeasure } from './canvas/measure'
 import { runCommand } from './state/commands'
 import { fileName, openDocument } from './state/openDocument'
@@ -30,7 +33,11 @@ export function App() {
           <button type="button" onClick={() => docStore.setState({ notice: null })}>Fermer</button>
         </div>
       )}
-      <Canvas />
+      <div className="layout">
+        <LeftPanel />
+        <Canvas />
+        <RightPanel />
+      </div>
     </div>
   )
 }

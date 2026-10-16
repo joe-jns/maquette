@@ -3,14 +3,14 @@ import { copyFile, mkdtemp, readdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { launch } from './launch'
-import { pageChildren, scene, screenOf, settled, uiState } from './canvas'
+import { pageChildren, scene, screenOf, settled, uiState, resetCamera } from './canvas'
 
 const PNG_1x1 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
 
 test('R + glisser dessine un rectangle à cet endroit, puis retour à l’outil Déplacer', async () => {
   const { app, page } = await launch([scene])
   await settled(page, 'rBleu1')
-  await page.keyboard.press('Control+0')
+  await resetCamera(page)
   await page.keyboard.press('r')
   expect((await uiState(page)).tool).toBe('rect')
   const a = await screenOf(page, 100, 300)
@@ -32,7 +32,7 @@ test('R + glisser dessine un rectangle à cet endroit, puis retour à l’outil 
 test('F + clic : cadre 400 × 300 ; O + glisser avec Maj : cercle', async () => {
   const { app, page } = await launch([scene])
   await settled(page, 'rBleu1')
-  await page.keyboard.press('Control+0')
+  await resetCamera(page)
   await page.keyboard.press('f')
   const p = await screenOf(page, 100, 600)
   await page.mouse.click(p.x, p.y)
@@ -53,6 +53,7 @@ test('F + clic : cadre 400 × 300 ; O + glisser avec Maj : cercle', async () => 
 test('créer dans un cadre automatique : l’élément y entre en flux', async () => {
   const { app, page } = await launch([scene])
   await settled(page, 'tSuite')
+  await resetCamera(page)
   await page.keyboard.press('r')
   const box = (await page.locator('[data-node-id="tSuite"]').boundingBox())!
   await page.mouse.click(box.x + 5, box.y + box.height - 2)
@@ -65,6 +66,7 @@ test('créer dans un cadre automatique : l’élément y entre en flux', async (
 test('T + clic crée un texte et l’ouvre en édition', async () => {
   const { app, page } = await launch([scene])
   await settled(page, 'rBleu1')
+  await resetCamera(page)
   await page.keyboard.press('t')
   const p = await screenOf(page, 100, 420)
   await page.mouse.click(p.x, p.y)
@@ -80,6 +82,7 @@ test('déposer une image : copiée dans assets/ et affichée à sa taille', asyn
   await copyFile(scene, file)
   const { app, page } = await launch([file])
   await settled(page, 'rBleu1')
+  await resetCamera(page)
   const p = await screenOf(page, 120, 320)
   await page.evaluate(({ b64, x, y }) => {
     const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))
@@ -101,6 +104,7 @@ test('déposer une image : copiée dans assets/ et affichée à sa taille', asyn
 test('la barre d’outils change l’outil au clic', async () => {
   const { app, page } = await launch([scene])
   await settled(page, 'rBleu1')
+  await resetCamera(page)
   await page.locator('[data-tool-button="ellipse"]').click()
   expect((await uiState(page)).tool).toBe('ellipse')
   await expect(page.locator('[data-tool-button="ellipse"]')).toHaveAttribute('aria-pressed', 'true')

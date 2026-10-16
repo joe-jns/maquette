@@ -21,6 +21,8 @@ export interface DocState {
   redo(): void
   markSaved(path: string): void
   setMeasure(fn: Measure): void
+  /** Page affichée (sans historique : ce n'est pas une modification du document). */
+  setPage(id: string): void
   /** Mémorise le document courant comme base du geste. */
   beginGesture(): void
   /** Applique `ops` à la base (pas de cumul) et l'affiche, sans toucher l'historique. Refusé : l'affichage garde le dernier aperçu valide. */
@@ -89,6 +91,10 @@ export const docStore = createStore<DocState>()((set, get) => ({
 
   markSaved(path) {
     set({ filePath: path, dirty: false })
+  },
+
+  setPage(id) {
+    if (get().doc.pages.some((p) => p.id === id)) set({ pageId: id })
   },
 
   setMeasure(fn) {

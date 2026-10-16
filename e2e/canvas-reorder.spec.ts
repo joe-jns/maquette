@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 import { launch } from './launch'
-import { boxOf, centerOf, docNode, scene, settled } from './canvas'
+import { boxOf, centerOf, docNode, scene, settled, resetCamera } from './canvas'
 
 const childIds = async (page: Page, id: string) => ((await docNode(page, id)) as { children: { id: string }[] }).children.map((c) => c.id)
 const pageIds = (page: Page) =>
@@ -15,7 +15,7 @@ async function enter(page: Page, id: string) {
 test('réordonner en direct dans une colonne, annuler en une fois', async () => {
   const { app, page } = await launch([scene])
   await settled(page, 'tTitre')
-  await page.keyboard.press('Control+0')
+  await resetCamera(page)
   await enter(page, 'tTitre')
   const from = await centerOf(page, 'tTitre')
   const suite = await boxOf(page, 'tSuite')
@@ -34,7 +34,7 @@ test('réordonner en direct dans une colonne, annuler en une fois', async () => 
 test('sortir un enfant d’un cadre automatique vers la page', async () => {
   const { app, page } = await launch([scene])
   await settled(page, 'tTitre')
-  await page.keyboard.press('Control+0')
+  await resetCamera(page)
   await enter(page, 'tTitre')
   const from = await centerOf(page, 'tTitre')
   const hero = await boxOf(page, 'fHero1')
@@ -53,7 +53,7 @@ test('sortir un enfant d’un cadre automatique vers la page', async () => {
 test('déposer un élément libre dans un cadre automatique : trait d’insertion puis dépôt', async () => {
   const { app, page } = await launch([scene])
   await settled(page, 'rBleu1')
-  await page.keyboard.press('Control+0')
+  await resetCamera(page)
   const from = await centerOf(page, 'rBleu1')
   const suite = await boxOf(page, 'tSuite')
   await page.mouse.move(from.x, from.y)

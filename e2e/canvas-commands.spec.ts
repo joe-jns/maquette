@@ -1,12 +1,13 @@
 import { test, expect, type Page } from '@playwright/test'
 import { launch } from './launch'
-import { clickOn, docNode, pageChildren, scene, screenOf, settled, uiState } from './canvas'
+import { clickOn, docNode, pageChildren, scene, screenOf, settled, uiState, resetCamera } from './canvas'
 
 const ids = async (page: Page) => (await pageChildren(page)).map((n) => n.id as string)
 
 test('Ctrl+D duplique et sélectionne la copie ; Suppr supprime', async () => {
   const { app, page } = await launch([scene])
   await settled(page, 'rBleu1')
+  await resetCamera(page)
   await clickOn(page, 'rBleu1')
   await page.keyboard.press('Control+d')
   const after = await ids(page)
@@ -22,6 +23,7 @@ test('Ctrl+D duplique et sélectionne la copie ; Suppr supprime', async () => {
 test('Ctrl+Alt+G encadre deux éléments ; Maj+A passe le cadre en mise en page automatique', async () => {
   const { app, page } = await launch([scene])
   await settled(page, 'rBleu1')
+  await resetCamera(page)
   await clickOn(page, 'rBleu1')
   await clickOn(page, 'rVert1', ['Shift'])
   await page.keyboard.press('Control+Alt+g')
@@ -36,7 +38,7 @@ test('Ctrl+Alt+G encadre deux éléments ; Maj+A passe le cadre en mise en page 
 test('Ctrl+C puis Ctrl+V colle une copie là où se trouve le pointeur', async () => {
   const { app, page } = await launch([scene])
   await settled(page, 'rBleu1')
-  await page.keyboard.press('Control+0')
+  await resetCamera(page)
   await clickOn(page, 'rBleu1')
   await page.keyboard.press('Control+c')
   const p = await screenOf(page, 100, 420)
@@ -51,6 +53,7 @@ test('Ctrl+C puis Ctrl+V colle une copie là où se trouve le pointeur', async (
 test('Ctrl+] et Ctrl+[ changent l’ordre d’empilement', async () => {
   const { app, page } = await launch([scene])
   await settled(page, 'rBleu1')
+  await resetCamera(page)
   await clickOn(page, 'rBleu1')
   await page.keyboard.press('Control+BracketRight')
   expect(await ids(page)).toEqual(['fHero1', 'rVert1', 'rBleu1', 'fLibre'])
@@ -62,6 +65,7 @@ test('Ctrl+] et Ctrl+[ changent l’ordre d’empilement', async () => {
 test('? ouvre l’aide, Échap la ferme', async () => {
   const { app, page } = await launch([scene])
   await settled(page, 'rBleu1')
+  await resetCamera(page)
   await page.keyboard.press('Shift+?')
   const help = page.getByRole('dialog', { name: 'Raccourcis clavier' })
   await expect(help).toBeVisible()

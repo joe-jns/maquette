@@ -3,11 +3,12 @@ import { copyFile, mkdtemp, readFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { launch } from './launch'
-import { centerOf, clickOn, docNode, handleCenter, pageChildren, scene, screenOf, settled, uiState } from './canvas'
+import { centerOf, clickOn, docNode, handleCenter, pageChildren, scene, screenOf, settled, uiState, resetCamera } from './canvas'
 
 test('lâcher un fichier qui n’est pas une image ne fait pas quitter le document', async () => {
   const { app, page } = await launch([scene])
   await settled(page, 'rBleu1')
+  await resetCamera(page)
   const url = page.url()
   for (const selector of ['[data-testid="canvas"]', 'body']) {
     await page.evaluate((sel) => {
@@ -34,6 +35,7 @@ test('lâcher un fichier qui n’est pas une image ne fait pas quitter le docume
 test('vider un texte puis cliquer sur un autre élément le sélectionne', async () => {
   const { app, page } = await launch([scene])
   await settled(page, 'rBleu1')
+  await resetCamera(page)
   await page.keyboard.press('t')
   const p = await screenOf(page, 100, 420)
   await page.mouse.click(p.x, p.y)
@@ -47,6 +49,7 @@ test('vider un texte puis cliquer sur un autre élément le sélectionne', async
 test('fenêtre d’aide ouverte : les raccourcis ne touchent pas au document', async () => {
   const { app, page } = await launch([scene])
   await settled(page, 'rBleu1')
+  await resetCamera(page)
   await clickOn(page, 'rBleu1')
   await page.keyboard.press('Shift+?')
   await expect(page.getByRole('dialog', { name: 'Raccourcis clavier' })).toBeVisible()
@@ -66,6 +69,7 @@ test('enregistrer pendant l’édition d’un texte garde ce qui vient d’être
   await copyFile(scene, file)
   const { app, page } = await launch([file])
   await settled(page, 'tTitre')
+  await resetCamera(page)
   const c = await centerOf(page, 'tTitre')
   await page.mouse.dblclick(c.x, c.y)
   await page.waitForTimeout(350)
@@ -83,6 +87,7 @@ test('double-clic sur le bord d’un rectangle : rien ne se passe, aucune erreur
   const errors: string[] = []
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()) })
   await settled(page, 'rBleu1')
+  await resetCamera(page)
   await clickOn(page, 'rBleu1')
   const e = await handleCenter(page, 'e')
   await page.mouse.dblclick(e.x, e.y)
@@ -94,6 +99,7 @@ test('double-clic sur le bord d’un rectangle : rien ne se passe, aucune erreur
 test('après Ctrl+Z, la sélection ne garde pas un élément disparu', async () => {
   const { app, page } = await launch([scene])
   await settled(page, 'rBleu1')
+  await resetCamera(page)
   await page.keyboard.press('r')
   const p = await screenOf(page, 100, 420)
   await page.mouse.click(p.x, p.y)
@@ -110,6 +116,7 @@ test('déposer deux images : une seule annulation les retire toutes les deux', a
   await copyFile(scene, file)
   const { app, page } = await launch([file])
   await settled(page, 'rBleu1')
+  await resetCamera(page)
   const p = await screenOf(page, 120, 420)
   await page.evaluate(({ b64, x, y }) => {
     const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))

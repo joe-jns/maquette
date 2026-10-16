@@ -91,7 +91,9 @@ export async function dragHandle(page: Page, name: string, dx: number, dy: numbe
 /** Point écran correspondant à un point du monde (caméra lue dans l'interface). */
 export async function screenOf(page: Page, x: number, y: number) {
   const cam = await page.evaluate(() => (window as unknown as { __maquetteUi: { getState(): { camera: { x: number; y: number; zoom: number } } } }).__maquetteUi.getState().camera)
-  return { x: x * cam.zoom + cam.x, y: y * cam.zoom + cam.y }
+  // La caméra est relative au canevas, lui-même décalé par le panneau gauche.
+  const canvas = (await page.getByTestId('canvas').boundingBox())!
+  return { x: canvas.x + x * cam.zoom + cam.x, y: canvas.y + y * cam.zoom + cam.y }
 }
 
 export const pageChildren = (page: Page) =>
@@ -102,3 +104,10 @@ export const uiState = (page: Page) =>
     const s = (window as unknown as { __maquetteUi: { getState(): { tool: string; selection: string[]; editingTextId: string | null } } }).__maquetteUi.getState()
     return { tool: s.tool, selection: s.selection, editing: s.editingTextId }
   })
+
+/** Caméra fixe pour viser des points du monde : 80 % (toute la scène tient), origine du monde à (20, 20) dans le canevas. */
+export async function resetCamera(page: Page) {
+  await page.evaluate(() =>
+    (window as unknown as { __maquetteUi: { getState(): { setCamera(c: { x: number; y: number; zoom: number }): void } } }).__maquetteUi.getState().setCamera({ x: 20, y: 20, zoom: 0.8 }),
+  )
+}
