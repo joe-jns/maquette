@@ -184,6 +184,10 @@ function applyOne(ctx: Ctx, op: Op, i: number): void {
       }
       if (node.type === 'text' && ('width' in set || 'height' in set) && !('textSizing' in set)) realignText(ctx, node)
       if (loc.parent?.layout.mode === 'auto' && node.position === 'flow') ignoreFlowXY(ctx, node)
+      // Sorti du flux sans position : il reste là où il était affiché.
+      if (loc.parent?.layout.mode === 'auto' && node.position === 'absolute' && (node.x === undefined || node.y === undefined)) {
+        place(ctx, node)
+      }
       return
     }
     case 'move': {

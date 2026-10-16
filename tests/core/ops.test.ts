@@ -172,6 +172,14 @@ describe('applyOps', () => {
     expect((r.doc.pages[0]!.children[0] as TextNode).textStyle).toBe(r.ids['$t'])
   })
 
+  it('passer un enfant en "absolute" sans x/y le garde à sa place affichée', () => {
+    const p = frame('f00001', { x: 0, y: 0, layout: { mode: 'auto' } }) as FrameNode
+    p.children.push(rect('r00001'))
+    const measure: Measure = (id) => (id === 'r00001' ? { x: 24.4, y: 36, width: 100, height: 100 } : undefined)
+    const r = ok(applyOps(docWith([p]), [{ op: 'update', id: 'r00001', set: { position: 'absolute' } }], { measure }))
+    expect(findNode(r.doc, 'r00001')!.node).toMatchObject({ position: 'absolute', x: 24, y: 36 })
+  })
+
   it('les patchs inverses restaurent exactement le document d’origine', () => {
     const doc = docWith([rect('r00001', { x: 0, y: 0 })])
     const r = ok(applyOps(doc, [
