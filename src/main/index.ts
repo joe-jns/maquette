@@ -1,5 +1,6 @@
 import { app, BrowserWindow } from 'electron'
 import { join } from 'node:path'
+import { handleAssets, registerAssetScheme } from './assets'
 import { registerFileIpc } from './ipc'
 import { buildMenu } from './menu'
 
@@ -29,8 +30,10 @@ function createWindow(): BrowserWindow {
 }
 
 registerFileIpc(fileArg)
+registerAssetScheme()
 
 app.whenReady().then(() => {
+  handleAssets()
   buildMenu()
   createWindow()
   app.on('activate', () => {
