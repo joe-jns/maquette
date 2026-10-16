@@ -1,6 +1,7 @@
 import { parseDocument } from '../../core/format'
 import type { OpenedFile } from '../../shared/ipc'
 import { docStore } from './store'
+import { uiStore } from './ui'
 
 export const fileName = (path: string | null) => (path ? (path.split(/[\\/]/).pop() ?? path) : 'Sans titre')
 
@@ -15,6 +16,8 @@ export async function openDocument(file: OpenedFile): Promise<void> {
   // D'abord le principal (dossier des images), ensuite l'affichage : sinon les images partent trop tôt.
   await window.maquette.documentLoaded(file.path)
   store.load(parsed.doc, file.path)
+  uiStore.getState().select([])
+  uiStore.getState().requestFit()
   const n = parsed.warnings.length
   if (n > 0) {
     // Le document réparé diffère du fichier : il reste à enregistrer.

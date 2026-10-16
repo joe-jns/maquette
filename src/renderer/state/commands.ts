@@ -3,6 +3,7 @@ import { serializeDocument } from '../../core/format'
 import type { MenuCommand } from '../../shared/ipc'
 import { openDocument } from './openDocument'
 import { docStore } from './store'
+import { uiStore } from './ui'
 
 const confirmDiscard = () =>
   !docStore.getState().dirty || window.confirm('Abandonner les modifications non enregistrées ?')
@@ -24,6 +25,8 @@ export async function runCommand(cmd: MenuCommand): Promise<void> {
       if (confirmDiscard()) {
         await window.maquette.documentLoaded(null)
         store.load(newDocument(), null)
+        uiStore.getState().select([])
+        uiStore.getState().setCamera({ x: 0, y: 0, zoom: 1 })
       }
       return
     case 'open': {

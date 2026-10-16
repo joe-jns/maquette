@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { DocumentView } from './canvas/DocumentView'
+import { Canvas } from './canvas/Canvas'
 import { domMeasure } from './canvas/measure'
 import { runCommand } from './state/commands'
 import { fileName, openDocument } from './state/openDocument'
@@ -30,7 +30,7 @@ export function App() {
           <button type="button" onClick={() => docStore.setState({ notice: null })}>Fermer</button>
         </div>
       )}
-      <DocumentView />
+      <Canvas />
     </div>
   )
 }
