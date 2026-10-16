@@ -82,7 +82,8 @@ export function nodeCss(node: Node, parent: FrameNode | null, styles: DocStyles,
         })
       }
       if (node.clip) css.overflow = 'hidden'
-      paint(css, node.fills, node.stroke, node.shadows, styles)
+      // Contours inside/center : couche au-dessus des enfants (frameStrokeCss), pas sur le cadre.
+      paint(css, node.fills, node.stroke?.align === 'outside' ? node.stroke : undefined, node.shadows, styles)
       css.borderRadius = radiusCss(node.radius)
       break
     }
@@ -118,6 +119,25 @@ export function nodeCss(node: Node, parent: FrameNode | null, styles: DocStyles,
   }
 
   if (!node.visible) css.display = 'none'
+  return css
+}
+
+/**
+ * Contour `inside` ou `center` d'un cadre, dessiné par une couche posée au-dessus de ses enfants
+ * (sinon un enfant opaque le recouvrirait). `null` si le cadre n'a pas de tel contour.
+ */
+export function frameStrokeCss(node: FrameNode, styles: DocStyles): CSS | null {
+  const stroke = node.stroke
+  if (!stroke || stroke.align === 'outside') return null
+  const css: CSS = {
+    position: 'absolute', inset: 0, borderRadius: radiusCss(node.radius), pointerEvents: 'none', zIndex: 2147483647,
+  }
+  const c = resolveColor(stroke.color, styles)
+  if (stroke.align === 'inside') css.boxShadow = `inset 0 0 0 ${px(stroke.width)} ${c}`
+  else {
+    css.outline = `${px(stroke.width)} solid ${c}`
+    css.outlineOffset = px(-stroke.width / 2)
+  }
   return css
 }
 
