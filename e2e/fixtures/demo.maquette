@@ -1,0 +1,35 @@
+{
+  "format": "maquette",
+  "version": 1,
+  "styles": { "colors": [{ "id": "cAccnt", "name": "accent", "value": "#C2410C" }], "text": [] },
+  "pages": [
+    {
+      "id": "pAccue",
+      "name": "Accueil",
+      "children": [
+        {
+          "id": "fHero1", "type": "frame", "name": "Hero", "visible": true, "locked": false, "opacity": 1,
+          "width": 600, "height": { "mode": "hug" }, "x": 40, "y": 40, "position": "flow",
+          "children": [
+            {
+              "id": "tTitre", "type": "text", "name": "Titre", "visible": true, "locked": false, "opacity": 1,
+              "width": { "mode": "hug" }, "height": { "mode": "hug" }, "position": "flow",
+              "content": "Bonjour Maquette", "fontFamily": "Arial", "fontWeight": 700, "fontStyle": "normal",
+              "fontSize": 40, "lineHeight": 48, "letterSpacing": 0, "textAlign": "left",
+              "color": { "style": "cAccnt" }, "textSizing": "auto"
+            },
+            {
+              "id": "tSuite", "type": "text", "name": "Suite", "visible": true, "locked": false, "opacity": 1,
+              "width": { "mode": "hug" }, "height": { "mode": "hug" }, "position": "flow",
+              "content": "Été « deuxième » ligne", "fontFamily": "Arial", "fontWeight": 400, "fontStyle": "normal",
+              "fontSize": 18, "lineHeight": 22, "letterSpacing": 0, "textAlign": "left",
+              "color": "#111111", "textSizing": "auto"
+            }
+          ],
+          "layout": { "mode": "auto", "direction": "column", "gap": 16, "padding": [24, 24, 24, 24], "justify": "start", "align": "start", "wrap": false, "reverseZ": false },
+          "fills": ["#FFFFFF"], "radius": 12, "shadows": [], "clip": false
+        }
+      ]
+    }
+  ]
+}

@@ -1,3 +1,11 @@
 html, body, #root { margin: 0; height: 100%; }
 body { font-family: system-ui, sans-serif; background: #e5e5e5; color: #111; }
 .app { height: 100%; position: relative; overflow: hidden; }
+.canvas { position: absolute; inset: 0; overflow: hidden; }
+.world { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-origin: 0 0; }
+.notice {
+  position: absolute; z-index: 10; top: 12px; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 12px; align-items: center;
+  background: #7f1d1d; color: #fff; padding: 10px 14px; border-radius: 8px; font-size: 14px;
+}
+.notice button { background: transparent; color: inherit; border: 1px solid #fff8; border-radius: 6px; padding: 2px 8px; cursor: pointer; }

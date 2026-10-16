@@ -1,0 +1,6 @@
+{
+  "format": "maquette",
+  "version": 1,
+  "styles": { "colors": [], "text": [] },
+  "pages": [{ "id": "pRepar", "name": "Page", "children": [{ "id": "tSeul1", "type": "text", "content": "Sans position" }] }]
+}
