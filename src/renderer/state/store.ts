@@ -12,6 +12,8 @@ export interface DocState {
   notice: string | null
   canUndo: boolean
   canRedo: boolean
+  /** Un geste (glisser, redimensionnement…) est en cours : `doc` montre son aperçu. */
+  inGesture: boolean
   load(doc: MaquetteDocument, path: string | null): void
   showError(message: string): void
   dispatch(ops: Op[], label: string): ApplyResult
@@ -19,10 +21,27 @@ export interface DocState {
   redo(): void
   markSaved(path: string): void
   setMeasure(fn: Measure): void
+  /** Mémorise le document courant comme base du geste. */
+  beginGesture(): void
+  /** Applique `ops` à la base (pas de cumul) et l'affiche, sans toucher l'historique. Refusé : l'affichage garde le dernier aperçu valide. */
+  previewGesture(ops: Op[]): ApplyResult
+  /** Une seule entrée d'historique, de la base au dernier aperçu valide ; rien si aucun aperçu valide. */
+  commitGesture(label: string): void
+  /** Revient à la base, sans historique. */
+  cancelGesture(): void
 }
+
+type Applied = Extract<ApplyResult, { ok: true }>
+
+/** Geste en cours : base, et dernier aperçu valide (ses patchs vont de la base à l'aperçu). */
+interface Gesture { base: MaquetteDocument; last: Applied | null }
+
+/** Libellé d'un geste validé d'office (undo, dispatch… arrivés en plein geste). */
+const IMPLICIT_LABEL = 'Modification'
 
 const history = new History()
 let measure: Measure | undefined
+let gesture: Gesture | null = null
 
 const initial = newDocument()
 
@@ -34,10 +53,12 @@ export const docStore = createStore<DocState>()((set, get) => ({
   notice: null,
   canUndo: false,
   canRedo: false,
+  inGesture: false,
 
   load(doc, path) {
     history.clear()
-    set({ doc, filePath: path, dirty: false, pageId: doc.pages[0]!.id, notice: null, canUndo: false, canRedo: false })
+    gesture = null
+    set({ doc, filePath: path, dirty: false, pageId: doc.pages[0]!.id, notice: null, canUndo: false, canRedo: false, inGesture: false })
   },
 
   showError(message) {
@@ -45,6 +66,7 @@ export const docStore = createStore<DocState>()((set, get) => ({
   },
 
   dispatch(ops, label) {
+    if (gesture) get().commitGesture(IMPLICIT_LABEL)
     const result = applyOps(get().doc, ops, { measure })
     if (result.ok) {
       history.push({ label, patches: result.patches, inversePatches: result.inversePatches })
@@ -54,11 +76,13 @@ export const docStore = createStore<DocState>()((set, get) => ({
   },
 
   undo() {
+    if (gesture) get().commitGesture(IMPLICIT_LABEL)
     const r = history.undo(get().doc)
     if (r) set({ doc: r.doc, dirty: true, canUndo: history.canUndo(), canRedo: history.canRedo() })
   },
 
   redo() {
+    if (gesture) get().commitGesture(IMPLICIT_LABEL)
     const r = history.redo(get().doc)
     if (r) set({ doc: r.doc, dirty: true, canUndo: history.canUndo(), canRedo: history.canRedo() })
   },
@@ -69,6 +93,43 @@ export const docStore = createStore<DocState>()((set, get) => ({
 
   setMeasure(fn) {
     measure = fn
+  },
+
+  beginGesture() {
+    // Un geste précédent jamais terminé est validé plutôt que perdu.
+    if (gesture) get().commitGesture(IMPLICIT_LABEL)
+    gesture = { base: get().doc, last: null }
+    set({ inGesture: true })
+  },
+
+  previewGesture(ops) {
+    if (!gesture) get().beginGesture()
+    const g = gesture!
+    const result = applyOps(g.base, ops, { measure })
+    if (result.ok) {
+      g.last = result
+      set({ doc: result.doc })
+    }
+    return result
+  },
+
+  commitGesture(label) {
+    const g = gesture
+    if (!g) return
+    gesture = null
+    if (!g.last) {
+      set({ inGesture: false })
+      return
+    }
+    history.push({ label, patches: g.last.patches, inversePatches: g.last.inversePatches })
+    set({ doc: g.last.doc, dirty: true, inGesture: false, canUndo: history.canUndo(), canRedo: history.canRedo() })
+  },
+
+  cancelGesture() {
+    const g = gesture
+    if (!g) return
+    gesture = null
+    set({ doc: g.base, inGesture: false })
   },
 }))
 

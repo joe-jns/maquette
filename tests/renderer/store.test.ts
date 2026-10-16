@@ -44,3 +44,54 @@ describe('docStore', () => {
     expect(docStore.getState()).toMatchObject({ dirty: false, filePath: 'C:/x/autre.maquette' })
   })
 })
+
+describe('gestes', () => {
+  it('un geste = une seule entrée d’historique', () => {
+    const s = docStore.getState()
+    s.beginGesture()
+    s.previewGesture([{ op: 'update', id: 'r00001', set: { name: 'B' } }])
+    s.previewGesture([{ op: 'update', id: 'r00001', set: { name: 'C' } }])
+    expect(docStore.getState().doc.pages[0]!.children[0]!.name).toBe('C')
+    expect(docStore.getState().canUndo).toBe(false)
+    docStore.getState().commitGesture('Renommer')
+    expect(docStore.getState()).toMatchObject({ canUndo: true, dirty: true, inGesture: false })
+    docStore.getState().undo()
+    expect(docStore.getState().doc.pages[0]!.children[0]!.name).toBe('A')
+    expect(docStore.getState().canUndo).toBe(false)
+  })
+
+  it('les aperçus ne se cumulent pas : chacun part de la base', () => {
+    const s = docStore.getState()
+    s.beginGesture()
+    s.previewGesture([{ op: 'update', id: 'r00001', set: { opacity: 0.5 } }])
+    s.previewGesture([{ op: 'update', id: 'r00001', set: { name: 'B' } }])
+    expect(docStore.getState().doc.pages[0]!.children[0]).toMatchObject({ name: 'B', opacity: 1 })
+  })
+
+  it('annuler le geste revient à la base sans historique', () => {
+    const s = docStore.getState()
+    s.beginGesture()
+    s.previewGesture([{ op: 'update', id: 'r00001', set: { name: 'B' } }])
+    docStore.getState().cancelGesture()
+    expect(docStore.getState().doc.pages[0]!.children[0]!.name).toBe('A')
+    expect(docStore.getState()).toMatchObject({ canUndo: false, inGesture: false })
+  })
+
+  it('un aperçu refusé garde le dernier aperçu valide', () => {
+    const s = docStore.getState()
+    s.beginGesture()
+    s.previewGesture([{ op: 'update', id: 'r00001', set: { name: 'B' } }])
+    const r = s.previewGesture([{ op: 'update', id: 'absent', set: { name: 'X' } }])
+    expect(r.ok).toBe(false)
+    expect(docStore.getState().doc.pages[0]!.children[0]!.name).toBe('B')
+    docStore.getState().commitGesture('Renommer')
+    docStore.getState().undo()
+    expect(docStore.getState().doc.pages[0]!.children[0]!.name).toBe('A')
+  })
+
+  it('valider sans aperçu ne crée pas d’entrée', () => {
+    docStore.getState().beginGesture()
+    docStore.getState().commitGesture('Rien')
+    expect(docStore.getState().canUndo).toBe(false)
+  })
+})
