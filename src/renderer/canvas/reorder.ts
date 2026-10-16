@@ -82,3 +82,18 @@ export function insertionMarker(
     ? { x1: at, y1: c1, x2: at, y2: c2 }
     : { x1: c1, y1: at, x2: c2, y2: at }
 }
+
+/**
+ * `insertionIndex` compte parmi les enfants en flux visibles (sans l'élément tiré) ; les opérations
+ * `move`/`create` attendent un rang parmi tous les enfants. Au-delà du dernier : la fin de la liste.
+ */
+export function flowIndexToChildIndex(
+  children: readonly { id: string; position: 'flow' | 'absolute'; visible: boolean }[],
+  dragged: string | null,
+  flowIndex: number,
+): number {
+  const list = children.filter((c) => c.id !== dragged)
+  const flow = list.filter((c) => c.position === 'flow' && c.visible)
+  const next = flow[flowIndex]
+  return next ? list.indexOf(next) : list.length
+}

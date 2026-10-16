@@ -16,7 +16,7 @@ import { createClickTracker } from './clicks'
 import { distanceLines, normalizeRect, union, type Point } from './geometry'
 import { deepestHitAt, worldRectOf } from './rects'
 import { ascend, contextOf, descend, marqueeSelect, nextSibling, pickClickTarget } from './selection'
-import { insertionIndex, insertionMarker } from './reorder'
+import { flowIndexToChildIndex, insertionIndex, insertionMarker } from './reorder'
 import { matchShortcut, type CommandId } from './shortcuts'
 import type { HandleName } from './Overlay'
 import { snapMove, snapValue, type Guide } from './snapping'
@@ -330,8 +330,9 @@ export class InteractionController {
     const at = rect ?? { x: s.start.x, y: s.start.y, width: 0, height: 0 }
     const layout = s.container.frame?.layout
     if (s.container.frame && layout?.mode === 'auto') {
-      const rects = s.container.frame.children.filter((c) => c.position === 'flow').map((c) => worldRectOf(c.id)).filter((r) => r !== undefined)
-      const index = insertionIndex(rects, layout.direction, s.start, layout.wrap)
+      const children = s.container.frame.children
+      const rects = children.filter((c) => c.position === 'flow' && c.visible).map((c) => worldRectOf(c.id)).filter((r) => r !== undefined)
+      const index = flowIndexToChildIndex(children, null, insertionIndex(rects, layout.direction, s.start, layout.wrap))
       return { op: 'create', parent: s.container.id, index, node: { id: '$new', ...kind, ...size } }
     }
     return {
@@ -586,7 +587,7 @@ export class InteractionController {
     let rects = s.cache.get(frame.id)
     if (!rects) {
       rects = frame.children
-        .filter((c) => c.id !== draggedId && c.position === 'flow')
+        .filter((c) => c.id !== draggedId && c.position === 'flow' && c.visible)
         .map((c) => worldRectOf(c.id))
         .filter((r) => r !== undefined)
       s.cache.set(frame.id, rects)
@@ -625,7 +626,9 @@ export class InteractionController {
     // 2. Cadre automatique : point d'insertion.
     if (container.frame && layout?.mode === 'auto') {
       const rects = this.childRects(s, container.frame, single.id)
-      const index = insertionIndex(rects, layout.direction, p, layout.wrap)
+      const flowIndex = insertionIndex(rects, layout.direction, p, layout.wrap)
+      // Rang parmi tous les enfants (les absolus et masqués n'interviennent pas dans le calcul).
+      const index = flowIndexToChildIndex(container.frame.children, single.id, flowIndex)
       if (container.id === single.parent && single.flow) {
         // Son propre cadre : réordonnancement en direct, frères animés.
         this.setDrop(s, null)
@@ -634,7 +637,7 @@ export class InteractionController {
         // Un autre cadre : trait d'insertion, dépôt au relâchement.
         this.preview(s, [])
         const ghost = { x: p.x - single.grab.x, y: p.y - single.grab.y, width: s.bounds.width, height: s.bounds.height }
-        this.setDrop(s, { parent: container.id, index, marker: insertionMarker(rects, layout.direction, index, container.rect) }, ghost)
+        this.setDrop(s, { parent: container.id, index, marker: insertionMarker(rects, layout.direction, flowIndex, container.rect) }, ghost)
       }
       return
     }

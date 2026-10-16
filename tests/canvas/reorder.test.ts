@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { insertionIndex, insertionMarker } from '../../src/renderer/canvas/reorder'
+import { flowIndexToChildIndex, insertionIndex, insertionMarker } from '../../src/renderer/canvas/reorder'
 
 const r = (x: number, y: number, width: number, height: number) => ({ x, y, width, height })
 
@@ -35,5 +35,21 @@ describe('point d’insertion', () => {
     expect(insertionMarker(col, 'column', 1, r(0, 0, 100, 80))).toEqual({ x1: 0, y1: 25, x2: 100, y2: 25 })
     expect(insertionMarker(col, 'column', 0, r(0, -10, 100, 90))).toEqual({ x1: 0, y1: -10, x2: 100, y2: -10 })
     expect(insertionMarker(col, 'column', 3, r(0, 0, 100, 90))).toEqual({ x1: 0, y1: 90, x2: 100, y2: 90 })
+  })
+
+  it('un rang parmi les enfants en flux visibles devient un rang parmi tous les enfants', () => {
+    const kids = [
+      { id: 'A', position: 'flow' as const, visible: true },
+      { id: 'X', position: 'absolute' as const, visible: true },
+      { id: 'B', position: 'flow' as const, visible: true },
+      { id: 'H', position: 'flow' as const, visible: false },
+      { id: 'C', position: 'flow' as const, visible: true },
+    ]
+    // C tiré : enfants en flux visibles sans lui = [A, B]
+    expect(flowIndexToChildIndex(kids, 'C', 0)).toBe(0)
+    expect(flowIndexToChildIndex(kids, 'C', 1)).toBe(2)
+    expect(flowIndexToChildIndex(kids, 'C', 2)).toBe(4)
+    // rien de tiré (création)
+    expect(flowIndexToChildIndex(kids, null, 3)).toBe(5)
   })
 })
