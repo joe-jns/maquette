@@ -197,8 +197,9 @@ function applyOne(ctx: Ctx, op: Op, i: number): void {
       if (target.kind === 'frame' && containsId(loc.node, target.node.id)) {
         fail(i, 'parent', 'impossible de placer un élément dans lui-même ou dans un de ses descendants')
       }
-      // Un élément créé plus tôt dans le même lot n'est pas un brouillon Immer : current() le refuserait.
-      const node = (isDraft(loc.node) ? current(loc.node) : loc.node) as Node
+      // Copie indépendante : current() renvoie l'original (gelé) quand le brouillon n'a pas été modifié,
+      // et un élément créé plus tôt dans le lot n'est pas un brouillon du tout.
+      const node = structuredClone(isDraft(loc.node) ? current(loc.node) : loc.node) as Node
       if (isAutoContainer(target) && node.position === 'flow') {
         delete node.x
         delete node.y

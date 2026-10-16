@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { applyPatches } from 'immer'
+import { applyPatches, freeze } from 'immer'
 import { applyOps, type Measure } from '../../src/core/ops'
 import { findNode } from '../../src/core/tree'
 import type { FrameNode, MaquetteDocument, TextNode } from '../../src/core/types'
@@ -178,6 +178,18 @@ describe('applyOps', () => {
     const measure: Measure = (id) => (id === 'r00001' ? { x: 24.4, y: 36, width: 100, height: 100 } : undefined)
     const r = ok(applyOps(docWith([p]), [{ op: 'update', id: 'r00001', set: { position: 'absolute' } }], { measure }))
     expect(findNode(r.doc, 'r00001')!.node).toMatchObject({ position: 'absolute', x: 24, y: 36 })
+  })
+
+  it('déplacer hors d’un cadre automatique sur un document gelé : original intact, annulation exacte', () => {
+    const p = frame('f00001', { x: 0, y: 0, layout: { mode: 'auto' } }) as FrameNode
+    p.children.push(rect('r00001', { width: { mode: 'fill' } }))
+    const doc = freeze(docWith([p]), true)
+    const before = structuredClone(doc)
+    const measure: Measure = () => ({ x: 0, y: 0, width: 250, height: 100 })
+    const r = ok(applyOps(doc, [{ op: 'move', id: 'r00001', parent: pageId(doc), x: 500, y: 40 }], { measure }))
+    expect(r.doc.pages[0]!.children[1]).toMatchObject({ id: 'r00001', x: 500, y: 40, width: 250 })
+    expect(doc).toEqual(before)
+    expect(applyPatches(r.doc, r.inversePatches)).toEqual(before)
   })
 
   it('les patchs inverses restaurent exactement le document d’origine', () => {
