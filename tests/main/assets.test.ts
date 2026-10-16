@@ -17,4 +17,8 @@ describe('resolveAssetPath', () => {
   it('refuse un chemin vide', () => {
     expect(resolveAssetPath(base, '/')).toBeNull()
   })
+
+  it('un encodage cassé est traité comme introuvable, sans exception', () => {
+    expect(resolveAssetPath(base, '/assets/%E0%A4%A.png')).toBeNull()
+  })
 })
