@@ -19,6 +19,7 @@ export type Op =
   | { op: 'page.create'; id?: string; name: string; index?: number }
   | { op: 'page.update'; id: string; name: string }
   | { op: 'page.delete'; id: string }
+  | { op: 'page.move'; id: string; index: number }
   | { op: 'style.color.set'; id?: string; name: string; value: string }
   | ({ op: 'style.text.set'; id?: string } & Omit<TextStyle, 'id'>)
   | { op: 'style.delete'; id: string }
@@ -228,6 +229,16 @@ function applyOne(ctx: Ctx, op: Op, i: number): void {
       const page = ctx.draft.pages.find((p) => p.id === resolve(ctx, op.id, i, 'id'))
       if (!page) return fail(i, 'id', `page introuvable : ${op.id}`)
       page.name = op.name
+      return
+    }
+    case 'page.move': {
+      const pages = ctx.draft.pages
+      const from = pages.findIndex((p) => p.id === resolve(ctx, op.id, i, 'id'))
+      if (from < 0) return fail(i, 'id', `page introuvable : ${op.id}`)
+      const [moved] = pages.splice(from, 1)
+      // Copie indépendante, comme pour `move` : jamais d'écriture dans un document gelé.
+      const page = structuredClone(isDraft(moved) ? current(moved) : moved) as Page
+      pages.splice(clampIndex(op.index, pages.length), 0, page)
       return
     }
     case 'page.delete': {

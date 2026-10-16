@@ -222,6 +222,22 @@ describe('applyOps', () => {
     expect(r.fixes).toHaveLength(2)
   })
 
+  it('page.move réordonne les pages', () => {
+    const doc = docWith([])
+    const r = ok(applyOps(doc, [
+      { op: 'page.create', id: '$b', name: 'B' },
+      { op: 'page.create', id: '$c', name: 'C' },
+      { op: 'page.move', id: '$c', index: 0 },
+    ]))
+    expect(r.doc.pages.map((p) => p.name)).toEqual(['C', 'Page 1', 'B'])
+    const r2 = applyOps(r.doc, [{ op: 'page.move', id: 'absent', index: 0 }])
+    expect(r2.ok).toBe(false)
+    const frozen = freeze(r.doc, true)
+    const r3 = ok(applyOps(frozen, [{ op: 'page.move', id: frozen.pages[0]!.id, index: 2 }]))
+    expect(r3.doc.pages.map((p) => p.name)).toEqual(['Page 1', 'B', 'C'])
+    expect(applyPatches(r3.doc, r3.inversePatches)).toEqual(frozen)
+  })
+
   it('les patchs inverses restaurent exactement le document d’origine', () => {
     const doc = docWith([rect('r00001', { x: 0, y: 0 })])
     const r = ok(applyOps(doc, [
