@@ -192,6 +192,36 @@ describe('applyOps', () => {
     expect(applyPatches(r.doc, r.inversePatches)).toEqual(before)
   })
 
+  it('sortir un enfant "fill" du flux en le passant en "absolute" : figé, placé, sans alignSelf', () => {
+    const p = frame('f00001', { x: 0, y: 0, layout: { mode: 'auto' } }) as FrameNode
+    p.children.push(rect('r00001', { width: { mode: 'fill' }, alignSelf: 'center' }))
+    const measure: Measure = () => ({ x: 12, y: 30, width: 260, height: 100 })
+    const r = ok(applyOps(docWith([p]), [{ op: 'update', id: 'r00001', set: { position: 'absolute' } }], { measure }))
+    const n = findNode(r.doc, 'r00001')!.node
+    expect(n).toMatchObject({ position: 'absolute', width: 260, x: 12, y: 30 })
+    expect(n).not.toHaveProperty('alignSelf')
+  })
+
+  it('les bornes min/max devenues sans objet sont retirées au lieu de refuser', () => {
+    const p = frame('f00001', { x: 0, y: 0, layout: { mode: 'auto' } }) as FrameNode
+    p.children.push(rect('r00001', { minWidth: 40 }), rect('r00002', { maxHeight: 90 }))
+    const doc = docWith([p])
+    const r = ok(applyOps(doc, [{ op: 'move', id: 'r00001', parent: pageId(doc), x: 0, y: 0 }]))
+    expect(findNode(r.doc, 'r00001')!.node).not.toHaveProperty('minWidth')
+    const r2 = ok(applyOps(r.doc, [{ op: 'update', id: 'f00001', set: { layout: { mode: 'free' } } }]))
+    expect(findNode(r2.doc, 'r00002')!.node).not.toHaveProperty('maxHeight')
+    expect(r2.fixes.some((f) => f.includes('maxHeight'))).toBe(true)
+  })
+
+  it('changer direction ou retour à la ligne nettoie baseline et rowGap', () => {
+    const p = frame('f00001', { x: 0, y: 0, layout: { mode: 'auto', direction: 'row', align: 'baseline', wrap: true, rowGap: 8 } })
+    const r = ok(applyOps(docWith([p]), [{ op: 'update', id: 'f00001', set: { layout: { mode: 'auto', direction: 'column', wrap: false } } }]))
+    const layout = (findNode(r.doc, 'f00001')!.node as FrameNode).layout
+    expect(layout).toMatchObject({ direction: 'column', align: 'start', wrap: false })
+    expect(layout).not.toHaveProperty('rowGap')
+    expect(r.fixes).toHaveLength(2)
+  })
+
   it('les patchs inverses restaurent exactement le document d’origine', () => {
     const doc = docWith([rect('r00001', { x: 0, y: 0 })])
     const r = ok(applyOps(doc, [

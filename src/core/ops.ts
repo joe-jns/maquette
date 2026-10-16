@@ -61,6 +61,7 @@ export function applyOps(doc: MaquetteDocument, ops: Op[], opts: { measure?: Mea
       ops.forEach((op, i) => {
         applyOne(ctx, op, i)
         normalizeHugFill(ctx)
+        normalizeContext(ctx)
         const issues = validateDocument(current(draft) as MaquetteDocument)
         if (issues.length) throw new OpError(issues.map((x) => ({ path: `ops[${i}] → ${x.path}`, message: x.message })))
       })
@@ -186,7 +187,7 @@ function applyOne(ctx: Ctx, op: Op, i: number): void {
       if (loc.parent?.layout.mode === 'auto' && node.position === 'flow') ignoreFlowXY(ctx, node)
       // Sorti du flux sans position : il reste là où il était affiché.
       if (loc.parent?.layout.mode === 'auto' && node.position === 'absolute' && (node.x === undefined || node.y === undefined)) {
-        place(ctx, node)
+        leaveFlow(ctx, node)
       }
       return
     }
@@ -312,6 +313,44 @@ function setLayout(ctx: Ctx, node: Node, value: unknown, i: number): void {
     return
   }
   fail(i, 'set.layout', 'layout.mode doit valoir "free" ou "auto"')
+}
+
+const MIN_MAX = ['minWidth', 'maxWidth', 'minHeight', 'maxHeight'] as const
+
+/**
+ * Retire ce qu'un changement de contexte a rendu sans objet (règles 5 et 7, alignSelf),
+ * au lieu de refuser : bornes hors cadre automatique, alignSelf hors flux, rowGap sans retour
+ * à la ligne, baseline hors ligne. Chaque retrait est noté dans `fixes`.
+ */
+function normalizeContext(ctx: Ctx): void {
+  const note = (node: Node, what: string) => ctx.fixes.push(`${node.name} (${node.id}) : ${what}`)
+  walk(ctx.draft, ({ node, parent }) => {
+    const autoParent = parent?.layout.mode === 'auto'
+    const autoSelf = node.type === 'frame' && node.layout.mode === 'auto'
+    if (!autoParent && !autoSelf) {
+      for (const key of MIN_MAX) {
+        if (node[key] !== undefined) {
+          delete node[key]
+          note(node, `${key} retiré, il ne s’applique qu’en mise en page automatique`)
+        }
+      }
+    }
+    if (node.alignSelf !== undefined && !(autoParent && node.position === 'flow')) {
+      delete node.alignSelf
+      note(node, 'alignSelf retiré, il ne s’applique qu’à un enfant en flux')
+    }
+    if (node.type === 'frame' && node.layout.mode === 'auto') {
+      const layout = node.layout
+      if (layout.rowGap !== undefined && !layout.wrap) {
+        delete layout.rowGap
+        note(node, 'rowGap retiré, il ne s’applique qu’avec le retour à la ligne')
+      }
+      if (layout.align === 'baseline' && layout.direction !== 'row') {
+        layout.align = 'start'
+        note(node, 'alignement "baseline" ramené à "start", il n’existe qu’en ligne')
+      }
+    }
+  })
 }
 
 /** Règle 3 : un cadre "hug" dont un enfant en flux est "fill" sur le même axe passe en fixe. */
