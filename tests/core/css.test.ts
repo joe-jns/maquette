@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { nodeCss, resolveColor, MISSING_COLOR } from '../../src/core/css'
+import { nodeCss, frameStrokeCss, resolveColor, MISSING_COLOR } from '../../src/core/css'
 import type { DocStyles, FrameNode } from '../../src/core/types'
 import { frame, rect, text } from './helpers'
 
@@ -114,5 +114,24 @@ describe('nodeCss', () => {
 
   it('couleur nommée inconnue : magenta visible', () => {
     expect(resolveColor({ style: 'absent' }, styles)).toBe(MISSING_COLOR)
+  })
+
+  it('contour intérieur d’un cadre : dessiné par une couche au-dessus des enfants', () => {
+    const f = frame('f00009', { x: 0, y: 0, radius: 12, stroke: { color: '#FF0000', width: 2, align: 'inside' }, shadows: [{ x: 0, y: 4, blur: 8, spread: 0, color: '#00000040', inset: false }] }) as FrameNode
+    expect(nodeCss(f, null, styles).boxShadow).toBe('0px 4px 8px 0px #00000040')
+    expect(frameStrokeCss(f, styles)).toEqual({
+      position: 'absolute', inset: 0, borderRadius: '12px', pointerEvents: 'none', zIndex: 2147483647,
+      boxShadow: 'inset 0 0 0 2px #FF0000',
+    })
+  })
+
+  it('contour centré d’un cadre en couche ; extérieur et sans contour : pas de couche', () => {
+    const c = frame('f00010', { x: 0, y: 0, stroke: { color: '#000000', width: 4, align: 'center' } }) as FrameNode
+    expect(frameStrokeCss(c, styles)).toMatchObject({ outline: '4px solid #000000', outlineOffset: '-2px' })
+    expect(nodeCss(c, null, styles).outline).toBeUndefined()
+    const o = frame('f00011', { x: 0, y: 0, stroke: { color: '#000000', width: 4, align: 'outside' } }) as FrameNode
+    expect(frameStrokeCss(o, styles)).toBeNull()
+    expect(nodeCss(o, null, styles).boxShadow).toBe('0 0 0 4px #000000')
+    expect(frameStrokeCss(frame('f00012', { x: 0, y: 0 }) as FrameNode, styles)).toBeNull()
   })
 })
