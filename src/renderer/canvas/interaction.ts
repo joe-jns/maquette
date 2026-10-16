@@ -7,7 +7,11 @@ import { uiStore, type Tool } from '../state/ui'
 import { assetUrl } from './assetUrl'
 import { screenToWorld } from './camera'
 import { fitTo, selectionExists, zoomAroundCenter, zoomStep } from './camera-actions'
-import { inFlow, nudgeOps, topLevel } from './canvasOps'
+import {
+  addAutoLayoutOps, deleteOps, duplicateOps, inFlow, nudgeOps, topLevel, wrapInFrameOps, zOrderOps, type CommandOps,
+} from './canvasOps'
+import { copyNodes, parseClipboard, pasteOps } from './clipboard'
+import { domMeasure } from './measure'
 import { createClickTracker } from './clicks'
 import { distanceLines, normalizeRect, union, type Point } from './geometry'
 import { deepestHitAt, worldRectOf } from './rects'
@@ -117,13 +121,20 @@ export class InteractionController {
   private state: State = { kind: 'idle' }
   private spaceDown = false
   private readonly clicks = createClickTracker()
+  /** Dernière position du pointeur sur le canevas (null s'il est sorti), pour coller à cet endroit. */
+  private pointer: { clientX: number; clientY: number } | null = null
+  /** Presse-papiers interne, si celui du système est indisponible. */
+  private clipboard = ''
   private readonly listeners: [EventTarget, string, EventListener][] = []
 
   constructor(private readonly el: HTMLElement) {
     this.on(el, 'pointerdown', (e) => this.pointerDown(e as PointerEvent))
     this.on(el, 'pointermove', (e) => this.pointerMove(e as PointerEvent))
     this.on(el, 'pointerup', (e) => this.pointerUp(e as PointerEvent))
-    this.on(el, 'pointerleave', () => ui().setHover(null))
+    this.on(el, 'pointerleave', () => {
+      ui().setHover(null)
+      this.pointer = null
+    })
     this.on(el, 'lostpointercapture', () => this.endGesture())
     this.on(el, 'auxclick', (e) => e.preventDefault())
     this.on(el, 'dragover', (e) => this.dragOver(e as DragEvent))
@@ -230,6 +241,7 @@ export class InteractionController {
   }
 
   private pointerMove(e: PointerEvent): void {
+    this.pointer = { clientX: e.clientX, clientY: e.clientY }
     const s = this.state
     switch (s.kind) {
       case 'pan': {
@@ -720,6 +732,52 @@ export class InteractionController {
     if (e.key === 'Alt' && ui().extras.distances.length) ui().setExtras({ distances: [] })
   }
 
+  /** Applique le lot d'une commande et sélectionne ce qu'elle désigne (identifiants temporaires résolus). */
+  private apply(built: CommandOps, label: string): void {
+    if (built.ops.length === 0) return
+    const result = docStore.getState().dispatch(built.ops, label)
+    if (!result.ok) {
+      // Une commande ne doit jamais produire un lot refusé : c'est un bug à corriger.
+      console.error(`Commande « ${label} » refusée`, result.errors)
+      return
+    }
+    ui().select(built.select.map((id) => (id.startsWith('$') ? (result.ids[id] ?? id) : id)))
+  }
+
+  private async copy(ids: string[]): Promise<void> {
+    const text = JSON.stringify(copyNodes(doc(), ids, domMeasure))
+    this.clipboard = text
+    try {
+      await navigator.clipboard.writeText(text)
+    } catch {
+      // Le presse-papiers interne suffit pour coller dans Maquette.
+    }
+  }
+
+  /** Coller : dans le cadre sélectionné, sinon à côté de la sélection ; au pointeur s'il est sur le canevas. */
+  private async paste(): Promise<void> {
+    let text = this.clipboard
+    try {
+      text = (await navigator.clipboard.readText()) || text
+    } catch {
+      // Presse-papiers système indisponible : on garde la copie interne.
+    }
+    const payload = parseClipboard(text)
+    if (!payload) return
+    const d = doc()
+    const [first, ...rest] = ui().selection
+    const firstNode = first ? findNode(d, first)?.node : undefined
+    const parent =
+      firstNode?.type === 'frame' && rest.length === 0 ? firstNode.id : (first ? contextOf(d, first) : null) ?? docStore.getState().pageId
+    let at: Point | undefined
+    if (this.pointer) {
+      const world = this.toWorld(this.pointer)
+      const origin = parent === docStore.getState().pageId ? { x: 0, y: 0 } : worldRectOf(parent)
+      if (origin) at = { x: Math.round(world.x - origin.x), y: Math.round(world.y - origin.y) }
+    }
+    this.apply(pasteOps(d, payload, { parent, at }), 'Coller')
+  }
+
   /** Exécute une commande clavier ; renvoie false si elle n'est pas gérée ici. */
   private run(command: CommandId): boolean {
     const d = doc()
@@ -742,6 +800,10 @@ export class InteractionController {
         if (selectionExists()) fitTo(selection, 220)
         return true
       case 'escape':
+        if (ui().helpOpen) {
+          ui().setHelp(false)
+          return true
+        }
         if (ui().tool !== 'move') {
           ui().setTool('move')
           return true
@@ -782,6 +844,37 @@ export class InteractionController {
       case 'tool.ellipse':
       case 'tool.text':
         ui().setTool(TOOLS[command])
+        return true
+      case 'help':
+        ui().setHelp(!ui().helpOpen)
+        return true
+      case 'delete':
+        if (first) this.apply(deleteOps(d, selection), 'Supprimer')
+        return true
+      case 'duplicate':
+        if (first) this.apply(duplicateOps(d, selection), 'Dupliquer')
+        return true
+      case 'wrapInFrame':
+        if (first) this.apply(wrapInFrameOps(d, selection, domMeasure), 'Encadrer')
+        return true
+      case 'addAutoLayout':
+        if (first) this.apply(addAutoLayoutOps(d, selection, domMeasure), 'Mise en page automatique')
+        return true
+      case 'forward':
+      case 'backward':
+      case 'front':
+      case 'back':
+        if (first) this.apply(zOrderOps(d, selection, command), 'Changer l’ordre')
+        return true
+      case 'copy':
+      case 'cut':
+        if (first) {
+          void this.copy(selection)
+          if (command === 'cut') this.apply(deleteOps(d, selection), 'Couper')
+        }
+        return true
+      case 'paste':
+        void this.paste()
         return true
       case 'undo':
         docStore.getState().undo()

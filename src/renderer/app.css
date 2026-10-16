@@ -35,3 +35,18 @@ body { font-family: system-ui, sans-serif; background: #e5e5e5; color: #111; }
 .toolbar button:hover { background: #ffffff1a; }
 .toolbar button[aria-pressed='true'] { background: #0d99ff; color: #fff; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.help-backdrop { position: absolute; inset: 0; z-index: 20; display: grid; place-items: center; background: #0006; }
+.help {
+  width: min(880px, calc(100% - 48px)); max-height: calc(100% - 64px); overflow: auto;
+  background: #1e1e1e; color: #eee; border-radius: 12px; padding: 20px 24px; box-shadow: 0 10px 40px #0008;
+  font: 13px/1.4 system-ui, sans-serif;
+}
+.help header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.help h2 { margin: 0; font-size: 16px; }
+.help header button { background: transparent; border: 0; color: #aaa; font-size: 22px; cursor: pointer; }
+.help-groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px 28px; }
+.help h3 { margin: 0 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: #8a8a8a; }
+.help dl { margin: 0; }
+.help dl div { display: flex; justify-content: space-between; gap: 12px; padding: 3px 0; }
+.help dd { margin: 0; }
+.help kbd { font: 12px/1 system-ui, sans-serif; background: #333; border-radius: 4px; padding: 3px 6px; white-space: nowrap; }

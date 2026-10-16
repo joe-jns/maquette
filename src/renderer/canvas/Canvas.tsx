@@ -6,6 +6,7 @@ import { fitTo } from './camera-actions'
 import { InteractionController } from './interaction'
 import { NodeView } from './NodeView'
 import { Overlay } from './Overlay'
+import { HelpOverlay } from './HelpOverlay'
 import { Toolbar } from './Toolbar'
 
 export function Canvas() {
@@ -72,6 +73,7 @@ export function Canvas() {
       </div>
       <Overlay />
       <Toolbar />
+      <HelpOverlay />
       <div className="zoom-badge" data-testid="zoom">{formatZoom(camera.zoom)}</div>
     </div>
   )
