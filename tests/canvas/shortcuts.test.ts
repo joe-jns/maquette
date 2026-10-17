@@ -23,6 +23,12 @@ describe('raccourcis', () => {
     expect(matchShortcut(k('2', 'Digit2', { shiftKey: true }))).toBe('zoomSelection')
   })
 
+  it('Ctrl+L ouvre ou ferme le chat ; L seul ne fait rien', () => {
+    expect(matchShortcut(k('l', 'KeyL', { ctrlKey: true }))).toBe('toggleChat')
+    expect(matchShortcut(k('l', 'KeyL'))).toBeNull()
+    expect(SHORTCUTS.find((s) => s.id === 'toggleChat')).toMatchObject({ keys: 'Ctrl+L', group: 'Affichage' })
+  })
+
   it('édition', () => {
     expect(matchShortcut(k('z', 'KeyZ', { ctrlKey: true }))).toBe('undo')
     expect(matchShortcut(k('y', 'KeyY', { ctrlKey: true }))).toBe('redo')

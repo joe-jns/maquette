@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Canvas } from './canvas/Canvas'
+import { ChatPanel } from './chat/ChatPanel'
+import { useChat } from './chat/chatStore'
+import { startChat } from './chat/connect'
 import { LeftPanel } from './panels/LeftPanel'
 import { RightPanel } from './panels/RightPanel'
 import './panels/panels.css'
@@ -18,6 +21,7 @@ export function App() {
   const notice = useDoc((s) => s.notice)
   const filePath = useDoc((s) => s.filePath)
   const dirty = useDoc((s) => s.dirty)
+  const chatOpen = useChat((s) => s.open)
   const [started, setStarted] = useState(false)
 
   useEffect(() => {
@@ -47,6 +51,9 @@ export function App() {
     [],
   )
 
+  // Chat avec Claude : la conversation du fichier ouvert.
+  useEffect(() => startChat(), [])
+
   // Copie de secours toutes les 5 s et état « modifié » pour la question à la fermeture.
   useEffect(() => startAutosave(), [])
 
@@ -66,10 +73,11 @@ export function App() {
           </div>
         )}
       </div>
-      <div className="layout">
+      <div className={chatOpen ? 'layout has-chat' : 'layout'}>
         <LeftPanel />
         <Canvas />
         <RightPanel />
+        {chatOpen && <ChatPanel />}
       </div>
       <Dialog />
     </div>

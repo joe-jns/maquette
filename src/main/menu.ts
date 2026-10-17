@@ -54,7 +54,15 @@ export function buildMenu(): void {
           { label: 'Rétablir', accelerator: 'CmdOrCtrl+Y', registerAccelerator: false, click: send('redo') },
         ],
       },
-      { label: 'Affichage', submenu: [{ role: 'toggleDevTools', label: 'Outils de développement' }] },
+      {
+        label: 'Affichage',
+        submenu: [
+          // Ctrl+L est géré par la fenêtre (il marche aussi depuis la saisie du chat).
+          { label: 'Chat avec Claude', accelerator: 'CmdOrCtrl+L', registerAccelerator: false, click: send('toggle-chat') },
+          { type: 'separator' },
+          { role: 'toggleDevTools', label: 'Outils de développement' },
+        ],
+      },
     ]),
   )
 }

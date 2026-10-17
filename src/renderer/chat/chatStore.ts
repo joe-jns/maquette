@@ -1,0 +1,109 @@
+import { createStore, useStore } from 'zustand'
+import type { ChatEvent, ChatImage, ChatItem } from '../../shared/chat'
+
+/** Image collée ou glissée, en attente d'envoi ; `url` sert à la vignette. */
+export interface PendingImage extends ChatImage {
+  id: string
+  url: string
+}
+
+export const MAX_IMAGES = 5
+const OPEN_KEY = 'maquette.chat.open'
+
+interface ChatState {
+  open: boolean
+  items: ChatItem[]
+  /** Claude travaille : le bouton Envoyer devient Stop. */
+  busy: boolean
+  draft: string
+  images: PendingImage[]
+  /** La sélection part avec le prochain message (remis à vrai à chaque nouvelle sélection). */
+  contextAttached: boolean
+  /** Incrémenté pour demander le focus dans la saisie. */
+  focusRequest: number
+  setOpen(open: boolean): void
+  toggle(): void
+  setItems(items: ChatItem[]): void
+  applyEvent(event: ChatEvent): void
+  setDraft(draft: string): void
+  /** Ajoute une image ; false si la limite est atteinte. */
+  addImage(image: ChatImage): boolean
+  removeImage(id: string): void
+  setContextAttached(attached: boolean): void
+  /** Après l'envoi : brouillon et images vidés. */
+  clearComposer(): void
+}
+
+function readOpen(): boolean {
+  try {
+    return globalThis.localStorage?.getItem(OPEN_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+function writeOpen(open: boolean): void {
+  try {
+    globalThis.localStorage?.setItem(OPEN_KEY, open ? '1' : '0')
+  } catch {
+    // Stockage indisponible : l'état ne sera simplement pas retenu.
+  }
+}
+
+let imageSeq = 0
+
+export const chatStore = createStore<ChatState>()((set, get) => ({
+  open: readOpen(),
+  items: [],
+  busy: false,
+  draft: '',
+  images: [],
+  contextAttached: true,
+  focusRequest: 0,
+  setOpen(open) {
+    writeOpen(open)
+    set(open ? { open, focusRequest: get().focusRequest + 1 } : { open })
+  },
+  toggle() {
+    get().setOpen(!get().open)
+  },
+  setItems: (items) => set({ items, busy: false }),
+  applyEvent(event) {
+    const items = get().items
+    switch (event.type) {
+      case 'item': {
+        const i = items.findIndex((it) => it.id === event.item.id)
+        set({ items: i < 0 ? [...items, event.item] : items.map((it, k) => (k === i ? event.item : it)) })
+        return
+      }
+      case 'delta': {
+        const i = items.findIndex((it) => it.id === event.id)
+        const current = items[i]
+        if (!current) {
+          set({ items: [...items, { kind: 'assistant', id: event.id, text: event.text }] })
+          return
+        }
+        // Un delta ne s'applique qu'au texte d'un message de Claude.
+        if (current.kind !== 'assistant') return
+        set({ items: items.map((it, k) => (k === i ? { ...current, text: current.text + event.text } : it)) })
+        return
+      }
+      case 'busy':
+        set({ busy: event.busy })
+        return
+    }
+  },
+  setDraft: (draft) => set({ draft }),
+  addImage(image) {
+    const images = get().images
+    if (images.length >= MAX_IMAGES) return false
+    const url = `data:${image.mediaType};base64,${image.data}`
+    set({ images: [...images, { ...image, id: `img${++imageSeq}`, url }] })
+    return true
+  },
+  removeImage: (id) => set({ images: get().images.filter((img) => img.id !== id) }),
+  setContextAttached: (contextAttached) => set({ contextAttached }),
+  clearComposer: () => set({ draft: '', images: [] }),
+}))
+
+export const useChat = <T,>(selector: (s: ChatState) => T): T => useStore(chatStore, selector)

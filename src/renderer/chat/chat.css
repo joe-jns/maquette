@@ -1,0 +1,181 @@
+/* ——— Chat avec Claude : quatrième colonne, à droite du panneau Design ——— */
+.layout.has-chat { grid-template-columns: 240px minmax(0, 1fr) 280px 360px; }
+
+.chat {
+  position: relative; overflow: hidden; border-left: 1px solid var(--panel-border);
+  animation: chat-in 140ms ease-out;
+}
+@keyframes chat-in {
+  from { opacity: 0; transform: translateX(8px); }
+}
+
+/* En-tête : même hauteur que la barre d'onglets du panneau voisin. */
+.chat-head {
+  flex: none; display: flex; align-items: center; gap: 2px; height: 38px; padding: 0 8px 0 16px;
+  border-bottom: 1px solid var(--panel-border);
+}
+.chat-head h2 { flex: 1; margin: 0; font-size: var(--fs-large); font-weight: 600; }
+.chat-head-button {
+  display: flex; align-items: center; gap: 5px; height: 26px; padding: 0 8px; border: 0; border-radius: var(--radius);
+  background: transparent; color: var(--panel-muted); font: 500 var(--fs)/1 system-ui, 'Segoe UI', sans-serif; cursor: pointer;
+}
+.chat-head-button:hover:not(:disabled) { background: var(--panel-hover); color: var(--panel-text); }
+.chat-head-button:disabled { opacity: 0.45; cursor: default; }
+.chat-head .icon-button { width: 26px; height: 26px; color: var(--panel-muted); }
+.chat-head .icon-button:hover { color: var(--panel-text); }
+
+/* Conversation : collée en bas, comme une messagerie. */
+.chat-log {
+  flex: 1; min-height: 0; overflow: hidden auto; overscroll-behavior: contain;
+  display: flex; flex-direction: column; gap: 16px; padding: 16px 16px 12px;
+  font: var(--fs-large)/1.5 system-ui, 'Segoe UI', sans-serif; user-select: text;
+}
+.chat-log > :first-child { margin-top: auto; }
+
+.chat-user { display: flex; justify-content: flex-end; padding-left: 40px; }
+.chat-bubble {
+  min-width: 0; padding: 8px 12px; border-radius: 12px 12px 4px 12px; background: var(--field-bg);
+  white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.chat-bubble-note { display: block; margin-top: 2px; color: var(--panel-muted); font-size: var(--fs); }
+
+.chat-assistant { min-width: 0; overflow-wrap: anywhere; color: var(--panel-text); }
+.chat-assistant p, .chat-assistant ul, .chat-assistant ol, .chat-assistant pre { margin: 0 0 10px; }
+.chat-assistant > :last-child { margin-bottom: 0; }
+.chat-assistant ul, .chat-assistant ol { padding-left: 20px; }
+.chat-assistant li + li { margin-top: 4px; }
+.chat-assistant li::marker { color: var(--panel-muted); }
+.chat-assistant .chat-heading { font-weight: 600; }
+.chat-assistant code {
+  padding: 1px 4px; border-radius: 4px; background: var(--field-bg);
+  font: 0.86em/1 ui-monospace, 'Cascadia Mono', Consolas, monospace;
+}
+.chat-assistant pre {
+  padding: 10px 12px; border-radius: var(--radius); background: var(--field-bg); overflow-x: auto;
+  font: var(--fs)/1.55 ui-monospace, 'Cascadia Mono', Consolas, monospace; white-space: pre; overflow-wrap: normal;
+}
+.chat-assistant pre code { padding: 0; background: none; font: inherit; }
+.chat-link { text-decoration: underline; text-decoration-color: var(--panel-muted); text-underline-offset: 2px; cursor: text; }
+
+/* Curseur de la réponse en cours. */
+.chat-caret {
+  display: inline-block; width: 2px; height: 1.05em; margin-left: 2px; vertical-align: -0.15em;
+  background: var(--panel-text); border-radius: 1px; animation: chat-blink 1s steps(1) infinite;
+}
+.chat-thinking { height: 21px; }
+@keyframes chat-blink { 50% { opacity: 0; } }
+
+/* Outils : une ligne discrète chacun, groupés serrés. */
+.chat-tools { display: flex; flex-direction: column; gap: 2px; }
+.chat-tool {
+  display: flex; align-items: center; gap: 6px; min-width: 0; min-height: 20px;
+  color: var(--panel-muted); font: var(--fs-small)/16px system-ui, 'Segoe UI', sans-serif; white-space: nowrap;
+}
+.chat-tool-state { flex: none; display: grid; place-items: center; width: 14px; height: 14px; font-weight: 700; }
+.chat-tool.is-error .chat-tool-state, .chat-tool.is-error .chat-tool-name { color: var(--danger); }
+.chat-tool.is-denied .chat-tool-state { font-size: var(--fs); }
+.chat-tool-name { flex: none; max-width: 60%; overflow: hidden; text-overflow: ellipsis; color: var(--panel-text); font-weight: 500; }
+.chat-tool-summary { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.chat-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: chat-pulse 1s ease-in-out infinite alternate; }
+@keyframes chat-pulse { from { opacity: 1; transform: scale(1); } to { opacity: 0.35; transform: scale(0.7); } }
+
+/* Demande d'autorisation. */
+.chat-permission {
+  display: flex; flex-direction: column; gap: 10px; padding: 12px;
+  border: 1px solid var(--panel-border); border-radius: var(--radius);
+}
+.chat-permission-title { margin: 0; }
+.chat-permission-title strong { font-weight: 600; overflow-wrap: anywhere; }
+.chat-permission-summary {
+  margin: 0; max-height: 168px; overflow: auto; padding: 8px 10px; border-radius: 4px; background: var(--field-bg);
+  font: var(--fs)/1.5 ui-monospace, 'Cascadia Mono', Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere;
+  user-select: text;
+}
+.chat-permission-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.chat-permission-actions .is-wide { grid-column: 1 / -1; }
+.chat-button {
+  height: 30px; padding: 0 10px; border: 0; border-radius: var(--radius); background: var(--field-bg);
+  color: var(--panel-text); font: 600 var(--fs)/1 system-ui, 'Segoe UI', sans-serif; cursor: pointer;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: opacity 120ms ease;
+}
+.chat-button:hover:not(:disabled) { background: var(--panel-border); }
+.chat-button.is-primary { background: var(--accent); color: #fff; }
+.chat-button.is-primary:hover:not(:disabled) { background: var(--accent); opacity: 0.88; }
+.chat-button:disabled { opacity: 0.5; cursor: default; }
+.chat .chat-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.chat-error { margin: 0; color: var(--danger); font-size: var(--fs); line-height: 1.45; overflow-wrap: anywhere; }
+
+/* Accueil : une phrase et trois départs possibles. */
+.chat-welcome p { margin: 0 0 12px; }
+.chat-welcome ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.chat-welcome button {
+  width: 100%; padding: 9px 12px; border: 0; border-radius: var(--radius); background: var(--field-bg); text-align: left;
+  color: var(--panel-text); font: var(--fs)/1.35 system-ui, 'Segoe UI', sans-serif; cursor: pointer;
+}
+.chat-welcome button:hover { background: var(--panel-border); }
+
+.chat-notice { flex: none; margin: 0; padding: 0 16px 6px; color: var(--panel-muted); font-size: var(--fs-small); }
+
+/* Saisie. */
+.chat-compose { flex: none; display: flex; flex-direction: column; gap: 8px; padding: 4px 12px 12px; }
+.chat-attachments { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.chat-chip {
+  display: inline-flex; align-items: center; gap: 2px; max-width: 100%; height: 24px; padding: 0 2px 0 8px;
+  border-radius: var(--radius); background: var(--accent-soft); color: var(--panel-text); font-size: var(--fs);
+}
+.chat-chip-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat-chip button {
+  flex: none; display: grid; place-items: center; width: 20px; height: 20px; border: 0; border-radius: 4px;
+  background: transparent; color: var(--panel-muted); cursor: pointer;
+}
+.chat-chip button:hover { color: var(--panel-text); background: #ffffff99; }
+.chat-thumb { position: relative; width: 48px; height: 48px; flex: none; }
+.chat-thumb img { width: 100%; height: 100%; object-fit: cover; border-radius: var(--radius); background: var(--field-bg); display: block; }
+.chat-thumb button {
+  position: absolute; top: -5px; right: -5px; display: grid; place-items: center; width: 18px; height: 18px; padding: 0;
+  border: 2px solid var(--panel-bg); border-radius: 50%; background: var(--ink); color: var(--ink-text); cursor: pointer;
+}
+.chat-attachments + .chat-field { margin-top: 0; }
+
+.chat-field {
+  display: flex; align-items: flex-end; gap: 6px; padding: 6px 6px 6px 12px; border-radius: 10px;
+  background: var(--field-bg); border: 1px solid transparent;
+}
+.chat-field:focus-within { background: var(--panel-bg); border-color: var(--accent); }
+.chat-field textarea {
+  flex: 1; min-width: 0; box-sizing: border-box; resize: none; border: 0; padding: 4px 0; background: transparent; color: var(--panel-text);
+  font: var(--fs-large)/20px system-ui, 'Segoe UI', sans-serif; overflow-y: auto;
+}
+.chat-field textarea:focus { outline: none; }
+.chat-field textarea::placeholder { color: var(--panel-muted); }
+.chat-send {
+  flex: none; display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: var(--radius);
+  background: var(--accent); color: #fff; cursor: pointer; transition: opacity 120ms ease;
+}
+.chat-send:disabled { background: var(--panel-border); color: var(--panel-muted); cursor: default; }
+.chat-send.is-stop { background: var(--ink); color: var(--ink-text); }
+.chat-send:hover:not(:disabled) { opacity: 0.88; }
+.chat .chat-send:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Glisser une image sur le panneau. */
+.chat-drop {
+  position: absolute; inset: 0; display: grid; place-items: center; background: var(--accent-soft); pointer-events: none;
+  color: var(--accent); font: 600 var(--fs-large)/1.4 system-ui, 'Segoe UI', sans-serif; animation: chat-fade 120ms ease-out;
+}
+@keyframes chat-fade { from { opacity: 0; } }
+
+/* Bouton d'ouverture, dans la barre d'onglets du panneau Design. */
+.chat-open {
+  margin-left: auto; align-self: center; display: flex; align-items: center; gap: 5px; height: 26px; padding: 0 8px;
+  border: 0; border-radius: var(--radius); background: transparent; color: var(--panel-muted);
+  font: 600 var(--fs)/1 system-ui, 'Segoe UI', sans-serif; cursor: pointer;
+}
+.chat-open:hover { background: var(--panel-hover); color: var(--panel-text); }
+.chat-open[aria-pressed='true'] { background: var(--accent-soft); color: var(--accent); }
+
+@media (prefers-reduced-motion: reduce) {
+  .chat, .chat-drop { animation: none; }
+  .chat-caret, .chat-dot { animation: none; }
+  .chat-button, .chat-send { transition: none; }
+}

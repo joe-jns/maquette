@@ -1,6 +1,7 @@
 import { newDocument } from '../../core/defaults'
 import { serializeDocument } from '../../core/format'
 import type { MenuCommand } from '../../shared/ipc'
+import { chatStore } from '../chat/chatStore'
 import { ask } from '../dialog/dialogStore'
 import { openDocument } from './openDocument'
 import { docStore } from './store'
@@ -91,5 +92,8 @@ export async function runCommand(cmd: MenuCommand): Promise<void> {
       return exportSelection(2)
     case 'export-png-3':
       return exportSelection(3)
+    case 'toggle-chat':
+      chatStore.getState().toggle()
+      return
   }
 }

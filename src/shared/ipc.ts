@@ -42,7 +42,7 @@ export interface DialogRequest {
   defaultIndex: number
 }
 
-export type MenuCommand = 'new' | 'open' | 'save' | 'save-as' | 'undo' | 'redo' | 'export-png-1' | 'export-png-2' | 'export-png-3' | 'save-and-close'
+export type MenuCommand = 'new' | 'open' | 'save' | 'save-as' | 'undo' | 'redo' | 'export-png-1' | 'export-png-2' | 'export-png-3' | 'save-and-close' | 'toggle-chat'
 
 export interface RenderOptions {
   scale: number

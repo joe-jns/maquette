@@ -2,6 +2,7 @@ import { test, expect, _electron as electron, type Page } from '@playwright/test
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
+import { emit, fakeChat, reopen } from '../e2e/chat'
 
 /**
  * Captures de tous les états de l'interface, pour relire le design (phase polish).
@@ -63,5 +64,44 @@ test('états de l’interface', async () => {
   await page.keyboard.press('Escape')
   await page.evaluate(() => (window as unknown as { __maquetteStore: { getState(): { showError(m: string): void } } }).__maquetteStore.getState().showError('Impossible d’ouvrir site.maquette : version future du format'))
   await shot(page, '11-bandeau')
+  await app.close()
+})
+
+test('chat avec Claude', async () => {
+  const { app, page } = await open([scene])
+  await fakeChat(app, [])
+  await reopen(page)
+  await page.keyboard.press('Control+l')
+  await page.waitForTimeout(300)
+  await shot(page, '12-chat-vide')
+
+  await fakeChat(app, [
+    { kind: 'user', id: 'u1', text: 'Ajoute une section tarifs à 3 colonnes sous le hero', images: 1 },
+    { kind: 'assistant', id: 'a1', text: 'Je pose **trois colonnes** dans un cadre automatique :\n\n1. Essentiel, 19 € par mois\n2. Pro, 49 € par mois\n3. Studio, sur devis\n\nLe prix utilise le style `Titre 2`, voir https://exemple.be/tarifs.' },
+    { kind: 'tool', id: 't1', name: 'lire_document', summary: 'page Scène', status: 'done' },
+    { kind: 'tool', id: 't2', name: 'appliquer', summary: '24 éléments créés dans « Tarifs », colonnes de 320 px', status: 'done' },
+    { kind: 'tool', id: 't3', name: 'verifier_gout', summary: 'cadre Tarifs', status: 'error' },
+    { kind: 'error', id: 'e1', text: 'Le contrôle a échoué : cadre masqué.' },
+    { kind: 'user', id: 'u2', text: 'Lance le build pour voir', images: 0 },
+    { kind: 'tool', id: 't4', name: 'Read', summary: 'package.json', status: 'done' },
+  ])
+  await reopen(page, 'C:/essais/tarifs.maquette')
+  await emit(app, { type: 'busy', busy: true })
+  await emit(app, { type: 'item', item: { kind: 'tool', id: 't5', name: 'Bash', summary: 'npm run build', status: 'running' } })
+  await emit(app, { type: 'item', item: { kind: 'permission', id: 'p1', requestId: 'r1', tool: 'Bash', summary: 'npm run build && npx electron-builder --win --publish never', status: 'asking' } })
+  await page.waitForTimeout(300)
+  await shot(page, '13-chat-conversation')
+
+  await emit(app, { type: 'item', item: { kind: 'permission', id: 'p1', requestId: 'r1', tool: 'Bash', summary: 'npm run build && npx electron-builder --win --publish never', status: 'allowed' } })
+  await emit(app, { type: 'delta', id: 'a2', text: 'Le build passe. Je regarde maintenant les **marges** de la colonne du milieu' })
+  await select(page, ['fHero1'])
+  await page.evaluate(() => {
+    const px = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkaPhfDwAEXgH+mvh0WAAAAABJRU5ErkJggg=='
+    const store = (window as unknown as { __chatStore?: { getState(): { addImage(i: { mediaType: string; data: string }): boolean } } }).__chatStore
+    store?.getState().addImage({ mediaType: 'image/png', data: px })
+  })
+  await page.getByRole('textbox', { name: 'Message à Claude' }).fill('Et réduis l’espace entre les colonnes à 24 px,\npuis aligne les boutons en bas')
+  await page.waitForTimeout(300)
+  await shot(page, '14-chat-saisie')
   await app.close()
 })
