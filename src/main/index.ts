@@ -30,12 +30,16 @@ app.on('second-instance', (_event, argv) => {
   }
 })
 
+/** Tests : fenêtre hors de l'écran, sans bouton dans la barre des tâches ni focus, pour laisser le PC utilisable. */
+const background = process.env.MAQUETTE_E2E === '1' || process.env.MAQUETTE_BACKGROUND === '1'
+
 function createWindow(): BrowserWindow {
   const win = new BrowserWindow({
     width: 1400,
     height: 900,
     title: 'Maquette',
     show: false,
+    ...(background ? { x: -20000, y: -20000, skipTaskbar: true } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
@@ -45,13 +49,7 @@ function createWindow(): BrowserWindow {
       backgroundThrottling: process.env.MAQUETTE_E2E !== '1',
     },
   })
-  // Tests : fenêtre affichée sans prendre le focus ni passer devant, pour laisser le PC utilisable.
-  const background = process.env.MAQUETTE_E2E === '1' || process.env.MAQUETTE_BACKGROUND === '1'
-  win.once('ready-to-show', () => {
-    if (!background) return win.show()
-    win.setAlwaysOnTop(false)
-    win.showInactive()
-  })
+  win.once('ready-to-show', () => (background ? win.showInactive() : win.show()))
   guardClose(win)
   // La fenêtre cachée de l'export ne doit pas garder l'app ouverte une fois l'éditeur fermé.
   win.on('closed', () => {
