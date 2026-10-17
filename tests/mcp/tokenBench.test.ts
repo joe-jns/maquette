@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { applyOps } from '../../src/core/ops'
 import type { MaquetteDocument } from '../../src/core/types'
-import { runTool, type ToolHost } from '../../src/mcp/tools'
+import { TOOLS, runTool, type ToolHost } from '../../src/mcp/tools'
 import { docWith, frame } from '../core/helpers'
 
 /**
@@ -71,5 +71,30 @@ describe('banc d’essai tokens', () => {
     await call('appliquer', { operations: [{ op: 'update', id: ids.$hero, set: { fills: ['#EFEDE6'] } }, { op: 'update', id: ids.$intro, set: { content: 'Des intérieurs calmes et durables, à Bruxelles.' } }] })
 
     expect(exchanged).toBeLessThan(6000)
+  })
+
+  it('photos : chercher 6 résultats puis en poser une, moins de 1 800 caractères ; descriptions sous 3 000', async () => {
+    const h = host(docWith([frame('P1', { x: 0, y: 0, width: 1440, height: 900 })]))
+    h.images = {
+      search: async (_q, n) => ({
+        ok: true, notes: [], sheet: null,
+        hits: Array.from({ length: n }, (_, i) => ({
+          n: i + 1, ref: `openverse:3f2b6c1e-8a4d-4f0e-9b7a-1c2d3e4f5a${i}0`, title: 'Fresh sourdough bread on a wooden board', creator: 'Jane Baker',
+          licence: 'CC BY 2.0', width: 1600, height: 1067, thumb: `https://api.openverse.org/v1/images/3f2b6c1e-8a4d-4f0e-9b7a-1c2d3e4f5a${i}0/thumb/`,
+        })),
+      }),
+      place: async () => ({ ok: true, src: 'assets/fresh-sourdough-bread-on-a-wooden-board-1a2b3c4d.jpg', width: 1600, height: 1067, title: 'Fresh sourdough bread', credit: '« Fresh sourdough bread on a wooden board » par Jane Baker, CC BY 2.0, via Flickr' }),
+      credits: async () => [],
+      saved: () => true,
+      measure: () => null,
+    }
+    let exchanged = 0
+    for (const args of [{ cherche: 'sourdough bread' }, { poser: 2, dans: 'P1' }]) {
+      const r = await runTool(h, 'images', args)
+      expect(r.isError, r.text).toBeFalsy()
+      exchanged += JSON.stringify(args).length + r.text.length
+    }
+    expect(exchanged).toBeLessThan(1800)
+    expect(TOOLS.reduce((n, t) => n + t.description.length, 0)).toBeLessThan(3000)
   })
 })

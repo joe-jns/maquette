@@ -39,7 +39,7 @@ function scene() {
 
 describe('outils MCP', () => {
   it('la liste des outils a des descriptions courtes', () => {
-    expect(TOOLS.map((t) => t.name)).toEqual(['lire_document', 'lire_elements', 'chercher', 'appliquer', 'capture', 'selection', 'verifier_gout'])
+    expect(TOOLS.map((t) => t.name)).toEqual(['lire_document', 'lire_elements', 'chercher', 'appliquer', 'capture', 'selection', 'verifier_gout', 'images'])
     for (const t of TOOLS) expect(t.description.length).toBeLessThan(400)
   })
 

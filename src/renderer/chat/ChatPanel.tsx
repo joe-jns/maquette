@@ -40,6 +40,7 @@ const TOOL_LABELS: Record<string, string> = {
   capture: 'Regarde le rendu',
   selection: 'Lit la sélection',
   verifier_gout: 'Vérifie le goût',
+  images: 'Cherche des photos',
   ToolSearch: 'Prépare ses outils',
   Read: 'Lit un fichier',
   Write: 'Écrit un fichier',

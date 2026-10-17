@@ -9,6 +9,7 @@ import type { ApplyResult, Op } from '../core/ops'
 import { formatPath } from '../core/rules'
 import { findNode, walk } from '../core/tree'
 import type { MaquetteDocument, Node, NodeInput, Size } from '../core/types'
+import { IMAGES_DESCRIPTION, IMAGES_INPUT, runImages, type ImageHost } from './images'
 import { ALIASES, normalizeOperations, originPath } from './normalize'
 
 export interface ToolHost {
@@ -19,6 +20,8 @@ export interface ToolHost {
   capture(id: string, width: number): Promise<{ data: string; mimeType: string } | null>
   /** Contrôle taste-skill d'un cadre (rendu réel) ; null si impossible. */
   check(id: string): Promise<{ findings: { level: 'FAIL' | 'WARN'; id: string; message: string; fix: string }[]; isPage: boolean } | null>
+  /** Photos libres (outil images) ; absent : l'outil répond qu'il n'est pas disponible. */
+  images?: ImageHost
 }
 
 export interface ToolResult { text: string; image?: { data: string; mimeType: string }; isError?: boolean }
@@ -49,6 +52,7 @@ const INPUTS = {
   },
   selection: {},
   verifier_gout: { id: z.string() },
+  images: IMAGES_INPUT,
 } satisfies Record<string, z.ZodRawShape>
 
 type ToolName = keyof typeof INPUTS
@@ -101,6 +105,7 @@ export const TOOLS: ToolDef[] = [
     description: 'Contrôle taste-skill d’un cadre sur son rendu réel : [niveau, règle, message, correction] (au plus 15), "page" = cadre de la taille d’une page. À lancer après une section ou une page.',
     input: INPUTS.verifier_gout,
   },
+  { name: 'images', description: IMAGES_DESCRIPTION, input: INPUTS.images },
 ]
 
 const json = (value: unknown): string => JSON.stringify(value)
@@ -131,6 +136,8 @@ export async function runTool(host: ToolHost, name: string, args: unknown): Prom
       return ok(selection(host))
     case 'verifier_gout':
       return checkTaste(host, a.id as string)
+    case 'images':
+      return runImages(host, parsed.data as Parameters<typeof runImages>[1])
   }
 }
 

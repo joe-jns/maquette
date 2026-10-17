@@ -34,10 +34,13 @@ function drop(client: Bridge): void {
   if (bridge) void bridge.then((b) => b === client && (bridge = null), () => undefined)
 }
 
-function failure(e: unknown, sent: boolean, tool: string): ToolResult {
+/** Appels qui modifient le document : jamais rejoués après une coupure. */
+const writes = (tool: string, args: Record<string, unknown>) => tool === 'appliquer' || (tool === 'images' && args.poser !== undefined)
+
+function failure(e: unknown, sent: boolean, tool: string, args: Record<string, unknown>): ToolResult {
   const code = (e as { code?: string }).code
   if (code === 'JETON_REFUSE') return { text: TOKEN_REFUSED, isError: true }
-  if (code === 'APP_FERMEE') return { text: sent && tool === 'appliquer' ? CUT : APP_CLOSED, isError: true }
+  if (code === 'APP_FERMEE') return { text: sent && writes(tool, args) ? CUT : APP_CLOSED, isError: true }
   return { text: `Erreur : ${(e as Error).message}`, isError: true }
 }
 
@@ -47,7 +50,7 @@ async function call(tool: string, args: Record<string, unknown>): Promise<ToolRe
     try {
       client = await getBridge()
     } catch (e) {
-      return failure(e, false, tool)
+      return failure(e, false, tool, args)
     }
     // Connexion morte (app relancée) : rien n'a été envoyé, on en ouvre une neuve.
     if (!client.isOpen()) {
@@ -61,8 +64,8 @@ async function call(tool: string, args: Record<string, unknown>): Promise<ToolRe
       // Seule une connexion perdue est fermée : un délai ne concerne que cet appel.
       if (code === 'APP_FERMEE' || code === 'PROTOCOLE') drop(client)
       // Un lot peut avoir été appliqué avant la coupure : jamais rejoué. Une lecture, si.
-      if (code === 'APP_FERMEE' && attempt === 0 && tool !== 'appliquer') continue
-      return failure(e, true, tool)
+      if (code === 'APP_FERMEE' && attempt === 0 && !writes(tool, args)) continue
+      return failure(e, true, tool, args)
     }
   }
   return { text: APP_CLOSED, isError: true }

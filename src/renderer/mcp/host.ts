@@ -4,6 +4,7 @@ import { nodeElement } from '../canvas/rects'
 import { docStore } from '../state/store'
 import { uiStore } from '../state/ui'
 import { tasteStore } from '../taste/tasteStore'
+import { imageHost } from './imageHost'
 
 const FLASH_MS = 1200
 
@@ -41,6 +42,7 @@ const host: ToolHost = {
   },
   // Mêmes règles ignorées que dans le panneau : Claude et l'utilisateur voient le même résultat.
   check: (id) => window.maquette.taste.check(docStore.getState().doc, id, tasteStore.getState().allow),
+  images: imageHost,
 }
 
 /** Exécute dans la fenêtre les outils appelés par Claude Code. */
