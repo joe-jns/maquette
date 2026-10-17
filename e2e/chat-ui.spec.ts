@@ -124,14 +124,20 @@ test('coller une image dans la saisie : vignette, et rien sur le canevas', async
     await page.keyboard.press('Control+l')
     const panel = page.getByTestId('chat-panel')
     await expect(panel).toBeVisible()
-    // Presse-papiers d'Electron 44 : format du W3C (ClipboardItem + Blob).
-    await app.evaluate(async ({ clipboard, ClipboardItem, nativeImage }) => {
-      const png = nativeImage.createFromBitmap(Buffer.alloc(8 * 8 * 4, 0x80), { width: 8, height: 8 }).toPNG()
-      await clipboard.write([new ClipboardItem({ 'image/png': new Blob([new Uint8Array(png)], { type: 'image/png' }) })])
-    })
+    // Collage simulé dans la page : le presse-papiers de l'utilisateur n'est jamais touché.
     const before = await nodeCount(page)
-    await page.getByRole('textbox', { name: 'Message à Claude' }).focus()
-    await page.keyboard.press('Control+v')
+    const box = page.getByRole('textbox', { name: 'Message à Claude' })
+    await box.focus()
+    await box.evaluate(async (el) => {
+      const canvas = new OffscreenCanvas(8, 8)
+      const ctx = canvas.getContext('2d')!
+      ctx.fillStyle = '#808080'
+      ctx.fillRect(0, 0, 8, 8)
+      const blob = await canvas.convertToBlob({ type: 'image/png' })
+      const data = new DataTransfer()
+      data.items.add(new File([blob], 'capture.png', { type: 'image/png' }))
+      el.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }))
+    })
     await expect(panel.locator('.chat-thumb img')).toHaveCount(1)
     await page.waitForTimeout(300)
     expect(await nodeCount(page)).toBe(before)
