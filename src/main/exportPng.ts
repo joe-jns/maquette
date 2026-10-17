@@ -7,6 +7,8 @@ import { getCurrentDir } from './state'
 
 /** Au-delà, le rendu est abandonné (image ou police qui ne répond pas). */
 const TIMEOUT_MS = 15_000
+/** Un contrôle peut d'abord télécharger les polices du document, puis sonder une grande page. */
+const CHECK_TIMEOUT_MS = 45_000
 const MAX_SCALE = 4
 /** Plus grand côté d'une image (limite des textures du GPU) : l'échelle est réduite au besoin. */
 const MAX_SIDE = 8192
@@ -201,7 +203,7 @@ function onWhite(image: Electron.NativeImage): Electron.NativeImage {
 }
 
 /** Un seul travail à la fois dans la fenêtre cachée ; abandon (et fenêtre recréée) après 15 s. */
-function enqueue<T>(doc: MaquetteDocument, nodeId: string, work: () => Promise<T | null>): Promise<T | null> {
+function enqueue<T>(doc: MaquetteDocument, nodeId: string, work: () => Promise<T | null>, timeoutMs = TIMEOUT_MS): Promise<T | null> {
   const run = queue.then(async (): Promise<T | null> => {
     if (!findVisible(doc, nodeId)) return null
     let timer: ReturnType<typeof setTimeout> | undefined
@@ -210,7 +212,7 @@ function enqueue<T>(doc: MaquetteDocument, nodeId: string, work: () => Promise<T
         // Rendu bloqué : la fenêtre repart de zéro au prochain travail.
         closeExportWindow()
         resolve(null)
-      }, TIMEOUT_MS)
+      }, timeoutMs)
     })
     try {
       return await Promise.race([work(), timeout])
@@ -248,7 +250,7 @@ export function evaluateInNode<T>(doc: MaquetteDocument, nodeId: string, script:
     if (!shown) return null
     const result = (await shown.wc.executeJavaScript(script, true)) as T
     return { result, ...full }
-  })
+  }, CHECK_TIMEOUT_MS)
 }
 
 /** Nom de fichier proposé : `<nom de l'élément>@<n>x.png`, sans caractères interdits. */
