@@ -94,10 +94,42 @@ export function ensureFont(family: string): Promise<boolean> {
   return pending
 }
 
-/** Charge les polices du document ; renvoie les familles introuvables. */
+/** Une coupe de police utilisée : famille, graisse, style. */
+export interface FontFaceUse { family: string; weight: number; style: 'normal' | 'italic' }
+
+/** Coupes utilisées par le document (textes de toutes les pages et styles de texte), sans doublon. */
+export function documentFaces(doc: MaquetteDocument): FontFaceUse[] {
+  const out = new Map<string, FontFaceUse>()
+  const add = (family: string, weight: number, style: string) => {
+    if (!family) return
+    const face: FontFaceUse = { family, weight, style: style === 'italic' ? 'italic' : 'normal' }
+    out.set(`${face.family}\n${face.weight}\n${face.style}`, face)
+  }
+  const walk = (nodes: Node[]) => {
+    for (const node of nodes) {
+      if (node.type === 'text') add(node.fontFamily, node.fontWeight, node.fontStyle)
+      else if (node.type === 'frame') walk(node.children)
+    }
+  }
+  for (const page of doc.pages) walk(page.children)
+  for (const style of doc.styles.text) add(style.fontFamily, style.fontWeight, style.fontStyle)
+  return [...out.values()]
+}
+
+/**
+ * Charge les polices du document ; renvoie les familles introuvables. Chaque coupe utilisée (graisse,
+ * italique) est chargée explicitement : sinon le navigateur ne la demande qu'au premier dessin, et un
+ * rendu fait juste après (export, capture vue par Claude) peut partir avec la 400 épaissie ou penchée.
+ */
 export async function ensureDocumentFonts(doc: MaquetteDocument): Promise<string[]> {
   const families = documentFamilies(doc)
   const found = await Promise.all(families.map(ensureFont))
+  const ok = new Set(families.filter((_f, i) => found[i]))
+  await Promise.all(
+    documentFaces(doc)
+      .filter((f) => ok.has(f.family))
+      .map((f) => document.fonts.load(`${f.style} ${f.weight} 16px ${quoted(f.family)}`).catch(() => undefined)),
+  )
   return families.filter((_f, i) => !found[i])
 }
 
