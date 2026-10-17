@@ -1,3 +1,4 @@
+import { chatStore, useChat } from '../chat/chatStore'
 import { useUi } from '../state/ui'
 import { tasteStore, useTaste, type PanelTab } from '../taste/tasteStore'
 import { AutoLayoutSection } from './design/AutoLayoutSection'
@@ -18,14 +19,29 @@ const TABS: { id: PanelTab; label: string }[] = [
 export function RightPanel() {
   const count = useUi((s) => s.selection.length)
   const tab = useTaste((s) => s.tab)
+  const chatOpen = useChat((s) => s.open)
   return (
     <aside className="panel panel-right" data-testid="right-panel" data-ui aria-label="Propriétés">
-      <div className="panel-tabs" role="tablist">
-        {TABS.map((t) => (
-          <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} onClick={() => tasteStore.getState().setTab(t.id)}>
-            {t.label}
-          </button>
-        ))}
+      <div className="panel-tabs">
+        <div className="panel-tablist" role="tablist">
+          {TABS.map((t) => (
+            <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} onClick={() => tasteStore.getState().setTab(t.id)}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          className="chat-open"
+          aria-pressed={chatOpen}
+          title="Chat avec Claude (Ctrl+L)"
+          onClick={() => chatStore.getState().toggle()}
+        >
+          <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden>
+            <path d="M5 5h14v10H10l-4 4v-4H5z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+          </svg>
+          Claude
+        </button>
       </div>
       {tab === 'direction' ? (
         <DirectionPanel />

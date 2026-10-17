@@ -78,11 +78,12 @@
 .empty-note { padding: 8px 12px; color: var(--panel-muted); }
 
 .panel-tabs { display: flex; gap: 4px; padding: 8px 8px 0; border-bottom: 1px solid var(--panel-border); }
-.panel-tabs button {
+.panel-tablist { display: flex; gap: 4px; }
+.panel-tablist button {
   border: 0; background: transparent; font: 600 var(--fs)/1 system-ui, sans-serif; padding: 8px;
   color: var(--panel-muted); border-bottom: 2px solid transparent; cursor: pointer;
 }
-.panel-tabs button[aria-selected='true'] { color: var(--panel-text); border-bottom-color: var(--panel-text); }
+.panel-tablist button[aria-selected='true'] { color: var(--panel-text); border-bottom-color: var(--panel-text); }
 
 .context-menu {
   position: fixed; z-index: 50; min-width: 180px; padding: 4px; border-radius: 8px; background: var(--ink);
