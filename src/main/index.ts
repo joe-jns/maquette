@@ -8,6 +8,7 @@ import { FONT_SCHEME, handleFonts, registerFontIpc } from './fontService'
 import { registerFileIpc } from './ipc'
 import { registerHomeIpc } from './home'
 import { registerImageIpc } from './imageSearch'
+import { registerImagePasteIpc } from './imagePaste'
 import { guardClose, registerSessionIpc } from './docSession'
 import { startMcp } from './mcpApp'
 import { registerTasteIpc } from './taste'
@@ -78,6 +79,7 @@ registerFontIpc()
 registerExportIpc()
 registerTasteIpc()
 registerImageIpc()
+registerImagePasteIpc()
 registerChatIpc()
 registerSessionIpc()
 // Tests : la fenêtre reste derrière les autres ; Chromium ne doit pas la ralentir pour autant.
