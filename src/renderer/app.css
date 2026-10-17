@@ -1,14 +1,35 @@
 html, body, #root { margin: 0; height: 100%; }
-body { font-family: system-ui, sans-serif; background: #e5e5e5; color: #111; }
+body { font-family: system-ui, 'Segoe UI', sans-serif; background: var(--canvas-bg); color: var(--panel-text); }
 .app { height: 100%; position: relative; overflow: hidden; }
 .canvas { position: relative; overflow: hidden; min-width: 0; min-height: 0; }
 .world { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-origin: 0 0; }
-.notice {
-  position: absolute; z-index: 10; top: 12px; left: 50%; transform: translateX(-50%);
-  display: flex; gap: 12px; align-items: center;
-  background: #7f1d1d; color: #fff; padding: 10px 14px; border-radius: 8px; font-size: 14px;
+/* Bandeaux : sous la barre d'outils, empilés, jamais par-dessus. Encre pour informer, rouge pour un échec. */
+.notices {
+  position: absolute; z-index: 10; top: 64px; left: 50%; transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 8px; width: max-content; max-width: min(720px, calc(100% - 32px));
+  pointer-events: none;
 }
-.notice button { background: transparent; color: inherit; border: 1px solid #fff8; border-radius: 6px; padding: 2px 8px; cursor: pointer; }
+.notice {
+  pointer-events: auto; display: flex; gap: 10px; align-items: center;
+  background: var(--ink); color: var(--ink-text); padding: 8px 8px 8px 14px; border-radius: 10px;
+  font: var(--fs-large)/1.35 system-ui, 'Segoe UI', sans-serif; box-shadow: 0 6px 20px #0003;
+}
+.notice.is-error { background: var(--danger-ink); }
+.notice > span { flex: 1; min-width: 0; }
+.notice button {
+  flex: none; background: var(--ink-hover); color: inherit; border: 0; border-radius: var(--radius); padding: 6px 10px;
+  font: 600 var(--fs)/1 system-ui, 'Segoe UI', sans-serif; cursor: pointer;
+}
+.notice button:hover { background: #ffffff33; }
+.notice button.is-primary { background: var(--ink-text); color: var(--ink); }
+.notice button.is-primary:hover { background: #fff; }
+.notice button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.canvas-hint {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none;
+  color: var(--panel-muted); font: var(--fs-large)/1.5 system-ui, 'Segoe UI', sans-serif; max-width: 360px;
+}
+.canvas-hint strong { display: block; color: var(--panel-text); font-size: 18px; font-weight: 600; margin-bottom: 6px; }
+.canvas-hint kbd { font: 600 var(--fs)/1 system-ui, sans-serif; background: #ffffffb3; border-radius: 4px; padding: 2px 6px; color: var(--panel-text); }
 .missing-image {
   display: flex; align-items: center; justify-content: center; text-align: center;
   background: repeating-linear-gradient(45deg, #fde68a, #fde68a 6px, #fcd34d 6px, #fcd34d 12px);
@@ -18,38 +39,39 @@ body { font-family: system-ui, sans-serif; background: #e5e5e5; color: #111; }
 .canvas[data-panning] { cursor: grabbing; }
 .overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
 .zoom-badge {
-  position: absolute; right: 12px; bottom: 12px; padding: 4px 8px; border-radius: 6px;
-  background: #fffffff2; color: #333; font: 500 12px/1 system-ui, sans-serif; box-shadow: 0 1px 3px #0002;
+  position: absolute; right: 12px; bottom: 12px; padding: 5px 8px; border-radius: var(--radius);
+  background: #ffffffcc; color: var(--panel-text); font: 500 var(--fs)/1 system-ui, sans-serif;
   font-variant-numeric: tabular-nums;
 }
 .canvas[data-tool='frame'], .canvas[data-tool='rect'], .canvas[data-tool='ellipse'] { cursor: crosshair; }
 .canvas[data-tool='text'] { cursor: text; }
 .toolbar {
   position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 5;
-  display: flex; gap: 2px; padding: 4px; border-radius: 10px; background: #1e1e1e; box-shadow: 0 2px 10px #0003;
+  display: flex; gap: 2px; padding: 4px; border-radius: 10px; background: var(--ink); box-shadow: 0 4px 14px #0003;
 }
 .toolbar button {
   display: grid; place-items: center; width: 34px; height: 34px; border: 0; border-radius: 7px;
-  background: transparent; color: #e5e5e5; cursor: pointer;
+  background: transparent; color: var(--ink-text); cursor: pointer;
 }
-.toolbar button:hover { background: #ffffff1a; }
-.toolbar button[aria-pressed='true'] { background: #0d99ff; color: #fff; }
+.toolbar button:hover { background: var(--ink-hover); }
+.toolbar button[aria-pressed='true'] { background: var(--accent); color: #fff; }
+.toolbar button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .help-backdrop { position: absolute; inset: 0; z-index: 20; display: grid; place-items: center; background: #0006; }
 .help {
   width: min(880px, calc(100% - 48px)); max-height: calc(100% - 64px); overflow: auto;
-  background: #1e1e1e; color: #eee; border-radius: 12px; padding: 20px 24px; box-shadow: 0 10px 40px #0008;
-  font: 13px/1.4 system-ui, sans-serif;
+  background: var(--ink); color: var(--ink-text); border-radius: 12px; padding: 20px 24px; box-shadow: 0 10px 40px #0008;
+  font: var(--fs-large)/1.4 system-ui, 'Segoe UI', sans-serif;
 }
 .help header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .help h2 { margin: 0; font-size: 16px; }
 .help header button { background: transparent; border: 0; color: #aaa; font-size: 22px; cursor: pointer; }
 .help-groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px 28px; }
-.help h3 { margin: 0 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: #8a8a8a; }
+.help h3 { margin: 0 0 6px; font-size: var(--fs-large); font-weight: 600; color: #ffffff99; }
 .help dl { margin: 0; }
 .help dl div { display: flex; justify-content: space-between; gap: 12px; padding: 3px 0; }
 .help dd { margin: 0; }
-.help kbd { font: 12px/1 system-ui, sans-serif; background: #333; border-radius: 4px; padding: 3px 6px; white-space: nowrap; }
+.help kbd { font: 600 var(--fs)/1 system-ui, sans-serif; background: var(--ink-hover); border-radius: 4px; padding: 4px 7px; white-space: nowrap; }
 
 /* Éléments que Claude vient de toucher (outil « appliquer »). */
 [data-claude-flash] {

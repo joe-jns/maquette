@@ -55,14 +55,16 @@ export function App() {
 
   return (
     <div data-testid="app-root" className="app">
-      <RecoveryBanner ready={started} />
-      <FileChangedBanner />
-      {notice && (
-        <div role="alert" className="notice">
-          {notice}
-          <button type="button" onClick={() => docStore.setState({ notice: null })}>Fermer</button>
-        </div>
-      )}
+      <div className="notices">
+        <RecoveryBanner ready={started} />
+        <FileChangedBanner />
+        {notice && (
+          <div role="alert" className="notice is-error">
+            <span>{notice}</span>
+            <button type="button" onClick={() => docStore.setState({ notice: null })}>Fermer</button>
+          </div>
+        )}
+      </div>
       <div className="layout">
         <LeftPanel />
         <Canvas />
