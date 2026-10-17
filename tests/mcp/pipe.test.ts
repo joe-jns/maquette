@@ -143,6 +143,29 @@ describe('canal MCP : robustesse', () => {
     await bridge.close()
   })
 
+  it('avant le jeton, une ligne de plus de 4 Ko ferme la connexion', async () => {
+    const path = testPipe()
+    const bridge = await startBridge({ path, token: T, handle: async () => ({ text: '' }) })
+    const c = await raw(path)
+    c.s.write('x'.repeat(5000))
+    await c.closed
+    await bridge.close()
+  })
+
+  it('au-delà de 8 connexions sans jeton, les suivantes sont coupées ; les autres continuent', async () => {
+    const path = testPipe()
+    const bridge = await startBridge({ path, token: T, handle: async () => ({ text: 'ok' }) })
+    const idle = await Promise.all(Array.from({ length: 8 }, () => raw(path)))
+    const extra = await raw(path)
+    await extra.closed
+    for (const c of idle) c.s.destroy()
+    await new Promise((r) => setTimeout(r, 50))
+    const client = await connectBridge({ path, token: T })
+    expect((await client.call('x', {})).text).toBe('ok')
+    client.close()
+    await bridge.close()
+  })
+
   it('limite par défaut de 20 Mo : une ligne plus longue ferme la connexion', async () => {
     const path = testPipe()
     const bridge = await startBridge({ path, token: T, handle: ok })

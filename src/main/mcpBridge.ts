@@ -15,6 +15,9 @@ export interface Bridge {
   close(): Promise<void>
 }
 
+const PRE_AUTH_BYTES = 4096
+const MAX_PENDING = 8
+
 function errorMessage(e: unknown): string {
   return e instanceof Error ? e.message : String(e)
 }
@@ -45,8 +48,14 @@ export async function startBridge(opts: BridgeOptions): Promise<Bridge> {
   const authTimeoutMs = opts.authTimeoutMs ?? 5000
   const maxLineBytes = opts.maxLineBytes ?? MAX_LINE_BYTES
   const sockets = new Set<Socket>()
+  const authedSockets = new WeakSet<Socket>()
 
   const server = createServer((socket) => {
+    // Trop de connexions sans jeton en même temps : les suivantes sont coupées tout de suite.
+    if ([...sockets].filter((s) => !authedSockets.has(s)).length >= MAX_PENDING) {
+      socket.destroy()
+      return
+    }
     sockets.add(socket)
     let authed = false
     let closing = false
@@ -73,6 +82,7 @@ export async function startBridge(opts: BridgeOptions): Promise<Bridge> {
       if (!authed) {
         if (msg && tokensEqual(msg.hello, opts.token)) {
           authed = true
+          authedSockets.add(socket)
           clearTimeout(authTimer)
           send({ ok: true })
         } else {
@@ -101,10 +111,11 @@ export async function startBridge(opts: BridgeOptions): Promise<Bridge> {
         )
     }
 
+    // Avant le jeton, une ligne ne dépasse pas 4 Ko : un inconnu ne fait pas gonfler la mémoire.
     const read = createLineReader(onLine, () => {
       closing = true
       socket.destroy()
-    }, maxLineBytes)
+    }, () => (authed ? maxLineBytes : PRE_AUTH_BYTES))
 
     socket.on('data', read)
     // Erreurs de pipe (client parti brutalement) : rien à faire, 'close' suit.

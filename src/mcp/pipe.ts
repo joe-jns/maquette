@@ -94,8 +94,9 @@ export function encodeLine(message: unknown): string {
 export function createLineReader(
   onLine: (line: string) => void,
   onOverflow: () => void,
-  maxBytes = MAX_LINE_BYTES,
+  maxBytes: number | (() => number) = MAX_LINE_BYTES,
 ): (chunk: Buffer) => void {
+  const limit = typeof maxBytes === 'function' ? maxBytes : () => maxBytes
   let parts: Buffer[] = []
   let size = 0
   let dead = false
@@ -106,7 +107,7 @@ export function createLineReader(
       const nl = chunk.indexOf(0x0a, start)
       if (nl === -1) break
       const piece = chunk.subarray(start, nl)
-      if (size + piece.length > maxBytes) {
+      if (size + piece.length > limit()) {
         dead = true
         parts = []
         onOverflow()
@@ -122,7 +123,7 @@ export function createLineReader(
     if (start < chunk.length) {
       const rest = chunk.subarray(start)
       size += rest.length
-      if (size > maxBytes) {
+      if (size > limit()) {
         dead = true
         parts = []
         onOverflow()
