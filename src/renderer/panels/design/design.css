@@ -89,26 +89,40 @@
 .text-button:hover { text-decoration: underline; text-underline-offset: 2px; }
 .select-field { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px; min-width: 0; }
 .select-field > span { color: var(--panel-muted); }
-.color-row { position: relative; display: flex; align-items: center; gap: 4px; min-height: var(--field-h); }
+.color-row { position: relative; display: flex; align-items: center; min-height: var(--field-h); }
 .swatch {
   position: relative; flex: none; width: 16px; height: 16px; border-radius: var(--radius-sm); overflow: hidden;
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
   background-image: linear-gradient(45deg, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%), linear-gradient(45deg, #ddd 25%, transparent 25%, transparent 75%, #ddd 75%);
   background-size: 8px 8px; background-position: 0 0, 4px 4px;
 }
-.color-row > .swatch { margin: 0 4px 0 4px; }
 .swatch input[type='color'] { position: absolute; inset: -4px; width: calc(100% + 8px); height: calc(100% + 8px); opacity: 0; cursor: pointer; }
+/* La boîte : pastille + hexadécimal + opacité dans un seul champ de 24 px. */
+.color-box {
+  flex: 1; min-width: 0; display: flex; align-items: center; height: var(--field-h); border: 1px solid transparent; border-radius: var(--radius);
+  background: var(--field-bg);
+}
+.color-box:hover { border-color: var(--panel-border); }
+.color-box:focus-within { border-color: var(--accent); background: var(--panel-bg); }
+.color-box > .swatch { margin: 0 4px 0 3px; }
+.color-box .hex-field { flex: 1; width: auto; height: 100%; border: 0; background: transparent; padding: 0 4px; }
+.color-box .hex-field:focus { background: transparent; }
+.color-box .alpha-field { flex: none; width: 44px; height: 100%; box-shadow: inset 1px 0 var(--panel-bg); }
+.color-box:hover .alpha-field { box-shadow: inset 1px 0 var(--panel-border); }
+.color-box .alpha-field .number-field { height: 100%; border: 0; background: transparent; }
+.color-box .alpha-field input { padding-left: 4px; }
+.color-box.is-named { padding-right: 8px; }
 .hex-field {
   flex: 1; min-width: 0; width: 64px; height: var(--field-h); border: 1px solid transparent; border-radius: var(--radius); background: var(--field-bg);
   font: inherit; letter-spacing: inherit; padding: 0 4px 0 8px; text-transform: uppercase; font-variant-numeric: tabular-nums; color: var(--panel-text);
 }
 .hex-field:hover { border-color: var(--panel-border); }
 .hex-field:focus { outline: none; border-color: var(--accent); background: var(--panel-bg); }
-.alpha-field { flex: none; width: 52px; }
+.alpha-field .number-label { width: 0; }
 .alpha-field .number-suffix { padding-right: 4px; }
-.alpha-field .number-label { width: 8px; }
-.style-chip { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: var(--fw-strong); }
-.color-row-actions { margin-left: auto; margin-right: -4px; display: flex; flex: none; }
+.style-chip { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Actions au bout de la rangée (le glyphe s'aligne sur la marge droite). */
+.color-row-actions { display: flex; flex: none; margin-right: -4px; }
 .style-picker, .font-picker {
   position: absolute; z-index: 30; top: 100%; right: 0; margin-top: 4px; width: 224px; max-width: 100%; max-height: 300px; overflow: auto;
   background: var(--panel-bg); border-radius: var(--radius-lg); box-shadow: var(--elevation-200); padding: 8px;
