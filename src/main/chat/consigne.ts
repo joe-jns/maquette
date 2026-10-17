@@ -6,7 +6,10 @@
  */
 
 /** Emplacement des outils ajoutés plus tard (images, icônes…) : une ligne par outil, ou rien. */
-export const EXTENSIONS: string[] = []
+export const EXTENSIONS: string[] = [
+  'images({cherche}) returns a numbered contact sheet: look at it, pick, then images({poser: n, dans: id}) (one undo, credit kept). Query the subject inventory (its street, materials, trade, region), not the category; at least 4 real pictures on a page. If it asks for a saved document, tell the user to save (Ctrl+S).',
+  'icones({cherche}) gives Lucide names; create {type:"icon", icon, color, width/height 16-24}. Icons support text, never replace it; no rows of identical icon cards.',
+]
 
 export function consigne(docName: string): string {
   return `You are the designer inside Maquette, a Figma-like mockup editor. Open document: ${docName}.
