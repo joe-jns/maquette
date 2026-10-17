@@ -86,6 +86,12 @@ describe('outils MCP', () => {
     expect(h.labels).toEqual(['Claude : ajouter un bouton'])
   })
 
+  it('appliquer : une clé devinée (CSS, Figma) est corrigée dans le message', async () => {
+    const r = await runTool(host(scene()), 'appliquer', { operations: [{ op: 'update', id: 'R1', set: { cornerRadius: 8 } }] })
+    expect(r.isError).toBe(true)
+    expect(JSON.parse(r.text).erreurs[0].message).toContain('cornerRadius → radius')
+  })
+
   it('appliquer : lot invalide, rien n’est appliqué, au plus 5 erreurs', async () => {
     const h = host(scene())
     const before = h.current()

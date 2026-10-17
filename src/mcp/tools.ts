@@ -257,7 +257,23 @@ const OpSchema = z.discriminatedUnion('op', [
 
 interface Erreur { chemin: string; message: string }
 
-const refused = (erreurs: Erreur[]): ToolResult => error(json({ ok: false, erreurs: erreurs.slice(0, MAX_ERRORS) }))
+/** Noms devinés (CSS, Figma) → nom de Maquette : une erreur qui corrige évite un aller-retour. */
+const ALIASES: Record<string, string> = {
+  cornerRadius: 'radius', borderRadius: 'radius', strokes: 'stroke', border: 'stroke',
+  fill: 'fills', background: 'fills', backgroundColor: 'fills', effects: 'shadows', shadow: 'shadows', boxShadow: 'shadows',
+  text: 'content', characters: 'content', fontColor: 'color', textColor: 'color', align: 'textAlign',
+  autoLayout: 'layout', layoutMode: 'layout', itemSpacing: 'layout.gap', gap: 'layout.gap', padding: 'layout.padding',
+  w: 'width', h: 'height', hidden: 'visible', opacity: 'fills (#RRGGBBAA)', clipsContent: 'clip', overflow: 'clip',
+}
+
+function withHint(message: string): string {
+  const keys = /Unrecognized keys?: (.+)/.exec(message)?.[1]?.match(/"([^"]+)"/g)?.map((k) => k.slice(1, -1)) ?? []
+  const hints = keys.filter((k) => ALIASES[k]).map((k) => `${k} → ${ALIASES[k]}`)
+  return hints.length ? `${message} (${hints.join(', ')})` : message
+}
+
+const refused = (erreurs: Erreur[]): ToolResult =>
+  error(json({ ok: false, erreurs: erreurs.slice(0, MAX_ERRORS).map((e) => ({ ...e, message: withHint(e.message) })) }))
 
 function apply(host: ToolHost, operations: unknown[], libelle: string | undefined): ToolResult {
   const parsed = z.array(OpSchema).safeParse(operations)
