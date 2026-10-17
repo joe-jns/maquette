@@ -1,7 +1,9 @@
-import { Fragment, useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { Fragment, useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { IconPicker } from '../panels/design/IconPicker'
 import { uiStore, useUi, type Tool } from '../state/ui'
 import { Icon, type IconName } from '../ui/icons'
 import { QuickMenu } from '../ui/QuickMenu'
+import { insertIcon } from './insertIcon'
 import { shortcutKeys } from './shortcuts'
 
 interface ToolDef { tool: Tool; label: string; key: string; icon: IconName }
@@ -76,17 +78,27 @@ function ShapeGroup({ current }: { current: Tool }) {
           label="Formes"
           placement="above"
           onClose={() => setOpen(false)}
-          entries={SHAPES.map((s) => ({
-            id: s.tool,
-            label: s.label,
-            icon: s.icon,
-            shortcut: s.key,
-            checked: s.tool === shape.tool,
-            onSelect: () => {
-              setShape(s)
-              uiStore.getState().setTool(s.tool)
+          entries={[
+            ...SHAPES.map((s) => ({
+              id: s.tool,
+              label: s.label,
+              icon: s.icon,
+              shortcut: s.key,
+              checked: s.tool === shape.tool,
+              onSelect: () => {
+                setShape(s)
+                uiStore.getState().setTool(s.tool)
+              },
+            })),
+            'separator' as const,
+            {
+              id: 'icon',
+              label: 'Icône…',
+              icon: 'icon' as const,
+              shortcut: shortcutKeys('insertIcon'),
+              onSelect: () => uiStore.getState().setIconPicker(true),
             },
-          }))}
+          ]}
         />
       )}
     </div>
@@ -104,6 +116,8 @@ export function keepButtonKeys(e: KeyboardEvent<HTMLElement>): void {
 /** Barre d'outils flottante en bas du canevas, centrée (Figma UI3). */
 export function Toolbar() {
   const current = useUi((s) => s.tool)
+  const picking = useUi((s) => s.iconPicker)
+  const close = useCallback(() => uiStore.getState().setIconPicker(false), [])
   return (
     <div className="toolbar" role="toolbar" aria-label="Outils" data-ui data-tooltip-side="top" onKeyDown={keepButtonKeys}>
       {GROUPS.map((group, g) => (
@@ -114,6 +128,17 @@ export function Toolbar() {
           )}
         </Fragment>
       ))}
+      {picking && (
+        <IconPicker
+          className="is-floating"
+          label="Insérer une icône"
+          onClose={close}
+          onPick={(name) => {
+            close()
+            insertIcon(name)
+          }}
+        />
+      )}
     </div>
   )
 }

@@ -210,3 +210,28 @@
 .stop-position input { padding-left: 8px; }
 .gradient-stop .color-row { flex: 1; min-width: 0; }
 .gradient-row > .text-button { align-self: flex-start; }
+
+/* Icône : bouton du sélecteur (glyphe + nom), sélecteur avec recherche et grille virtualisée. */
+.icon-current { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.icon-current svg { flex: none; color: var(--icon); }
+.icon-picker {
+  position: absolute; z-index: 30; top: 100%; left: 0; right: 0; margin-top: 4px; display: flex; flex-direction: column;
+  background: var(--panel-bg); border-radius: var(--radius-lg); box-shadow: var(--elevation-200); padding: 8px;
+}
+.icon-picker input {
+  flex: none; height: var(--field-h); border: 1px solid transparent; border-radius: var(--radius); padding: 0 8px; font: inherit;
+  letter-spacing: inherit; margin-bottom: 8px; background: var(--field-bg); min-width: 0; width: 100%; color: var(--panel-text);
+}
+.icon-picker input::placeholder { color: var(--panel-faint); }
+.icon-picker input:focus, .icon-picker input:focus-visible { outline: none; border-color: var(--accent); background: var(--panel-bg); }
+.icon-grid { overflow-y: auto; overflow-x: hidden; }
+.icon-grid button {
+  display: grid; place-items: center; padding: 0; border: 0; border-radius: var(--radius); background: transparent;
+  color: var(--icon); cursor: pointer;
+}
+.icon-grid button:hover { background: var(--panel-hover); color: var(--panel-text); }
+.icon-grid button[aria-selected='true'] { background: var(--accent-soft); color: var(--accent-text); }
+.icon-grid button:focus-visible { outline: var(--focus-ring); outline-offset: calc(-1 * var(--focus-offset)); }
+.icon-picker-name {
+  margin: 8px 0 0; padding: 0 4px; color: var(--panel-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
