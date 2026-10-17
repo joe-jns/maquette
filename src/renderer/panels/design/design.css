@@ -205,9 +205,10 @@
 .swatch-fill { position: absolute; inset: 0; }
 .gradient-label { flex: 1; min-width: 0; padding: 0 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gradient-stop { display: flex; gap: 8px; align-items: center; }
-.stop-position { flex: none; width: 52px; }
+.stop-position { flex: none; width: 56px; }
 .stop-position .number-label { width: 0; }
-.stop-position input { padding-left: 8px; }
+.stop-position input { padding-left: 6px; }
+.stop-position .number-suffix { padding-right: 6px; }
 .gradient-stop .color-row { flex: 1; min-width: 0; }
 .gradient-row > .text-button { align-self: flex-start; }
 

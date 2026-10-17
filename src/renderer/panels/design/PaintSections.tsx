@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import type { Op } from '../../../core/ops'
 import { isGradient } from '../../../core/paint'
-import type { Fill, Shadow, Stroke } from '../../../core/types'
+import type { Color, Fill, Shadow, Stroke } from '../../../core/types'
 import { docStore, useDoc } from '../../state/store'
 import { Checkbox } from '../../ui/Checkbox'
 import { Select } from '../../ui/Select'
@@ -27,6 +27,19 @@ export function applyPhase(ops: Op[], phase: ColorPhase, label: string): void {
 
 const PLUS = 'M8 3v10M3 8h10'
 
+/** Glyphe « dégradé » : un carré qui s'efface en diagonale. */
+const GradientGlyph = () => (
+  <svg viewBox="0 0 16 16" width={16} height={16} aria-hidden>
+    <defs>
+      <linearGradient id="glyph-gradient" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stopColor="currentColor" />
+        <stop offset="1" stopColor="currentColor" stopOpacity="0" />
+      </linearGradient>
+    </defs>
+    <rect x="3.5" y="3.5" width="9" height="9" rx="1.5" fill="url(#glyph-gradient)" stroke="currentColor" strokeWidth="1.25" />
+  </svg>
+)
+
 /** Remplissages d'un cadre ou d'une forme : couleurs et dégradés. */
 export function FillSection() {
   const styles = useDoc((s) => s.doc.styles)
@@ -39,14 +52,28 @@ export function FillSection() {
   const set = (next: Fill[]) => setOps(ids, { fills: next })
   const replace = (i: number, fill: Fill) => set(list.map((f, k) => (k === i ? fill : f)))
   const remove = (i: number) => commit(set(list.filter((_, k) => k !== i)), 'Retirer un remplissage')
+  // Le remplissage uni du dessus passe en dégradé ; sans remplissage uni, un dégradé est ajouté.
+  const solid = list.findLastIndex((f) => !isGradient(f))
+  const toGradientFill = () =>
+    commit(
+      solid >= 0 ? replace(solid, toGradient(list[solid] as Color, styles)) : set([...list, toGradient('#D9D9D9', styles)]),
+      'Dégradé',
+    )
 
   return (
     <Section
       title="Remplissage"
       actions={
-        <IconButton label="Ajouter un remplissage" onClick={() => commit(set([...list, '#D9D9D9']), 'Ajouter un remplissage')}>
-          <Icon d={PLUS} />
-        </IconButton>
+        <>
+          {fills !== 'mixed' && (
+            <IconButton label="Passer en dégradé" tooltip="Dégradé" onClick={toGradientFill}>
+              <GradientGlyph />
+            </IconButton>
+          )}
+          <IconButton label="Ajouter un remplissage" onClick={() => commit(set([...list, '#D9D9D9']), 'Ajouter un remplissage')}>
+            <Icon d={PLUS} />
+          </IconButton>
+        </>
       }
     >
       {fills === 'mixed' ? (
@@ -73,7 +100,6 @@ export function FillSection() {
               styles={styles}
               apply={(color, phase) => applyPhase(replace(i, color), phase, 'Remplissage')}
               onRemove={() => remove(i)}
-              onGradient={() => commit(replace(i, toGradient(f, styles)), 'Dégradé')}
               onCreateStyle={(value) =>
                 commit(
                   [

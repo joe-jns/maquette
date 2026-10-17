@@ -67,7 +67,7 @@ export function HexField({ name, value, onCommit }: { name: string; value: strin
  * Une couleur du panneau : pastille (sélecteur natif), valeur hexadécimale, opacité, ou bien une
  * couleur nommée (pastille + nom, « détacher »). Choisir une couleur nommée ouvre la liste du document.
  */
-export function ColorRow({ name, color, styles, apply, onRemove, onCreateStyle, onGradient }: {
+export function ColorRow({ name, color, styles, apply, onRemove, onCreateStyle, compact }: {
   name: string
   color: Color
   styles: DocStyles
@@ -75,8 +75,8 @@ export function ColorRow({ name, color, styles, apply, onRemove, onCreateStyle, 
   onRemove?: () => void
   /** Crée une couleur nommée à partir de cette couleur et l'applique. */
   onCreateStyle?: (value: string) => void
-  /** Passe ce remplissage en dégradé. */
-  onGradient?: () => void
+  /** Rangée étroite (arrêt d'un dégradé) : sans la liste des couleurs nommées. */
+  compact?: boolean
 }) {
   const value = resolveColor(color, styles)
   const named = typeof color === 'object' ? styles.colors.find((s) => s.id === color.style) : undefined
@@ -151,35 +151,18 @@ export function ColorRow({ name, color, styles, apply, onRemove, onCreateStyle, 
             <Icon d="M8 3v10M3 8h10" />
           </button>
         )}
-        {onGradient && (
+        {!compact && (
           <button
             type="button"
             className="icon-button"
-            aria-label={`Dégradé pour le ${lower(name)}`}
-            data-tooltip="Dégradé"
-            onClick={onGradient}
+            aria-label={`Couleur nommée pour le ${lower(name)}`}
+            title="Couleurs nommées"
+            aria-expanded={picking}
+            onClick={() => setPicking((p) => !p)}
           >
-            <svg viewBox="0 0 16 16" width={16} height={16} aria-hidden>
-              <defs>
-                <linearGradient id="glyph-gradient" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0" stopColor="currentColor" />
-                  <stop offset="1" stopColor="currentColor" stopOpacity="0" />
-                </linearGradient>
-              </defs>
-              <rect x="3.5" y="3.5" width="9" height="9" rx="1" fill="url(#glyph-gradient)" stroke="currentColor" strokeWidth="1.25" />
-            </svg>
+            <Icon d={STYLES} />
           </button>
         )}
-        <button
-          type="button"
-          className="icon-button"
-          aria-label={`Couleur nommée pour le ${lower(name)}`}
-          title="Couleurs nommées"
-          aria-expanded={picking}
-          onClick={() => setPicking((p) => !p)}
-        >
-          <Icon d={STYLES} />
-        </button>
         {onRemove && (
           <button type="button" className="icon-button" aria-label={`Retirer : ${lower(name)}`} data-tooltip="Retirer" onClick={onRemove}>
             <Icon d="M4 8h8" />

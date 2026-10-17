@@ -120,6 +120,7 @@ export function GradientRow({ name, gradient, styles, apply, onRemove, opsFor }:
           </div>
           <ColorRow
             name={`Arrêt ${k + 1}`}
+            compact
             color={s.color}
             styles={styles}
             apply={(c, phase) => apply(setStop(k, { color: c }), phase)}
