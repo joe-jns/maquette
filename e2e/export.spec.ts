@@ -59,6 +59,10 @@ test('rend un cadre en PNG à 2× : taille exacte et texte dessiné', async () =
   expect(r!.width).toBe(1200)
   expect(Math.abs(r!.height - 2 * height)).toBeLessThanOrEqual(1)
 
+  // JPEG d'un texte (fond transparent) : le fond devient blanc, pas noir.
+  const jpeg = await render(app, doc, 'tTitre', { scale: 1, format: 'jpeg' }, { fx: 0.999, fy: 0.999 })
+  expect(jpeg!.pixel!.slice(0, 3).every((c) => c > 230)).toBe(true)
+
   // Le centre exact peut tomber entre deux lettres : on compte les pixels sombres sur la ligne du titre.
 
   const darkOnTitleLine = await app.evaluate(async ({ nativeImage }, { doc, fy, fx0, fx1 }) => {

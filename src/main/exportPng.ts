@@ -1,4 +1,4 @@
-import { BrowserWindow, dialog, ipcMain, type WebContents } from 'electron'
+import { BrowserWindow, dialog, ipcMain, nativeImage, type WebContents } from 'electron'
 import { join } from 'node:path'
 import type { MaquetteDocument, Node } from '../core/types'
 import type { ExportJob, ExportMeasure, RenderedImage, RenderOptions } from '../shared/ipc'
@@ -8,6 +8,8 @@ import { getCurrentDir } from './state'
 /** Au-delà, le rendu est abandonné (image ou police qui ne répond pas). */
 const TIMEOUT_MS = 15_000
 const MAX_SCALE = 4
+/** Plus grand côté d'une image (limite des textures du GPU) : l'échelle est réduite au besoin. */
+const MAX_SIDE = 8192
 
 export interface Rendered { buffer: Buffer; width: number; height: number }
 
@@ -53,8 +55,15 @@ function exportWindow(): { win: BrowserWindow; ready: Promise<void> } {
   })
   const loaded = new Promise<void>((resolve, reject) => {
     w.webContents.once('did-finish-load', () => resolve())
-    w.webContents.once('did-fail-load', (_e, _code, desc) => reject(new Error(desc)))
+    w.webContents.once('did-fail-load', (_e, _code, desc) => {
+      // Chargement raté : la fenêtre est refaite au prochain travail au lieu de rester cassée.
+      if (win === w) closeExportWindow()
+      reject(new Error(desc))
+    })
   })
+  // Page plantée ou figée : même chose, sans attendre le délai de 15 s.
+  w.webContents.on('render-process-gone', () => win === w && closeExportWindow())
+  w.on('unresponsive', () => win === w && closeExportWindow())
   if (process.env.ELECTRON_RENDERER_URL) void w.loadURL(process.env.ELECTRON_RENDERER_URL + '?export=1')
   else void w.loadFile(join(__dirname, '../renderer/index.html'), { query: { export: '1' } })
   win = w
@@ -159,6 +168,11 @@ async function show(doc: MaquetteDocument, nodeId: string, scale: number, maxWid
 
 async function renderOnce(doc: MaquetteDocument, nodeId: string, opts: RenderOptions): Promise<Rendered | null> {
   const shown = await show(doc, nodeId, opts.scale, opts.maxWidth, (m) => m)
+  if (shown && Math.max(shown.width, shown.height) > MAX_SIDE) {
+    // Trop grand pour le GPU : on refait le rendu à l'échelle qui tient dans la limite.
+    const scale = (opts.scale * MAX_SIDE) / Math.max(shown.width, shown.height)
+    return renderOnce(doc, nodeId, { ...opts, scale: Math.floor(scale * 100) / 100 })
+  }
   if (!shown) return null
   const { wc, width, height } = shown
   let image = await capture(wc, width, height)
@@ -166,8 +180,24 @@ async function renderOnce(doc: MaquetteDocument, nodeId: string, opts: RenderOpt
   const size = image.getSize()
   // Écran à haute densité : la capture est en pixels physiques, on revient à la taille demandée.
   if (size.width !== width || size.height !== height) image = image.resize({ width, height, quality: 'best' })
-  const buffer = opts.format === 'jpeg' ? image.toJPEG(85) : image.toPNG()
+  const buffer = opts.format === 'jpeg' ? onWhite(image).toJPEG(85) : image.toPNG()
   return { buffer, width, height }
+}
+
+/** Le JPEG n'a pas de transparence : les zones transparentes sont posées sur du blanc, pas du noir. */
+function onWhite(image: Electron.NativeImage): Electron.NativeImage {
+  const size = image.getSize()
+  const px = image.toBitmap()
+  // Pixels prémultipliés (BGRA) : couleur + blanc × (1 − alpha).
+  for (let i = 0; i < px.length; i += 4) {
+    const rest = 255 - px[i + 3]!
+    if (rest === 0) continue
+    px[i] = Math.min(255, px[i]! + rest)
+    px[i + 1] = Math.min(255, px[i + 1]! + rest)
+    px[i + 2] = Math.min(255, px[i + 2]! + rest)
+    px[i + 3] = 255
+  }
+  return nativeImage.createFromBitmap(px, size)
 }
 
 /** Un seul travail à la fois dans la fenêtre cachée ; abandon (et fenêtre recréée) après 15 s. */
