@@ -46,9 +46,9 @@ test('infobulle d’outil : après 500 ms, avec le raccourci, au-dessus ; puis i
   expect(Math.abs(tip.x + tip.width / 2 - (button.x + button.width / 2))).toBeLessThanOrEqual(1)
 
   // D'un outil à l'autre : aussitôt.
-  await tool(page, 'ellipse').hover()
-  await expect(tooltip(page).locator('.tooltip-label')).toHaveText('Ellipse', { timeout: 150 })
-  await expect(tooltip(page).locator('.tooltip-shortcut')).toHaveText('O')
+  await tool(page, 'frame').hover()
+  await expect(tooltip(page).locator('.tooltip-label')).toHaveText('Cadre', { timeout: 150 })
+  await expect(tooltip(page).locator('.tooltip-shortcut')).toHaveText('F')
 
   // Échap et le clic la cachent ; elle ne revient pas tant qu'on reste sur le bouton.
   await page.keyboard.press('Escape')
