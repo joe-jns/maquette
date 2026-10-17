@@ -64,7 +64,8 @@ const PEN = `# New page, section or screen
 - Avoid excessive gradients, shadows and rounded corners unless requested, part of the brand identity or part of the chosen style. Be refined and intentional with effects and decorations.
 - All Google fonts are available; use each at the weights the style gives.
 - Never draw logos, illustrations or mascots yourself out of shapes: hand-built drawings always look bad. Use icon elements for iconography, frames, shapes and gradient fills for decoration and backgrounds, real pictures for photography.
-- One clear centre of attention per view; a type scale with clear jumps; body text never under 14 px, 50–75 characters per line; text on a picture always gets a contrast treatment. The primary action is the most prominent element.`
+- One clear centre of attention per view; a type scale with clear jumps; text on a picture always gets a contrast treatment. The primary action is the most prominent element.
+- Legibility: running text 17–20 px at a weight that stays crisp (thin display serifs such as Cormorant: 500–600 at least, otherwise a text face), lines of 45–75 characters; no long text in narrow cards. Structuring keywords (step names) stay large.`
 
 /** Méthode taste-skill (interrupteur allumé) : la consigne d'origine. */
 const TASTE = `# New page, section or screen: mandatory taste-skill method (never skip a step)

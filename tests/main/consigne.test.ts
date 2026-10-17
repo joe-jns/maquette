@@ -84,6 +84,8 @@ describe('consigne du chat', () => {
     expect(pen).toContain('guide("qualite")')
     expect(pen).toContain('Use the following style')
     expect(pen).toContain('Main headline 88–120 px on 1440 unless the source is bigger')
+    // Lisibilité : texte courant 17-20 px, graisse nette, colonnes 45-75 caractères.
+    for (const k of ['running text 17–20 px', 'Cormorant: 500–600 at least', 'lines of 45–75 characters', 'no long text in narrow cards', 'Structuring keywords (step names) stay large']) expect(pen, k).toContain(k)
     // Références, images, icônes gardées ; verifier_gout facultatif.
     expect(pen).toContain('capture({ids:[…]})')
     expect(pen).toContain('never move or delete them')
