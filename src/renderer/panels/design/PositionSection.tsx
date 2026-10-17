@@ -3,6 +3,7 @@ import { inFlow } from '../../canvas/canvasOps'
 import { domMeasure } from '../../canvas/measure'
 import { useDoc } from '../../state/store'
 import { mixed, positionOps, setOps, sizeOps, sizingChoices, type SizeChoice } from '../props'
+import { Chevron, Select } from '../../ui/Select'
 import { NumberField } from './NumberField'
 import { commit, scrubWith, Section, useMeasured, useSelection } from './shared'
 
@@ -26,40 +27,47 @@ export function PositionSection() {
     return typeof s === 'number' ? s : Math.round(measured[n.id]?.[axis] ?? 0)
   }
 
-  const axisField = (axis: Axis, name: string, label: string) => (
-    <NumberField
-      name={name}
-      label={label}
-      value={mixed(nodes.map((n) => sizeOf(n, axis)))}
-      min={1}
-      onCommit={(v) => commit(setOps(ids, { [axis]: v }), 'Redimensionner')}
-      scrub={scrubWith('Redimensionner', (v) => setOps(ids, { [axis]: v }))}
-    />
-  )
-
-  const modes = (axis: Axis, name: string) => {
+  const modeMenu = (axis: Axis, name: string) => {
     const current = mixed(nodes.map((n) => modeOf(n, axis)))
     const choices = ids.map((id) => sizingChoices(doc, id, axis))
+    const allowed = (mode: SizeChoice) => choices.some((c) => c[mode].ok)
+    // Rien à choisir (un rectangle posé librement n'a qu'une taille fixe) : pas de menu.
+    if (current === 'fixed' && !allowed('hug') && !allowed('fill')) return null
+    const size = mixed(nodes.map((n) => sizeOf(n, axis)))
+    const options = (['fixed', 'hug', 'fill'] as SizeChoice[]).map((mode) => ({
+      value: mode,
+      label: mode === 'fixed' && typeof size === 'number' ? `${MODE_TEXT.fixed} (${size})` : MODE_TEXT[mode],
+      disabled: !allowed(mode),
+      reason: choices.find((c) => !c[mode].ok)?.[mode].reason,
+    }))
+    const shown = current === 'hug' || current === 'fill' ? MODE_TEXT[current] : null
     return (
-      <div className="segmented" role="group" aria-label={`${name} : mode`}>
-        {(['fixed', 'hug', 'fill'] as SizeChoice[]).map((mode) => {
-          const allowed = choices.some((c) => c[mode].ok)
-          const reason = choices.find((c) => !c[mode].ok)?.[mode].reason
-          return (
-            <button
-              key={mode}
-              type="button"
-              aria-label={`${name} : ${MODE_LABEL[mode]}`}
-              aria-pressed={current === mode}
-              disabled={!allowed}
-              title={allowed ? undefined : reason}
-              onClick={() => commit(sizeOps(doc, ids, axis, mode, domMeasure), `${name} : ${MODE_LABEL[mode]}`)}
-            >
-              {MODE_TEXT[mode]}
-            </button>
-          )
-        })}
-      </div>
+      <Select
+        label={`${name} : mode`}
+        className={`size-mode${shown ? ' has-mode' : ''}`}
+        value={current === 'mixed' || current === null ? null : current}
+        options={options}
+        anchor={(b) => b.closest<HTMLElement>('.number-field') ?? b}
+        onChange={(mode) => commit(sizeOps(doc, ids, axis, mode, domMeasure), `${name} : ${MODE_LABEL[mode]}`)}
+      >
+        {shown ?? <Chevron />}
+      </Select>
+    )
+  }
+
+  const axisField = (axis: Axis, name: string, label: string) => {
+    const modes = nodes.map((n) => modeOf(n, axis))
+    return (
+      <NumberField
+        name={name}
+        label={label}
+        value={mixed(nodes.map((n) => sizeOf(n, axis)))}
+        min={1}
+        dim={modes.every((m) => m !== 'fixed')}
+        onCommit={(v) => commit(setOps(ids, { [axis]: v }), 'Redimensionner')}
+        scrub={scrubWith('Redimensionner', (v) => setOps(ids, { [axis]: v }))}
+        trailing={modeMenu(axis, name)}
+      />
     )
   }
 
@@ -89,10 +97,6 @@ export function PositionSection() {
         />
         {axisField('width', 'Largeur', 'L')}
         {axisField('height', 'Hauteur', 'H')}
-      </div>
-      <div className="mode-rows">
-        <div className="mode-row"><span>L</span>{modes('width', 'Largeur')}</div>
-        <div className="mode-row"><span>H</span>{modes('height', 'Hauteur')}</div>
       </div>
       <div className="field-grid">
         <NumberField

@@ -194,10 +194,12 @@ interface SelectProps<V extends string> {
   className?: string
   /** Contenu du bouton à la place de « valeur + chevron ». */
   children?: ReactNode
+  /** Élément sur lequel la liste se cale (par défaut le bouton ; ex. le champ entier qui le contient). */
+  anchor?: (button: HTMLElement) => HTMLElement
 }
 
 /** Liste déroulante maison : un bouton qui ressemble au champ, une liste flottante sombre. */
-export function Select<V extends string>({ label, value, options, onChange, placeholder = 'Mixte', disabled, placement = 'over', className, children }: SelectProps<V>) {
+export function Select<V extends string>({ label, value, options, onChange, placeholder = 'Mixte', disabled, placement = 'over', className, children, anchor }: SelectProps<V>) {
   const id = useId()
   const button = useRef<HTMLButtonElement>(null)
   const [open, setOpen] = useState<{ active?: number } | null>(null)
@@ -250,7 +252,7 @@ export function Select<V extends string>({ label, value, options, onChange, plac
         <ListMenu
           id={id}
           label={label}
-          anchor={button.current}
+          anchor={anchor ? anchor(button.current) : button.current}
           options={options}
           value={value}
           initialActive={open.active}

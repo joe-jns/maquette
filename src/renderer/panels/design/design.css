@@ -51,9 +51,18 @@
 .number-field input::placeholder { color: var(--panel-faint); font-style: italic; }
 .number-suffix { padding-right: 8px; color: var(--panel-muted); }
 
-.mode-rows { display: flex; flex-direction: column; gap: 8px; }
-.mode-row { display: flex; align-items: center; gap: 8px; }
-.mode-row > span { flex: none; width: 12px; color: var(--panel-muted); }
+/* Taille calculée (contenu, remplir) : la valeur en gris, le mode écrit au bout du champ (Figma). */
+.number-field.is-dim input { color: var(--panel-muted); }
+.size-mode {
+  flex: none; display: flex; align-items: center; height: 100%; padding: 0; border: 0; border-radius: var(--radius);
+  background: transparent; color: var(--panel-text); font: inherit; letter-spacing: inherit; white-space: nowrap; cursor: default;
+}
+.size-mode .select-chevron { margin: 0 2px 0 0; opacity: 0; }
+.number-field:hover .size-mode .select-chevron, .size-mode:focus-visible .select-chevron, .size-mode[data-open] .select-chevron { opacity: 1; }
+.size-mode:hover .select-chevron { color: var(--icon); }
+.size-mode.has-mode { padding: 0 4px; }
+.size-mode.has-mode:hover, .size-mode.has-mode[data-open] { background: var(--pressed); }
+.size-mode:focus-visible { outline: var(--focus-ring); outline-offset: calc(-1 * var(--focus-offset) - 1px); }
 
 /* Choix exclusif : un rail gris de 24 px, l'option active en blanc cerné. */
 .segmented { display: flex; flex: 1; min-width: 0; height: var(--field-h); border-radius: var(--radius); background: var(--field-bg); }
