@@ -24,7 +24,13 @@ export interface ToolHost {
   images?: ImageHost
 }
 
-export interface ToolResult { text: string; image?: { data: string; mimeType: string }; isError?: boolean }
+/** `images` : plusieurs images légendées dans la même réponse (capture de plusieurs éléments). */
+export interface ToolResult {
+  text: string
+  image?: { data: string; mimeType: string }
+  images?: { data: string; mimeType: string; caption: string }[]
+  isError?: boolean
+}
 
 export interface ToolDef { name: string; description: string; input: z.ZodRawShape }
 
@@ -47,7 +53,8 @@ const INPUTS = {
     libelle: z.string().optional(),
   },
   capture: {
-    id: z.string(),
+    id: z.string().optional(),
+    ids: z.array(z.string()).min(1).max(10).optional(),
     largeur: z.number().int().min(100).max(1600).optional(),
   },
   selection: {},
@@ -92,7 +99,7 @@ export const TOOLS: ToolDef[] = [
   },
   {
     name: 'capture',
-    description: 'Image JPEG d’un élément pour vérifier le rendu (largeur 100 à 1600 px, défaut 800). À demander seulement quand c’est utile.',
+    description: 'Image JPEG pour vérifier un rendu ou étudier des références : id, ou ids (1 à 10, une image légendée par élément). largeur 100 à 1600 px (défaut 800, 1024 pour une image). Seulement si utile.',
     input: INPUTS.capture,
   },
   {
@@ -131,7 +138,7 @@ export async function runTool(host: ToolHost, name: string, args: unknown): Prom
     case 'appliquer':
       return apply(host, a.operations as unknown[], a.libelle as string | undefined)
     case 'capture':
-      return capture(host, a.id as string, (a.largeur as number | undefined) ?? 800)
+      return capture(host, a as { id?: string; ids?: string[]; largeur?: number })
     case 'selection':
       return ok(selection(host))
     case 'verifier_gout':
@@ -313,13 +320,34 @@ function apply(host: ToolHost, operations: unknown[], libelle: string | undefine
 
 // ——— capture et sélection ———
 
-async function capture(host: ToolHost, id: string, width: number): Promise<ToolResult> {
-  const loc = findNode(host.doc(), id)
-  if (!loc) return error(`élément introuvable : ${id}`)
-  const image = await host.capture(id, width)
-  if (!image) return error(`capture impossible pour ${loc.node.name} (${id})`)
-  const { node } = loc
-  return { text: `capture de ${node.name} (${sizeLabel(node.width)}×${sizeLabel(node.height)})`, image }
+/** Largeur par défaut : 800 px pour vérifier un rendu, 1024 pour une image (lire la typo d'une référence). */
+const captureWidth = (node: Node, largeur: number | undefined) => largeur ?? (node.type === 'image' ? 1024 : 800)
+
+async function capture(host: ToolHost, a: { id?: string; ids?: string[]; largeur?: number }): Promise<ToolResult> {
+  if ((a.id === undefined) === (a.ids === undefined)) return error('capture : donnez id (un élément) ou ids (1 à 10), pas les deux')
+  if (a.id !== undefined) {
+    const loc = findNode(host.doc(), a.id)
+    if (!loc) return error(`élément introuvable : ${a.id}`)
+    const { node } = loc
+    const image = await host.capture(a.id, captureWidth(node, a.largeur))
+    if (!image) return error(`capture impossible pour ${node.name} (${a.id})`)
+    return { text: `capture de ${node.name} (${sizeLabel(node.width)}×${sizeLabel(node.height)})`, image }
+  }
+  const images: NonNullable<ToolResult['images']> = []
+  const failed: string[] = []
+  // Une à une : le rendu hors écran est partagé.
+  for (const id of new Set(a.ids)) {
+    const node = findNode(host.doc(), id)?.node
+    const image = node ? await host.capture(id, captureWidth(node, a.largeur)) : null
+    if (!node || !image) {
+      failed.push(`${id} (${node ? 'capture impossible' : 'introuvable'})`)
+      continue
+    }
+    images.push({ ...image, caption: `${id} « ${node.name} » ${sizeLabel(node.width)}×${sizeLabel(node.height)}` })
+  }
+  if (!images.length) return error(`aucune capture : ${failed.join(', ')}`)
+  const text = `${images.length} capture${images.length > 1 ? 's' : ''}${failed.length ? ` ; échec : ${failed.join(', ')}` : ''}`
+  return { text, images }
 }
 
 function selection(host: ToolHost) {
