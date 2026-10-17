@@ -1,15 +1,10 @@
 import { createHash } from 'node:crypto'
 import { access, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import type { FontInfo } from '../shared/ipc'
 import { writeFileAtomic } from './files'
 
-export interface FontInfo {
-  family: string
-  category: string
-  weights: number[]
-  italic: boolean
-  variable: { min: number; max: number } | null
-}
+export type { FontInfo }
 
 export type FetchText = (url: string) => Promise<string>
 export type FetchBytes = (url: string) => Promise<Uint8Array>
