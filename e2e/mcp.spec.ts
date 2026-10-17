@@ -32,7 +32,7 @@ test.describe('connexion Claude Code (MCP)', () => {
     const c = await client(exe)
     try {
       const { tools } = await c.listTools()
-      expect(tools.map((t) => t.name)).toEqual(['lire_document', 'lire_elements', 'chercher', 'appliquer', 'capture', 'selection', 'verifier_gout'])
+      expect(tools.map((t) => t.name)).toEqual(expect.arrayContaining(['lire_document', 'lire_elements', 'chercher', 'appliquer', 'capture', 'selection', 'verifier_gout', 'guide', 'style', 'direction']))
 
       const lu = JSON.parse(textOf(await c.callTool({ name: 'lire_document', arguments: {} })))
       expect(lu.pages).toHaveLength(1)
@@ -71,6 +71,49 @@ test.describe('connexion Claude Code (MCP)', () => {
       const data = JSON.parse(textOf(gout))
       expect(data.page).toBe(true)
       expect(data.fautes.map((f: string[]) => f[1])).toContain('headline-lines')
+    } finally {
+      await c.close()
+      await app.close()
+    }
+  })
+
+  test('design : instructions du serveur, guide, style appliqué en une seule annulation, direction tirée', async () => {
+    // Polices hors connexion : l'application n'attend pas le réseau.
+    const { app, page } = await launch([], { ...env, MAQUETTE_FONTS_OFFLINE: '1' })
+    const exe = await app.evaluate(() => process.execPath)
+    await expect(page.getByTestId('canvas')).toBeVisible()
+    const c = await client(exe)
+    try {
+      expect(c.getInstructions()).toContain('guide("methode")')
+
+      const sommaire = await c.callTool({ name: 'guide', arguments: {} })
+      expect(textOf(sommaire)).toContain('- landing-page :')
+      expect((await c.callTool({ name: 'guide', arguments: { sujet: 'landing-page' } })).isError).toBeFalsy()
+      expect((await c.callTool({ name: 'guide', arguments: { sujet: '../../package.json' } })).isError).toBe(true)
+
+      const r = await c.callTool({ name: 'style', arguments: { nom: 'Artisan Editorial', variante: 'Heritage Warmth', appliquer: true } })
+      expect(r.isError, textOf(r)).toBeFalsy()
+      const out = JSON.parse(textOf(r).split('\n\n')[0]!)
+      const read = async () => JSON.parse(textOf(await c.callTool({ name: 'lire_document', arguments: {} })))
+      const lu = await read()
+      expect(lu.textes['Titre 1']).toBe('Fraunces 600 72/79')
+      expect(lu.ids_styles.Accent).toBe(out.couleurs.Accent)
+      expect(Object.keys(lu.couleurs)).toHaveLength(7)
+
+      // Couleurs et styles de texte partent d'un seul Ctrl+Z.
+      await page.locator('.canvas').click({ position: { x: 5, y: 5 } })
+      await page.keyboard.press('Control+z')
+      await expect.poll(async () => (await read()).couleurs).toBeUndefined()
+      expect((await read()).textes).toBeUndefined()
+
+      // direction : vrai tirage de taste-skill, puis la fiche choisie appliquée.
+      const brief = { secteur: 'restaurant', brief: 'bistrot de quartier', sections: ['intro', 'gallery', 'contact'] }
+      const options = textOf(await c.callTool({ name: 'direction', arguments: brief }))
+      const choix = /^## (\S+) — /m.exec(options)![1]!
+      const d = await c.callTool({ name: 'direction', arguments: { ...brief, choix, appliquer: true } })
+      expect(d.isError, textOf(d)).toBeFalsy()
+      expect(textOf(d)).toContain('## Hero — ')
+      expect(Object.keys((await read()).couleurs)).toEqual(expect.arrayContaining(['Fond', 'Encre', 'Accent']))
     } finally {
       await c.close()
       await app.close()
