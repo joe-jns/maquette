@@ -1,0 +1,34 @@
+/* ——— Menus (Figma UI3) : #1E1E1E, bordure #383838, rayon 13, rangées 24 px, raccourcis à droite ——— */
+.menu {
+  position: fixed; z-index: 900; box-sizing: border-box;
+  min-width: 200px; max-width: 320px; max-height: calc(100vh - 16px); overflow-y: auto;
+  padding: 8px; display: flex; flex-direction: column;
+  background: #1e1e1e; border: 1px solid #383838; border-radius: var(--radius-lg, 13px);
+  box-shadow: var(--elevation-400, 0 2px 5px #00000026, 0 10px 16px #0000001f, 0 0 .5px #0000001f);
+  color: #fff; font: var(--fw, 400) 11px/16px system-ui, 'Segoe UI', sans-serif; letter-spacing: .005em;
+  outline: none; user-select: none; scrollbar-width: thin; scrollbar-color: #ffffff38 transparent;
+}
+
+.menu-item {
+  display: flex; align-items: center; gap: 8px; flex: none;
+  height: 24px; padding: 4px 8px; box-sizing: border-box; border: 0; border-radius: var(--radius, 5px);
+  background: transparent; color: inherit; font: inherit; letter-spacing: inherit; text-align: left;
+  cursor: default; outline: none; white-space: nowrap;
+}
+.menu-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.menu-shortcut {
+  flex: none; margin-left: 16px; color: rgba(255, 255, 255, .6);
+  font-variant-numeric: tabular-nums;
+}
+.menu-chevron { flex: none; margin: 0 -4px 0 8px; color: rgba(255, 255, 255, .6); }
+
+.menu-item.is-active { background: var(--accent, #0d99ff); color: #fff; }
+.menu-item.is-active .menu-shortcut,
+.menu-item.is-active .menu-chevron { color: rgba(255, 255, 255, .8); }
+
+.menu-item.is-danger { color: #ff8577; }
+.menu-item.is-danger.is-active { color: #fff; }
+
+.menu-item:disabled { opacity: .4; }
+
+.menu-separator { flex: none; height: 1px; margin: 7px -8px; background: #383838; }

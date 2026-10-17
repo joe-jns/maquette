@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { docStore, useDoc } from '../state/store'
 import { uiStore } from '../state/ui'
-import { ContextMenu } from './ContextMenu'
+import { Menu, SEPARATOR } from '../ui/Menu'
 import { InlineName } from './InlineName'
 
 export function showPage(id: string): void {
@@ -82,12 +82,14 @@ export function PagesPanel() {
         ))}
       </ul>
       {menu && (
-        <ContextMenu
+        <Menu
+          label="Page"
           x={menu.x}
           y={menu.y}
           onClose={() => setMenu(null)}
           items={[
             { label: 'Renommer', onSelect: () => setRenaming(menu.id) },
+            SEPARATOR,
             { label: 'Supprimer la page', danger: true, disabled: pages.length <= 1, onSelect: () => remove(menu.id) },
           ]}
         />
