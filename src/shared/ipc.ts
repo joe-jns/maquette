@@ -1,4 +1,5 @@
 import type { MaquetteDocument } from '../core/types'
+import type { ChatApi } from './chat'
 import type { ToolResult } from '../mcp/tools'
 import type { DirectionOption, DirectionSheet } from '../taste/direction'
 
@@ -95,4 +96,6 @@ export interface MaquetteApi {
   /** Relit le fichier courant sur le disque. */
   reloadFile(path: string): Promise<OpenedFile | null>
   onMcpCall(cb: (tool: string, args: Record<string, unknown>) => Promise<ToolResult>): () => void
+  /** Chat avec Claude (panneau de droite). */
+  chat: ChatApi
 }
