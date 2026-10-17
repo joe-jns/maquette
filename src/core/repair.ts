@@ -1,11 +1,13 @@
 import { normalizeColor, normalizeColorValue } from './color'
 import { autoLayoutDefaults, createNode } from './defaults'
 import { alignTextSizing } from './fixes'
+import { FALLBACK_ICON, resolveIcon } from './icons/lucide'
 import { newId } from './ids'
+import { normalizeFill } from './paint'
 import { formatPath, type Issue } from './rules'
 import { HEX_COLOR } from './schema'
 import { isFill, isHug } from './tree'
-import type { Axis, Color, NodeInput, NodeType, Size, TextNode } from './types'
+import type { Axis, Color, Fill, NodeInput, NodeType, Size, TextNode } from './types'
 
 /**
  * Ouverture tolérante (spec §6.2) : ramène un document lu sur disque à l'état valide le plus proche.
@@ -21,7 +23,7 @@ const MAGENTA = '#FF00FF'
 const FALLBACK_SIZE = 100
 const ID = /^[^/$][^/]*$/
 const AXES: Axis[] = ['width', 'height']
-const NODE_TYPES: readonly NodeType[] = ['frame', 'text', 'shape', 'image']
+const NODE_TYPES: readonly NodeType[] = ['frame', 'text', 'shape', 'image', 'icon']
 
 const COMMON_KEYS = [
   'id', 'type', 'name', 'visible', 'locked', 'opacity', 'width', 'height', 'x', 'y', 'position', 'alignSelf',
@@ -35,6 +37,7 @@ const NODE_KEYS: Record<NodeType, ReadonlySet<string>> = {
   ]),
   shape: new Set([...COMMON_KEYS, 'shape', 'fills', 'stroke', 'radius', 'shadows']),
   image: new Set([...COMMON_KEYS, 'src', 'fit', 'radius', 'stroke', 'shadows']),
+  icon: new Set([...COMMON_KEYS, 'icon', 'set', 'color', 'strokeWidth']),
 }
 const AUTO_LAYOUT_KEYS = new Set(['mode', 'direction', 'gap', 'padding', 'justify', 'align', 'wrap', 'rowGap', 'reverseZ'])
 const STROKE_KEYS = new Set(['color', 'width', 'align'])
@@ -166,6 +169,19 @@ export function repairDocument(raw: Record<string, unknown>): { doc: unknown; wa
     return norm
   }
 
+  /** Remplissage : couleur (voir fixColor) ou dégradé, dont chaque arrêt passe par fixColor. */
+  const fixFill = (v: unknown, segs: Segs): Fill => {
+    if (!isObj(v) || typeof v.type !== 'string') return fixColor(v, segs)
+    const g = normalizeFill(v)
+    if (g === null || typeof g !== 'object' || !('type' in g)) {
+      warn(segs, `dégradé illisible (${show(v)}) : remplacé par ${MAGENTA}`)
+      return MAGENTA
+    }
+    if (JSON.stringify(g) !== JSON.stringify(v)) warn(segs, 'dégradé réécrit sous la forme de Maquette')
+    g.stops.forEach((st, k) => { st.color = fixColor(st.color, [...segs, 'stops', k, 'color']) })
+    return g
+  }
+
   // 2. Pages (identifiants réservés avant ceux des éléments, comme dans validateDocument)
   const pageSrc: unknown[] = Array.isArray(src.pages) ? src.pages : []
   if (src.pages !== undefined && !Array.isArray(src.pages)) warn(['pages'], `liste de pages illisible (${show(src.pages)})`)
@@ -210,6 +226,7 @@ export function repairDocument(raw: Record<string, unknown>): { doc: unknown; wa
     const seed: Obj = { type }
     if (type === 'shape' && typeof item.shape === 'string') seed.shape = item.shape
     if (type === 'text' && typeof item.fontSize === 'number') seed.fontSize = item.fontSize
+    if (type === 'icon' && typeof item.icon === 'string') seed.icon = item.icon
     const node = createNode(seed as NodeInput, id) as unknown as Obj
     const given = dropUnknown(item, NODE_KEYS[type], s)
     for (const [k, v] of Object.entries(given)) if (k !== 'id' && k !== 'type' && k !== 'children' && k !== 'layout') node[k] = v
@@ -223,8 +240,20 @@ export function repairDocument(raw: Record<string, unknown>): { doc: unknown; wa
     }
 
     // Couleurs et références de style
-    if (Array.isArray(node.fills)) node.fills = node.fills.map((c, i) => fixColor(c, [...s, 'fills', i]))
-    if (type === 'text') node.color = fixColor(node.color, [...s, 'color'])
+    if (Array.isArray(node.fills)) node.fills = node.fills.map((c, i) => fixFill(c, [...s, 'fills', i]))
+    if (type === 'text' || type === 'icon') node.color = fixColor(node.color, [...s, 'color'])
+    if (type === 'icon') {
+      const known = typeof node.icon === 'string' ? resolveIcon(node.icon) : null
+      if (known !== node.icon) {
+        const to = known ?? FALLBACK_ICON
+        warn([...s, 'icon'], known ? `icône ${show(node.icon)} renommée en ${show(to)}` : `icône inconnue ${show(node.icon)} : remplacée par ${show(to)}`)
+        node.icon = to
+      }
+      if (node.set !== 'lucide') {
+        warn([...s, 'set'], `jeu d’icônes inconnu ${show(node.set)} : remplacé par "lucide"`)
+        node.set = 'lucide'
+      }
+    }
     if (isObj(node.stroke)) {
       const stroke = dropUnknown(node.stroke, STROKE_KEYS, [...s, 'stroke'])
       if (stroke.color !== undefined) stroke.color = fixColor(stroke.color, [...s, 'stroke', 'color'])

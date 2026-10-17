@@ -6,6 +6,12 @@ export const HEX_COLOR = /^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/
 const Id = z.string().regex(/^[^/$][^/]*$/, 'identifiant invalide (pas de « / », pas de « $ » au début)')
 const Px = z.number().nonnegative()
 const ColorSchema = z.union([z.string().regex(HEX_COLOR, 'couleur attendue : #RRGGBB ou #RRGGBBAA'), z.strictObject({ style: Id })])
+const StopSchema = z.strictObject({ color: ColorSchema, position: z.number().min(0).max(1) })
+const GradientSchema = z.discriminatedUnion('type', [
+  z.strictObject({ type: z.literal('linear'), angle: z.number(), stops: z.array(StopSchema).min(2, 'un dégradé a au moins 2 arrêts') }),
+  z.strictObject({ type: z.literal('radial'), stops: z.array(StopSchema).min(2, 'un dégradé a au moins 2 arrêts') }),
+])
+const FillSchema = z.union([ColorSchema, GradientSchema])
 const SizeSchema = z.union([Px, z.strictObject({ mode: z.literal('hug') }), z.strictObject({ mode: z.literal('fill') })])
 const StrokeSchema = z.strictObject({ color: ColorSchema, width: z.number().positive(), align: z.enum(['inside', 'outside', 'center']) })
 const ShadowSchema = z.strictObject({
@@ -51,7 +57,7 @@ const FrameSchema = z.strictObject({
   type: z.literal('frame'),
   children: z.array(z.lazy((): z.ZodType<Node> => NodeSchema)),
   layout: LayoutSchema,
-  fills: z.array(ColorSchema),
+  fills: z.array(FillSchema),
   stroke: StrokeSchema.optional(),
   radius: RadiusSchema,
   shadows: z.array(ShadowSchema),
@@ -78,7 +84,7 @@ const ShapeSchema = z.strictObject({
   ...base,
   type: z.literal('shape'),
   shape: z.enum(['rectangle', 'ellipse']),
-  fills: z.array(ColorSchema),
+  fills: z.array(FillSchema),
   stroke: StrokeSchema.optional(),
   radius: RadiusSchema,
   shadows: z.array(ShadowSchema),
@@ -94,8 +100,17 @@ const ImageSchema = z.strictObject({
   shadows: z.array(ShadowSchema),
 })
 
+const IconSchema = z.strictObject({
+  ...base,
+  type: z.literal('icon'),
+  icon: z.string().min(1),
+  set: z.literal('lucide'),
+  color: ColorSchema,
+  strokeWidth: z.number().positive().max(24),
+})
+
 export const NodeSchema: z.ZodType<Node> = z.lazy(() =>
-  z.discriminatedUnion('type', [FrameSchema, TextSchema, ShapeSchema, ImageSchema]),
+  z.discriminatedUnion('type', [FrameSchema, TextSchema, ShapeSchema, ImageSchema, IconSchema]),
 )
 
 const ColorStyleSchema = z.strictObject({ id: Id, name: z.string().min(1), value: z.string().regex(HEX_COLOR) })
