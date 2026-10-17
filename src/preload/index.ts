@@ -48,7 +48,7 @@ const api: MaquetteApi = {
     ipcRenderer.on('file:changed', handler)
     return () => ipcRenderer.removeListener('file:changed', handler)
   },
-  reloadFile: () => ipcRenderer.invoke('file:reload'),
+  reloadFile: (path) => ipcRenderer.invoke('file:reload', path),
   onMcpCall: (cb) => {
     const handler = (_e: IpcRendererEvent, id: number, tool: string, args: Record<string, unknown>) => {
       void cb(tool, args).then((result) => ipcRenderer.send('mcp:result', id, result))

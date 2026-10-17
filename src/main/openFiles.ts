@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain } from 'electron'
 import { readFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 import type { OpenedFile } from '../shared/ipc'
@@ -10,6 +10,12 @@ let recent: RecentStore | null = null
 let watcher: FileWatcher | null = null
 let editorWindow: () => BrowserWindow | undefined = () => undefined
 let onRecentChange: (list: string[]) => void = () => undefined
+/** Textes lus pour la fenêtre, pas encore acceptés : ils ne deviennent la référence qu'une fois affichés. */
+const read = new Map<string, string>()
+const key = (path: string) => (process.platform === 'win32' ? path.toLowerCase() : path)
+/** Fenêtre prête à recevoir un fichier ; sinon le fichier attend (double-clic pendant le démarrage). */
+let ready = false
+let waiting: string | null = null
 
 const recents = () => (recent ??= new RecentStore(join(app.getPath('userData'), 'recent.json')))
 
@@ -19,18 +25,29 @@ export function initOpenFiles(opts: { editorWindow: () => BrowserWindow | undefi
   onRecentChange = opts.onRecentChange
   watcher = new FileWatcher((path) => editorWindow()?.webContents.send('file:changed', path))
   void recents().list().then(onRecentChange)
+  ipcMain.on('mcp:ready', (_e, isReady: boolean) => {
+    ready = isReady
+    if (ready && waiting) {
+      const path = waiting
+      waiting = null
+      void openInWindow(path)
+    }
+  })
 }
 
 /** Lit un fichier pour la fenêtre : il lui est proposé, et son contenu devient la référence de la surveillance. */
 export async function readForWindow(path: string): Promise<OpenedFile> {
   const text = await readFile(path, 'utf8')
   offerPath(path)
-  watcher?.wrote(text)
+  read.set(key(path), text)
   return { path, text }
 }
 
 /** La fenêtre a chargé ce fichier (ou un nouveau document) : surveillance et fichiers récents. */
 export function documentShown(path: string | null): void {
+  const text = path ? read.get(key(path)) : undefined
+  if (path) read.delete(key(path))
+  if (text !== undefined) watcher?.wrote(text)
   watcher?.watch(path)
   if (path) void addRecent(path)
 }
@@ -48,7 +65,10 @@ async function addRecent(path: string): Promise<void> {
 /** Ouvre un fichier demandé hors de la fenêtre (récents, double-clic avec l'app déjà lancée). */
 export async function openInWindow(path: string): Promise<void> {
   const win = editorWindow()
-  if (!win) return
+  if (!win || !ready) {
+    waiting = path
+    return
+  }
   if (win.isMinimized()) win.restore()
   win.focus()
   try {

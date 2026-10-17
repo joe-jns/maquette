@@ -42,9 +42,11 @@ export function registerFileIpc(fileArg: string | undefined): void {
   })
 
   // « Recharger » après un changement extérieur : le fichier courant, relu.
-  ipcMain.handle('file:reload', async (): Promise<OpenedFile | null> => {
-    const dir = getCurrentPath()
-    return dir ? readForWindow(dir) : null
+  ipcMain.handle('file:reload', async (_event, path: string): Promise<OpenedFile | null> => {
+    const current = getCurrentPath()
+    // Seulement le document affiché : un bandeau resté d'un document précédent ne recharge rien.
+    if (!current || allowedSavePath(path) !== current) return null
+    return readForWindow(current)
   })
 
   ipcMain.handle('file:save', async (event, args: { path: string | null; text: string }): Promise<string | null> => {

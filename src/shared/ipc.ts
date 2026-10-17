@@ -93,6 +93,6 @@ export interface MaquetteApi {
   /** Le fichier ouvert a changé sur le disque (autre programme). */
   onFileChanged(cb: (path: string) => void): () => void
   /** Relit le fichier courant sur le disque. */
-  reloadFile(): Promise<OpenedFile | null>
+  reloadFile(path: string): Promise<OpenedFile | null>
   onMcpCall(cb: (tool: string, args: Record<string, unknown>) => Promise<ToolResult>): () => void
 }
