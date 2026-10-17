@@ -41,9 +41,17 @@ function createWindow(): BrowserWindow {
       contextIsolation: true,
       sandbox: true,
       nodeIntegration: false,
+      // Tests en arrière-plan : la fenêtre cachée derrière d'autres doit continuer à dessiner.
+      backgroundThrottling: process.env.MAQUETTE_E2E !== '1',
     },
   })
-  win.once('ready-to-show', () => win.show())
+  // Tests : fenêtre affichée sans prendre le focus ni passer devant, pour laisser le PC utilisable.
+  const background = process.env.MAQUETTE_E2E === '1' || process.env.MAQUETTE_BACKGROUND === '1'
+  win.once('ready-to-show', () => {
+    if (!background) return win.show()
+    win.setAlwaysOnTop(false)
+    win.showInactive()
+  })
   guardClose(win)
   // La fenêtre cachée de l'export ne doit pas garder l'app ouverte une fois l'éditeur fermé.
   win.on('closed', () => {
@@ -69,6 +77,13 @@ registerExportIpc()
 registerTasteIpc()
 registerChatIpc()
 registerSessionIpc()
+// Tests : la fenêtre reste derrière les autres ; Chromium ne doit pas la ralentir pour autant.
+if (process.env.MAQUETTE_E2E === '1') {
+  app.commandLine.appendSwitch('disable-renderer-backgrounding')
+  app.commandLine.appendSwitch('disable-background-timer-throttling')
+  app.commandLine.appendSwitch('disable-backgrounding-occluded-windows')
+  app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion')
+}
 if (process.env.MAQUETTE_E2E === '1') {
   ;(globalThis as unknown as { __maquetteRenderNode: typeof renderNode }).__maquetteRenderNode = renderNode
 }
