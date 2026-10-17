@@ -1,5 +1,6 @@
 import { containsId } from '../../core/tree'
 import type { FrameNode, Node, NodeType, Page } from '../../core/types'
+import type { IconName } from '../ui/icons'
 
 /** Une ligne du panneau des calques. */
 export interface LayerRow {
@@ -14,6 +15,25 @@ export interface LayerRow {
   locked: boolean
   /** Le parent est en mise en page automatique. */
   auto: boolean
+  /** Icône du type (un cadre automatique montre sa direction) : calculée ici, pas de recherche par ligne. */
+  icon: IconName
+  /** Ids des ancêtres, du parent à la racine (teinte des enfants de la sélection). */
+  ancestors: string[]
+}
+
+function iconOf(node: Node): IconName {
+  switch (node.type) {
+    case 'frame':
+      return node.layout.mode === 'auto' ? (node.layout.direction === 'row' ? 'autoRow' : 'autoCol') : 'frame'
+    case 'text':
+      return 'text'
+    case 'image':
+      return 'image'
+    case 'shape':
+      return node.shape === 'ellipse' ? 'ellipse' : 'rect'
+    default:
+      return 'rect'
+  }
 }
 
 const isAuto = (parent: FrameNode | null): boolean => parent !== null && parent.layout.mode === 'auto'
@@ -25,7 +45,7 @@ const displayOrder = (parent: FrameNode | null, children: Node[]): Node[] =>
 /** Lignes du panneau des calques, dans l'ordre de Figma. Les enfants d'un cadre replié ne sont pas listés. */
 export function layerRows(page: Page, expanded: ReadonlySet<string>): LayerRow[] {
   const rows: LayerRow[] = []
-  const visit = (parent: FrameNode | null, children: Node[], depth: number) => {
+  const visit = (parent: FrameNode | null, children: Node[], depth: number, ancestors: string[]) => {
     for (const node of displayOrder(parent, children)) {
       const isFrame = node.type === 'frame'
       const open = isFrame && expanded.has(node.id)
@@ -40,11 +60,13 @@ export function layerRows(page: Page, expanded: ReadonlySet<string>): LayerRow[]
         visible: node.visible,
         locked: node.locked,
         auto: isAuto(parent),
+        icon: iconOf(node),
+        ancestors,
       })
-      if (open) visit(node, node.children, depth + 1)
+      if (open) visit(node, node.children, depth + 1, [node.id, ...ancestors])
     }
   }
-  visit(null, page.children, 0)
+  visit(null, page.children, 0, [])
   return rows
 }
 

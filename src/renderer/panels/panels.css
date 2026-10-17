@@ -107,29 +107,45 @@
 
 .layers { flex: 1; border-bottom: 0; min-height: 0; display: flex; flex-direction: column; }
 .layer-list { list-style: none; margin: 0; padding: 0 8px 12px; overflow: auto; flex: 1; }
+/* Rangée de 32 px, surbrillance de 24 px arrondie en retrait de 4 px (Figma UI3). Retrait de 16 px par niveau. */
 .layer-row {
-  position: relative; display: flex; align-items: center; gap: 4px; height: 28px; padding-right: 4px;
-  border-radius: var(--radius); cursor: default; user-select: none;
+  position: relative; isolation: isolate; display: flex; align-items: center; height: var(--row-h); padding-right: 4px;
+  cursor: default; user-select: none;
 }
-.layer-row:hover, .layer-row.is-hover { background: var(--panel-hover); }
-.layer-row.is-selected { background: var(--accent-soft); }
-.layer-row.is-selected:hover { background: var(--accent-soft-hover); }
-.layer-row.is-hidden .layer-name, .layer-row.is-hidden .layer-icon { opacity: 0.45; }
-.layer-row.drop-before::before, .layer-row.drop-after::after {
+.layer-row::before { content: ''; position: absolute; z-index: -1; inset: 4px 0; border-radius: var(--radius); }
+.layer-row:hover::before, .layer-row.is-hover::before { background: var(--panel-hover); }
+.layer-row.is-selected::before { background: var(--accent-soft); }
+.layer-row.is-selected:hover::before, .layer-row.is-selected.is-hover::before { background: var(--accent-soft-hover); }
+/* Enfants de la sélection : un seul bloc teinté, de la ligne sélectionnée à son dernier descendant affiché. */
+.layer-row.is-in-selection::before { inset: 0; border-radius: 0; background: var(--in-selection); }
+.layer-row[data-tint='sel-open']::before { bottom: 0; border-radius: var(--radius) var(--radius) 0 0; }
+.layer-row[data-tint='in-last']::before { bottom: 4px; border-radius: 0 0 var(--radius) var(--radius); }
+.layer-row.is-in-selection:hover::before, .layer-row.is-in-selection.is-hover::before { background: var(--accent-soft); }
+.layer-row.is-selected .layer-name { font-weight: var(--fw-strong); }
+.layer-row.is-hidden .layer-name, .layer-row.is-hidden .layer-icon { color: var(--panel-faint); }
+.layer-row.drop-before::after, .layer-row.drop-after::after {
   content: ''; position: absolute; left: 8px; right: 8px; height: 2px; background: var(--accent); border-radius: var(--radius-sm);
 }
-.layer-row.drop-before::before { top: -1px; }
-.layer-row.drop-after::after { bottom: -1px; }
-.layer-row.drop-inside { box-shadow: inset 0 0 0 2px var(--accent); }
-.twisty { display: grid; place-items: center; width: 16px; height: 16px; border: 0; padding: 0; background: transparent; color: var(--icon-muted); cursor: pointer; }
-.twisty svg { transition: transform 120ms ease; }
-.layer-icon { flex: none; color: var(--icon-muted); }
-.layer-row.is-selected .layer-icon { color: var(--accent-text); }
+.layer-row.drop-before::after { top: 3px; }
+.layer-row.drop-after::after { bottom: 3px; }
+.layer-row.drop-inside::before { box-shadow: inset 0 0 0 2px var(--accent); }
+.twisty {
+  flex: none; display: grid; place-items: center; width: 16px; height: 16px; border: 0; padding: 0; background: transparent;
+  color: var(--icon-muted); cursor: pointer;
+}
+.twisty .icon { transition: transform 120ms ease; }
+.twisty .icon.is-open { transform: rotate(90deg); }
+.layer-icon { flex: none; margin-right: 8px; color: var(--icon-muted); }
+.layer-row.is-selected .layer-icon { color: var(--icon); }
 .layer-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.layer-actions { display: flex; opacity: 0; }
-.layer-row:hover .layer-actions, .layer-actions:focus-within { opacity: 1; }
-.layer-actions .is-on { opacity: 1; }
-.layer-row .layer-actions:has(.is-on) { opacity: 1; }
+/* Œil et cadenas : au survol, et en permanence quand l'élément est masqué ou verrouillé. */
+.layer-actions { display: flex; flex: none; }
+.layer-action {
+  display: grid; place-items: center; width: var(--field-h); height: var(--field-h); padding: 0; border: 0; border-radius: var(--radius);
+  background: transparent; color: var(--icon-muted); cursor: pointer; opacity: 0;
+}
+.layer-action:hover { color: var(--icon); }
+.layer-row:hover .layer-action, .layer-row.is-hover .layer-action, .layer-action:focus-visible, .layer-action.is-on { opacity: 1; }
 .icon-button.small { width: 20px; height: 20px; color: var(--icon-muted); }
 .icon-button.small:hover { color: var(--icon); }
 /* Dans une liste (déjà en retrait de 8 px) ou une section (déjà en retrait de 16 px) : aligné sur le texte voisin. */
