@@ -85,15 +85,3 @@
 }
 .panel-tablist button[aria-selected='true'] { color: var(--panel-text); border-bottom-color: var(--panel-text); }
 
-.context-menu {
-  position: fixed; z-index: 50; min-width: 180px; padding: 4px; border-radius: 8px; background: var(--ink);
-  box-shadow: 0 8px 24px #0005; display: flex; flex-direction: column;
-}
-.context-menu button {
-  text-align: left; padding: 7px 10px; border: 0; border-radius: 5px; background: transparent;
-  color: var(--ink-text); font: var(--fs)/1.2 system-ui, sans-serif; cursor: pointer;
-}
-.context-menu button:hover:not(:disabled), .context-menu button:focus-visible { background: var(--accent); outline: none; }
-.context-menu button:disabled { color: #ffffff59; cursor: default; }
-.context-menu button.danger:not(:disabled) { color: #ff8a80; }
-.context-menu button.danger:hover:not(:disabled), .context-menu button.danger:focus-visible { color: #fff; background: var(--danger); }
