@@ -60,6 +60,14 @@ describe('polices', () => {
     expect(calls).toBe(2)
   })
 
+  it('le catalogue de secours n’est pas retenu : le réseau revenu, le vrai catalogue arrive', async () => {
+    let online = false
+    const cache = new FontCache(dir, async (u) => { if (!online) throw new Error('hors ligne'); return u.includes('metadata') ? META : CSS }, async () => new Uint8Array([1]))
+    expect(await cache.catalog()).toEqual(FALLBACK_FONTS)
+    online = true
+    expect((await cache.catalog()).map((f) => f.family)).toEqual(['Inter', 'Playfair Display'])
+  })
+
   it('hors connexion sans cache : catalogue de secours ; famille inconnue : null', async () => {
     const offline = new FontCache(dir, async () => { throw new Error('hors ligne') }, async () => { throw new Error('hors ligne') })
     expect(await offline.catalog()).toEqual(FALLBACK_FONTS)

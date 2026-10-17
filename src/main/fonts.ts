@@ -184,6 +184,12 @@ export class FontCache {
   /** Catalogue Google (ou de secours), complété des familles Fontshare absentes de celui-ci. */
   catalog(): Promise<FontInfo[]> {
     this.catalogPromise ??= this.googleCatalog().then((google) => {
+      // Catalogue de secours (hors connexion, rien en cache) : on ne le retient pas, le prochain
+      // appel retentera le réseau.
+      if (google === FALLBACK_FONTS) {
+        this.googlePromise = null
+        this.catalogPromise = null
+      }
       const known = new Set(google.map((f) => f.family))
       const extra: FontInfo[] = this.fontshare
         .filter((f) => !known.has(f.family))
