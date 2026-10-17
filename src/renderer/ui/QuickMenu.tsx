@@ -19,6 +19,8 @@ export type QuickMenuEntry =
 interface Props {
   /** Bouton qui ouvre le menu : il sert d'ancre et reprend le focus à la fermeture. */
   anchor: RefObject<HTMLElement | null>
+  /** Élément contre lequel placer le menu, si ce n'est pas l'ancre (un groupe outil + chevron). */
+  alignTo?: RefObject<HTMLElement | null>
   entries: QuickMenuEntry[]
   label: string
   /** Au-dessus de l'ancre (barre du bas) ou en dessous. */
@@ -33,14 +35,14 @@ const GAP = 8
  * Petit menu sombre (style Figma) : rangées de 24 px, raccourci à droite, coche pour le choix courant.
  * Clavier : flèches, Début/Fin, Entrée ou Espace pour choisir, Échap pour fermer (le focus revient à l'ancre).
  */
-export function QuickMenu({ anchor, entries, label, placement, align = 'start', onClose }: Props) {
+export function QuickMenu({ anchor, alignTo, entries, label, placement, align = 'start', onClose }: Props) {
   const ref = useRef<HTMLDivElement>(null)
   const items = entries.filter((e) => e !== 'separator')
 
   // Place le menu contre l'ancre, sans sortir de la fenêtre, puis met le focus sur le choix courant
   // (ou la première entrée) : les flèches marchent tout de suite. Fait avant l'affichage, sans état.
   useLayoutEffect(() => {
-    const a = anchor.current?.getBoundingClientRect()
+    const a = (alignTo ?? anchor).current?.getBoundingClientRect()
     const menu = ref.current
     if (!a || !menu) return
     const w = menu.offsetWidth
@@ -54,7 +56,7 @@ export function QuickMenu({ anchor, entries, label, placement, align = 'start', 
     menu.style.visibility = 'visible'
     const buttons = [...menu.querySelectorAll<HTMLButtonElement>('[role^="menuitem"]:not(:disabled)')]
     ;(buttons.find((b) => b.getAttribute('aria-checked') === 'true') ?? buttons[0])?.focus()
-  }, [anchor, placement, align])
+  }, [anchor, alignTo, placement, align])
 
   // Un clic ailleurs ferme (le clic sur l'ancre est laissé à son propre bouton, qui bascule).
   useEffect(() => {

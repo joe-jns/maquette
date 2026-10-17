@@ -37,6 +37,7 @@ function ShapeGroup({ current }: { current: Tool }) {
   const [shape, setShape] = useState<ToolDef>(SHAPES[0]!)
   const [open, setOpen] = useState(false)
   const chevron = useRef<HTMLButtonElement>(null)
+  const group = useRef<HTMLDivElement>(null)
 
   // Une forme prise au clavier (R, O) devient aussi celle du groupe.
   useEffect(() => {
@@ -45,7 +46,7 @@ function ShapeGroup({ current }: { current: Tool }) {
   }, [current])
 
   return (
-    <div className="tool-split">
+    <div className="tool-split" ref={group}>
       <ToolButton def={shape} current={current} />
       <button
         ref={chevron}
@@ -69,6 +70,7 @@ function ShapeGroup({ current }: { current: Tool }) {
       {open && (
         <QuickMenu
           anchor={chevron}
+          alignTo={group}
           label="Formes"
           placement="above"
           onClose={() => setOpen(false)}
