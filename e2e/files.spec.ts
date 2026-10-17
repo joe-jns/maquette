@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
 import { spawn } from 'node:child_process'
 import { mkdtempSync } from 'node:fs'
-import { copyFile, readFile, writeFile } from 'node:fs/promises'
+import { copyFile, readFile, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { launch } from './launch'
@@ -24,8 +24,13 @@ test('fichier modifié sur le disque : bandeau, Recharger ; notre enregistrement
     await expect.poll(async () => (await state(page)).path).toBe(file)
 
     // Enregistrer depuis l'app : pas d'alerte.
-    await page.locator('.canvas').click({ position: { x: 5, y: 5 } })
-    await page.keyboard.press('Control+s')
+    // Fenêtre de test hors écran et sans focus : le raccourci du menu ne lui arrive pas, on passe par le menu.
+    const before = (await stat(file)).mtimeMs
+    await app.evaluate(({ Menu }) => {
+      const fichier = Menu.getApplicationMenu()!.items[0]!.submenu!
+      fichier.items.find((i) => i.label === 'Enregistrer')!.click()
+    })
+    await expect.poll(async () => (await stat(file)).mtimeMs).toBeGreaterThan(before)
     await page.waitForTimeout(1200)
     await expect(page.getByTestId('file-changed')).toHaveCount(0)
 

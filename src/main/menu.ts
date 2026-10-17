@@ -3,7 +3,10 @@ import type { MenuCommand } from '../shared/ipc'
 import { connectClaudeCode } from './claudeConnect'
 import { openInWindow } from './openFiles'
 
-const send = (cmd: MenuCommand) => () => BrowserWindow.getFocusedWindow()?.webContents.send('menu', cmd)
+/** La fenêtre de l'éditeur visée : celle qui a le focus, sinon l'éditeur affiché (pas la fenêtre cachée du rendu). */
+const target = (): BrowserWindow | undefined =>
+  BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows().find((w) => w.isVisible() && !w.webContents.isOffscreen())
+const send = (cmd: MenuCommand) => () => target()?.webContents.send('menu', cmd)
 
 let recentList: string[] = []
 
