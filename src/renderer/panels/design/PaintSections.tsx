@@ -1,6 +1,7 @@
 import type { Op } from '../../../core/ops'
 import type { Color, Shadow, Stroke } from '../../../core/types'
 import { docStore, useDoc } from '../../state/store'
+import { Checkbox } from '../../ui/Checkbox'
 import { mixed, setOps } from '../props'
 import { ColorRow, type ColorPhase } from './ColorRow'
 import { NumberField } from './NumberField'
@@ -190,10 +191,9 @@ export function ShadowSection() {
               apply={(color, phase) => applyPhase(update(i, { color }), phase, 'Ombre')}
               onRemove={() => commit(set(list.filter((_, k) => k !== i)), 'Retirer une ombre')}
             />
-            <label className="check-row">
-              <input type="checkbox" checked={s.inset} onChange={(e) => commit(update(i, { inset: e.target.checked }), 'Ombre')} />
+            <Checkbox checked={s.inset} onChange={(inset) => commit(update(i, { inset }), 'Ombre')}>
               Ombre intérieure
-            </label>
+            </Checkbox>
           </div>
         )
       })}

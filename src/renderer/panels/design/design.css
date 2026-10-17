@@ -60,18 +60,8 @@
   padding: 0; cursor: pointer; border-radius: var(--radius-sm);
 }
 .text-button:hover { text-decoration: underline; text-underline-offset: 2px; }
-.check-row { display: flex; align-items: center; gap: 8px; min-height: var(--field-h); color: var(--panel-text); }
-.check-row input[type='checkbox'] { width: 12px; height: 12px; margin: 0 2px; accent-color: var(--accent); }
 .select-field { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px; min-width: 0; }
-.select-field:has(> .visually-hidden) { grid-template-columns: minmax(0, 1fr); }
-.select-field > span:not(.visually-hidden) { color: var(--panel-muted); flex: none; }
-.select-field select {
-  flex: 1; min-width: 0; height: var(--field-h); border: 1px solid transparent; border-radius: var(--radius); background: var(--field-bg);
-  font: inherit; letter-spacing: inherit; padding: 0 4px; color: var(--panel-text); text-overflow: ellipsis;
-}
-.select-field select:hover { border-color: var(--panel-border); }
-.select-field select:focus-visible { outline: none; border-color: var(--accent); }
-
+.select-field > span { color: var(--panel-muted); }
 .color-row { position: relative; display: flex; align-items: center; gap: 4px; min-height: var(--field-h); }
 .swatch {
   position: relative; flex: none; width: 16px; height: 16px; border-radius: var(--radius-sm); overflow: hidden;

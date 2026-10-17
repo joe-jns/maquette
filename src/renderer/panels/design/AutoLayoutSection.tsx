@@ -2,11 +2,21 @@ import type { AutoLayout, FrameNode, Node } from '../../../core/types'
 import { addAutoLayoutOps } from '../../canvas/canvasOps'
 import { domMeasure } from '../../canvas/measure'
 import { useDoc } from '../../state/store'
+import { Checkbox } from '../../ui/Checkbox'
+import { Select } from '../../ui/Select'
 import { mixed, setOps } from '../props'
 import { NumberField } from './NumberField'
 import { commit, Icon, IconButton, scrubWith, Section, useSelection } from './shared'
 
 const isFrame = (n: Node): n is FrameNode => n.type === 'frame'
+type SelfAlign = 'auto' | 'start' | 'center' | 'end' | 'stretch'
+const SELF_OPTIONS: { value: SelfAlign; label: string }[] = [
+  { value: 'auto', label: 'Comme le cadre' },
+  { value: 'start', label: 'Début' },
+  { value: 'center', label: 'Centre' },
+  { value: 'end', label: 'Fin' },
+  { value: 'stretch', label: 'Étirer' },
+]
 const ALIGN_VALUES = ['start', 'center', 'end'] as const
 const ROW_NAMES = ['en haut', '', 'en bas']
 const COL_NAMES = ['à gauche', '', 'à droite']
@@ -150,10 +160,9 @@ export function AutoLayoutSection() {
                   scrub={scrubWith('Marges', (v) => padOps('v', Math.max(0, v)))}
                 />
               </div>
-              <label className="check-row">
-                <input type="checkbox" checked={wrap === true} onChange={(e) => commit(setLayout({ wrap: e.target.checked }), 'Retour à la ligne')} />
+              <Checkbox checked={wrap === 'mixed' ? 'mixed' : wrap === true} onChange={(on) => commit(setLayout({ wrap: on }), 'Retour à la ligne')}>
                 Retour à la ligne
-              </label>
+              </Checkbox>
             </div>
           )}
         </Section>
@@ -161,21 +170,15 @@ export function AutoLayoutSection() {
       {allChildren && (
         <Section title="Dans la mise en page">
           <div className="child-layout">
-            <label className="select-field">
-              <span>Alignement</span>
-              <select
-                aria-label="Alignement propre"
-                value={mixed(children.map((l) => l.node.alignSelf ?? 'auto')) === 'mixed' ? '' : (children[0]!.node.alignSelf ?? 'auto')}
-                onChange={(e) => commit(setOps(ids, { alignSelf: e.target.value === 'auto' ? null : e.target.value }), 'Alignement propre')}
-              >
-                <option value="" disabled>Mixte</option>
-                <option value="auto">Comme le cadre</option>
-                <option value="start">Début</option>
-                <option value="center">Centre</option>
-                <option value="end">Fin</option>
-                <option value="stretch">Étirer</option>
-              </select>
-            </label>
+            <div className="select-field">
+              <span aria-hidden>Alignement</span>
+              <Select
+                label="Alignement propre"
+                value={mixed(children.map((l) => l.node.alignSelf ?? 'auto')) === 'mixed' ? null : (children[0]!.node.alignSelf ?? 'auto')}
+                options={SELF_OPTIONS}
+                onChange={(v) => commit(setOps(ids, { alignSelf: v === 'auto' ? null : v }), 'Alignement propre')}
+              />
+            </div>
             <IconButton
               label="Position absolue"
               title="Ignorer la mise en page automatique (position absolue)"

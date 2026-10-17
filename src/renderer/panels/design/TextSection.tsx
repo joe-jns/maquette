@@ -4,6 +4,7 @@ import type { FontInfo } from '../../../shared/ipc'
 import { domMeasure } from '../../canvas/measure'
 import { ensureFont, useFontCatalog } from '../../fonts/fontLoader'
 import { useDoc } from '../../state/store'
+import { Select } from '../../ui/Select'
 import { mixed } from '../props'
 import { ColorRow } from './ColorRow'
 import { NumberField } from './NumberField'
@@ -24,6 +25,10 @@ type FontProps = Pick<TextStyle, (typeof FONT_KEYS)[number]>
 
 /** Valeurs de police réellement appliquées : celles du style de texte nommé s'il y en a un. */
 const fontOf = (t: TextNode, styles: TextStyle[]): FontProps => styles.find((s) => s.id === t.textStyle) ?? t
+
+/** Options de graisse : le nom, la valeur numérique en discret à droite. */
+export const weightOptions = (weights: number[]) =>
+  weights.map((w) => ({ value: String(w), label: WEIGHT_NAMES[w] ?? String(w), hint: String(w) }))
 
 export function weightsOf(info: FontInfo | undefined): number[] {
   if (!info) return [100, 200, 300, 400, 500, 600, 700, 800, 900]
@@ -205,18 +210,15 @@ export function TextSection() {
       }
     >
       {styles.text.length > 0 && (
-        <label className="select-field">
-          <span>Style</span>
-          <select
-            aria-label="Style de texte"
-            value={styleId === 'mixed' ? '__mixed' : styleId ?? ''}
-            onChange={(e) => commit(set({ textStyle: e.target.value || null }), 'Style de texte')}
-          >
-            {styleId === 'mixed' && <option value="__mixed" disabled>Mixte</option>}
-            <option value="">Aucun style</option>
-            {styles.text.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
-        </label>
+        <div className="select-field">
+          <span aria-hidden>Style</span>
+          <Select
+            label="Style de texte"
+            value={styleId === 'mixed' ? null : styleId ?? ''}
+            options={[{ value: '', label: 'Aucun style' }, ...styles.text.map((s) => ({ value: s.id, label: s.name, hint: `${s.fontSize}/${s.lineHeight}` }))]}
+            onChange={(v) => commit(set({ textStyle: v || null }), 'Style de texte')}
+          />
+        </div>
       )}
       <div className="font-row">
         <button type="button" className="font-button" data-font-trigger aria-label="Police" aria-expanded={picking} onClick={() => setPicking((p) => !p)}>
@@ -226,13 +228,12 @@ export function TextSection() {
         {picking && <FontPicker current={typeof family === 'string' ? family : ''} catalog={fullCatalog} onPick={pickFamily} onClose={() => setPicking(false)} />}
       </div>
       <div className="field-grid">
-        <label className="select-field">
-          <span className="visually-hidden">Graisse</span>
-          <select aria-label="Graisse" value={weight === 'mixed' ? '' : String(weight)} onChange={(e) => commit(set({ fontWeight: Number(e.target.value) }), 'Graisse')}>
-            {weight === 'mixed' && <option value="" disabled>Mixte</option>}
-            {weights.map((w) => <option key={w} value={w}>{WEIGHT_NAMES[w] ?? w} {w}</option>)}
-          </select>
-        </label>
+        <Select
+          label="Graisse"
+          value={weight === 'mixed' || weight === null ? null : String(weight)}
+          options={weightOptions(weights)}
+          onChange={(v) => commit(set({ fontWeight: Number(v) }), 'Graisse')}
+        />
         {num('fontSize', 'Taille du texte', 'T', { min: 1 })}
         {num('lineHeight', 'Interligne', '↕', { min: 1 })}
         {num('letterSpacing', 'Espacement des lettres', '↔', { step: 0.1 })}
