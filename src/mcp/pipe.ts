@@ -3,12 +3,8 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { homedir, tmpdir, userInfo } from 'node:os'
 import { join } from 'node:path'
 
-/** Réponse d'un outil MCP (sera unifiée avec la définition de src/mcp/tools.ts). */
-export interface ToolResult {
-  text: string
-  image?: { data: string; mimeType: string }
-  isError?: boolean
-}
+/** Réponse d'un outil MCP : définie avec les outils (src/mcp/tools.ts). */
+export type { ToolResult } from './tools'
 
 /** Une ligne plus longue que ceci (20 Mo) ferme la connexion : protège la mémoire des deux côtés. */
 export const MAX_LINE_BYTES = 20 * 1024 * 1024
