@@ -1,4 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
+import { mkdtemp, readFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { launch } from './launch'
 import { centerOf, docNode, scene, selection, settled } from './canvas'
 
@@ -111,6 +114,19 @@ test('menu contextuel du canevas : raccourcis, séparateurs, sous-menu Export, s
   // Clic ailleurs : fermé.
   await page.mouse.click(5, 300)
   await expect(m).toHaveCount(0)
+
+  // Le sous-menu lance le vrai export (même commande que le menu Fichier).
+  const target = join(await mkdtemp(join(tmpdir(), 'maquette-menu-')), 'bleu.png')
+  await app.evaluate(({ dialog }, target) => {
+    dialog.showSaveDialog = (async () => ({ canceled: false, filePath: target })) as typeof dialog.showSaveDialog
+  }, target)
+  await rightClickOn(page, 'rBleu1')
+  await item(page, 'Exporter en PNG').hover()
+  await item(page, '2×').click()
+  await expect(menu(page, 'Canevas')).toHaveCount(0)
+  await expect.poll(async () => (await readFile(target).catch(() => null))?.length ?? 0).toBeGreaterThan(0)
+  const size = await app.evaluate(({ nativeImage }, target) => nativeImage.createFromPath(target).getSize(), target)
+  expect(size).toEqual({ width: 200, height: 200 })
   await app.close()
 })
 
