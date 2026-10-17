@@ -72,17 +72,25 @@ body { font: var(--panel-font); letter-spacing: var(--ls); background: var(--can
 }
 .canvas[data-tool='frame'], .canvas[data-tool='rect'], .canvas[data-tool='ellipse'] { cursor: crosshair; }
 .canvas[data-tool='text'] { cursor: text; }
-/* Barre d'outils : seulement les tokens ici (élévation, rayons) ; elle est redessinée ailleurs. */
+/* Barre d'outils (Figma UI3) : blanche, 48 px, boutons de 32 px espacés de 8, séparateurs pleine hauteur. */
 .toolbar {
-  position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); z-index: 5;
-  display: flex; gap: 4px; padding: 4px; border-radius: var(--radius-lg); background: var(--ink); box-shadow: var(--elevation-toolbar);
+  position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); z-index: 5; box-sizing: border-box;
+  display: flex; align-items: center; gap: 8px; height: 48px; padding: 8px; border-radius: var(--radius-lg);
+  background: var(--panel-bg); box-shadow: var(--elevation-toolbar);
 }
 .toolbar button {
-  display: grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: var(--radius);
-  background: transparent; color: var(--ink-text); cursor: pointer;
+  display: grid; place-items: center; height: 32px; padding: 0; border: 0; border-radius: var(--radius);
+  background: transparent; color: var(--icon); cursor: pointer;
 }
-.toolbar button:hover { background: var(--ink-hover); }
+.toolbar .tool-button { width: 32px; }
+.toolbar button:hover { background: var(--panel-hover); }
+.toolbar button:active { background: var(--pressed); }
 .toolbar button[aria-pressed='true'] { background: var(--accent); color: #fff; }
+.toolbar-separator { align-self: stretch; width: 1px; margin: -8px 0; background: var(--panel-border); }
+/* Outil + chevron collés : le chevron (16 x 32) ouvre la liste du groupe. */
+.tool-split { display: flex; }
+.toolbar .tool-chevron { width: 16px; color: var(--icon-muted); }
+.toolbar .tool-chevron:hover, .toolbar .tool-chevron[aria-expanded='true'] { color: var(--icon); }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* Aide « ? » : même carte que les dialogues, voile sur toute la fenêtre. */
