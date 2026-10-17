@@ -6,7 +6,7 @@ import { Checkbox } from '../../ui/Checkbox'
 import { Select } from '../../ui/Select'
 import { mixed, setOps } from '../props'
 import { NumberField } from './NumberField'
-import { commit, Icon, IconButton, scrubWith, Section, useSelection } from './shared'
+import { commit, FIELD_GLYPH, Icon, IconButton, scrubWith, Section, useSelection } from './shared'
 
 const isFrame = (n: Node): n is FrameNode => n.type === 'frame'
 type SelfAlign = 'auto' | 'start' | 'center' | 'end' | 'stretch'
@@ -100,14 +100,38 @@ export function AutoLayoutSection() {
         >
           {allAuto && (
             <div className="auto-layout">
+              {/* Comme Figma : direction et espacement à gauche, grille d'alignement à droite. */}
               <div className="auto-layout-top">
-                <div className="segmented" role="group" aria-label="Direction">
-                  <button type="button" aria-label="Direction : colonne" title="Colonne" aria-pressed={direction === 'column'} onClick={() => commit(setLayout({ direction: 'column' }), 'Direction')}>
-                    <Icon d="M8 3v10M5 10l3 3 3-3" />
-                  </button>
-                  <button type="button" aria-label="Direction : ligne" title="Ligne" aria-pressed={direction === 'row'} onClick={() => commit(setLayout({ direction: 'row' }), 'Direction')}>
-                    <Icon d="M3 8h10M10 5l3 3-3 3" />
-                  </button>
+                <div className="auto-layout-left">
+                  <div className="segmented" role="group" aria-label="Direction">
+                    <button type="button" aria-label="Direction : colonne" title="Colonne" aria-pressed={direction === 'column'} onClick={() => commit(setLayout({ direction: 'column' }), 'Direction')}>
+                      <Icon d="M8 3v10M5 10l3 3 3-3" />
+                    </button>
+                    <button type="button" aria-label="Direction : ligne" title="Ligne" aria-pressed={direction === 'row'} onClick={() => commit(setLayout({ direction: 'row' }), 'Direction')}>
+                      <Icon d="M3 8h10M10 5l3 3-3 3" />
+                    </button>
+                  </div>
+                  <NumberField
+                    name="Espacement"
+                    label={<Icon d="M3.5 3v10M12.5 3v10M6.5 8h3" />}
+                    min={0}
+                    value={gap === 'auto' ? null : gap}
+                    placeholder="Auto"
+                    onCommit={(v) => commit(setLayout({ gap: v }), 'Espacement')}
+                    scrub={scrubWith('Espacement', (v) => setLayout({ gap: Math.max(0, v) }))}
+                    trailing={
+                      <button
+                        type="button"
+                        className={`field-toggle${gap === 'auto' ? ' is-pressed' : ''}`}
+                        aria-label="Espacement automatique"
+                        title="Espacement automatique (répartir)"
+                        aria-pressed={gap === 'auto'}
+                        onClick={() => commit(setLayout({ gap: gap === 'auto' ? 0 : 'auto' }), 'Espacement')}
+                      >
+                        <Icon d="M2.5 4v8M13.5 4v8M5.5 8h5M7 6.5 5.5 8 7 9.5M9 6.5l1.5 1.5L9 9.5" />
+                      </button>
+                    }
+                  />
                 </div>
                 <div className="align-grid" role="group" aria-label="Alignement">
                   {[0, 1, 2].map((r) =>
@@ -128,24 +152,8 @@ export function AutoLayoutSection() {
               </div>
               <div className="field-grid">
                 <NumberField
-                  name="Espacement"
-                  label="↔"
-                  min={0}
-                  value={gap === 'auto' ? null : gap}
-                  onCommit={(v) => commit(setLayout({ gap: v }), 'Espacement')}
-                  scrub={scrubWith('Espacement', (v) => setLayout({ gap: Math.max(0, v) }))}
-                />
-                <IconButton
-                  label="Espacement automatique"
-                  title="Espacement automatique (répartir)"
-                  pressed={gap === 'auto'}
-                  onClick={() => commit(setLayout({ gap: gap === 'auto' ? 0 : 'auto' }), 'Espacement')}
-                >
-                  <Icon d="M3 4v8M13 4v8M6 8h4" />
-                </IconButton>
-                <NumberField
                   name="Marge horizontale"
-                  label="⇿"
+                  label={<Icon d={FIELD_GLYPH.padH} />}
                   min={0}
                   value={mixed(padding.flatMap((p) => [p[1], p[3]]))}
                   onCommit={(v) => commit(padOps('h', v), 'Marges')}
@@ -153,7 +161,7 @@ export function AutoLayoutSection() {
                 />
                 <NumberField
                   name="Marge verticale"
-                  label="⇕"
+                  label={<Icon d={FIELD_GLYPH.padV} />}
                   min={0}
                   value={mixed(padding.flatMap((p) => [p[0], p[2]]))}
                   onCommit={(v) => commit(padOps('v', v), 'Marges')}

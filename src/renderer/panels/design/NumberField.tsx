@@ -25,6 +25,8 @@ interface Props {
   trailing?: React.ReactNode
   /** Valeur en gris : elle est calculée (taille « contenu » ou « remplir »), pas fixée. */
   dim?: boolean
+  /** Texte gris quand il n'y a pas de valeur (ex. « Auto »). */
+  placeholder?: string
 }
 
 const clamp = (v: number, min?: number, max?: number) => Math.min(max ?? Infinity, Math.max(min ?? -Infinity, v))
@@ -34,7 +36,7 @@ const clamp = (v: number, min?: number, max?: number) => Math.min(max ?? Infinit
  * valident, Échap annule, « Mixte » pour des valeurs différentes ; l'étiquette se glisse (un geste
  * = une annulation). Une saisie invalide revient à la valeur précédente.
  */
-export function NumberField({ name, label, value, onCommit, scrub, step = 1, min, max, disabled, title, suffix, trailing, dim }: Props) {
+export function NumberField({ name, label, value, onCommit, scrub, step = 1, min, max, disabled, title, suffix, trailing, dim, placeholder }: Props) {
   const shown = typeof value === 'number' ? formatNumber(value) : ''
   const [draft, setDraft] = useState(shown)
   // Vrai seulement quand l'utilisateur a tapé : sinon le champ suit la valeur affichée, même avec le
@@ -108,7 +110,7 @@ export function NumberField({ name, label, value, onCommit, scrub, step = 1, min
         inputMode="decimal"
         aria-label={name}
         value={draft}
-        placeholder={value === 'mixed' ? 'Mixte' : value === null && disabled ? 'Auto' : undefined}
+        placeholder={value === 'mixed' ? 'Mixte' : value === null ? (placeholder ?? (disabled ? 'Auto' : undefined)) : undefined}
         disabled={disabled}
         spellCheck={false}
         onFocus={(e) => e.currentTarget.select()}
