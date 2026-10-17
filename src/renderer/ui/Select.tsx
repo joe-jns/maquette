@@ -63,8 +63,13 @@ function ListMenu<V extends string>({ id, label, anchor, options, value, initial
     list.current?.querySelector<HTMLElement>(`[data-index="${active}"]`)?.scrollIntoView({ block: 'nearest' })
   }, [active, pos])
 
+  // Focus une fois la liste placée (cachée, elle ne pourrait pas le recevoir).
+  const placed = pos !== null
   useEffect(() => {
-    list.current?.focus({ preventScroll: true })
+    if (placed) list.current?.focus({ preventScroll: true })
+  }, [placed])
+
+  useEffect(() => {
     const away = (e: Event) => {
       const t = e.target as Node | null
       if (t && (list.current?.contains(t) || anchor.contains(t))) return
