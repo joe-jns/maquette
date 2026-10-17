@@ -1,6 +1,7 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
 import type { ChatItem } from '../../shared/chat'
+import { imageHashes } from './chatImages'
 
 /** Clé de la conversation d'un document sans titre. */
 export const UNTITLED = 'sans-titre'
@@ -76,6 +77,19 @@ export class ChatStore {
       if (at >= 0) items[at] = item
       else items.push(item)
       return { ...c, items: items.slice(-MAX_ITEMS) }
+    })
+  }
+
+  /** Empreintes des vignettes utilisées par les conversations (sauf `except`). */
+  images(except?: string): Promise<Set<string>> {
+    return this.serial(async () => {
+      const data = await this.load()
+      const out = new Set<string>()
+      for (const [key, c] of Object.entries(data)) {
+        if (key === except || !c || !Array.isArray(c.items)) continue
+        for (const hash of imageHashes(c.items)) out.add(hash)
+      }
+      return out
     })
   }
 

@@ -1,17 +1,20 @@
 import { app, ipcMain, type WebContents } from 'electron'
 import { isAbsolute, join, normalize } from 'node:path'
 import type { ChatSend, PermissionDecision } from '../../shared/chat'
+import { ChatImages } from './chatImages'
+import { chatImagesDir, nativeThumb } from './chatImageService'
 import { ChatSession } from './chatSession'
 import { ChatStore, UNTITLED } from './chatStore'
 
 /** Une conversation par fenêtre de l'éditeur, créée à son premier appel. */
 const sessions = new Map<WebContents, ChatSession>()
 
-function sessionFor(sender: WebContents, store: ChatStore): ChatSession {
+function sessionFor(sender: WebContents, store: ChatStore, images: ChatImages): ChatSession {
   let session = sessions.get(sender)
   if (session) return session
   session = new ChatSession({
     store,
+    images,
     userData: app.getPath('userData'),
     relayPath: join(__dirname, 'relay.js'),
     emit: (event) => {
@@ -37,20 +40,27 @@ const cleanPath = (path: unknown): string | null =>
 
 export function registerChatIpc(): void {
   const store = new ChatStore(join(app.getPath('userData'), 'chats.json'))
-  // Un document sans titre ne reprend pas la conversation d'un lancement précédent.
-  void store.reset(UNTITLED)
+  const images = new ChatImages(chatImagesDir(), nativeThumb)
+  // Un document sans titre ne reprend pas la conversation d'un lancement précédent ; ses vignettes,
+  // comme toutes celles qu'aucune conversation n'utilise plus, sont supprimées.
+  void store
+    .reset(UNTITLED)
+    .then(() => store.images())
+    .then((keep) => images.prune(keep))
+    .catch(() => undefined)
+  const session = (sender: WebContents) => sessionFor(sender, store, images)
 
-  ipcMain.handle('chat:open', (event, path: unknown) => sessionFor(event.sender, store).open(cleanPath(path)))
+  ipcMain.handle('chat:open', (event, path: unknown) => session(event.sender).open(cleanPath(path)))
   ipcMain.on('chat:send', (event, message: ChatSend) => {
     if (!message || typeof message.text !== 'string') return
     const images = Array.isArray(message.images) ? message.images.filter((i) => i && typeof i.data === 'string' && typeof i.mediaType === 'string') : []
-    sessionFor(event.sender, store).send({ text: message.text, context: typeof message.context === 'string' ? message.context : '', images })
+    session(event.sender).send({ text: message.text, context: typeof message.context === 'string' ? message.context : '', images })
   })
-  ipcMain.on('chat:stop', (event) => sessionFor(event.sender, store).stop())
+  ipcMain.on('chat:stop', (event) => session(event.sender).stop())
   ipcMain.on('chat:permission', (event, requestId: string, decision: PermissionDecision) => {
-    if (decision === 'allow' || decision === 'always' || decision === 'deny') sessionFor(event.sender, store).permission(String(requestId), decision)
+    if (decision === 'allow' || decision === 'always' || decision === 'deny') session(event.sender).permission(String(requestId), decision)
   })
-  ipcMain.handle('chat:reset', (event) => sessionFor(event.sender, store).reset())
+  ipcMain.handle('chat:reset', (event) => session(event.sender).reset())
 
   app.on('will-quit', () => {
     for (const session of sessions.values()) session.kill()
