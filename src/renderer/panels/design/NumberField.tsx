@@ -36,6 +36,9 @@ export function NumberField({ name, label, value, onCommit, scrub, step = 1, min
   // Vrai seulement quand l'utilisateur a tapé : sinon le champ suit la valeur affichée, même avec le
   // focus (une sélection qui change ne doit jamais recevoir une saisie destinée à l'ancienne).
   const dirty = useRef(false)
+  // La cible d'une saisie est fixée à la première frappe : si la sélection change avant la
+  // validation (clic sur un autre élément), la valeur va à ce qui était sélectionné quand on a tapé.
+  const target = useRef<{ onCommit: (v: number) => void; value: Props['value'] } | null>(null)
   const input = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -43,6 +46,8 @@ export function NumberField({ name, label, value, onCommit, scrub, step = 1, min
   }, [shown])
 
   const commitText = (text: string) => {
+    const to = target.current ?? { onCommit, value }
+    target.current = null
     dirty.current = false
     const v = evalNumber(text)
     if (v === null) {
@@ -51,7 +56,7 @@ export function NumberField({ name, label, value, onCommit, scrub, step = 1, min
     }
     const next = clamp(v, min, max)
     setDraft(formatNumber(next))
-    if (next !== value) onCommit(next)
+    if (next !== to.value) to.onCommit(next)
   }
 
   const onScrubDown = (e: ReactPointerEvent<HTMLSpanElement>) => {
@@ -104,6 +109,7 @@ export function NumberField({ name, label, value, onCommit, scrub, step = 1, min
         spellCheck={false}
         onFocus={(e) => e.currentTarget.select()}
         onChange={(e) => {
+          if (!dirty.current) target.current = { onCommit, value }
           dirty.current = true
           setDraft(e.target.value)
         }}
@@ -116,6 +122,7 @@ export function NumberField({ name, label, value, onCommit, scrub, step = 1, min
             e.currentTarget.select()
           } else if (e.key === 'Escape') {
             dirty.current = false
+            target.current = null
             setDraft(shown)
             e.currentTarget.blur()
           } else if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && typeof value === 'number') {

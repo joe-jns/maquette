@@ -75,3 +75,17 @@ test('opacité en %, position désactivée pour un enfant en flux', async () => 
   await expect(field(page, 'X')).toBeDisabled()
   await app.close()
 })
+
+test('une valeur tapée sans valider, puis un clic sur un autre élément : elle va au premier, jamais au second', async () => {
+  const { app, page } = await launch([scene])
+  await settled(page, 'rBleu1')
+  await clickOn(page, 'rBleu1')
+  const input = field(page, 'Largeur')
+  await input.click()
+  await input.press('Control+a')
+  await input.type('200')
+  await clickOn(page, 'rVert1')
+  expect(await docNode(page, 'rVert1')).toMatchObject({ width: 100 })
+  expect(await docNode(page, 'rBleu1')).toMatchObject({ width: 200 })
+  await app.close()
+})

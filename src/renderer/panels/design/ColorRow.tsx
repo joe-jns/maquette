@@ -19,10 +19,14 @@ export function HexField({ name, value, onCommit }: { name: string; value: strin
   const shown = value.slice(1, 7)
   const [draft, setDraft] = useState(shown)
   const dirty = useRef(false)
+  // Cible fixée à la première frappe (voir NumberField) : jamais appliquée à une autre sélection.
+  const target = useRef<{ onCommit: (hex: string) => void; value: string } | null>(null)
   useEffect(() => {
     if (!dirty.current) setDraft(shown)
   }, [shown])
   const commit = () => {
+    const to = target.current ?? { onCommit, value }
+    target.current = null
     dirty.current = false
     const hex = normalizeColor(draft.startsWith('#') ? draft : `#${draft}`) ?? normalizeColor(draft)
     if (!hex) {
@@ -30,7 +34,7 @@ export function HexField({ name, value, onCommit }: { name: string; value: strin
       return
     }
     // La saisie ne change que la teinte : l'opacité actuelle est gardée.
-    onCommit(withAlpha(hex, alphaOf(value) * alphaOf(hex)))
+    to.onCommit(withAlpha(hex, alphaOf(to.value) * alphaOf(hex)))
   }
   return (
     <input
@@ -41,6 +45,7 @@ export function HexField({ name, value, onCommit }: { name: string; value: strin
       spellCheck={false}
       onFocus={(e) => e.currentTarget.select()}
       onChange={(e) => {
+        if (!dirty.current) target.current = { onCommit, value }
         dirty.current = true
         setDraft(e.target.value)
       }}
@@ -49,6 +54,7 @@ export function HexField({ name, value, onCommit }: { name: string; value: strin
         if (e.key === 'Enter') commit()
         if (e.key === 'Escape') {
           dirty.current = false
+          target.current = null
           setDraft(shown)
           e.currentTarget.blur()
         }
