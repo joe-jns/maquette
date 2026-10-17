@@ -123,7 +123,7 @@ export function DocumentPanel() {
               type="button"
               className="icon-button small"
               aria-label={`Supprimer la couleur nommée ${c.name}`}
-              title="Supprimer (les éléments gardent la couleur)"
+              data-tooltip="Supprimer (les éléments gardent la couleur)"
               onClick={() => commit([{ op: 'style.delete', id: c.id }], 'Supprimer la couleur nommée')}
             >
               <Icon d="M4 8h8" />
@@ -158,7 +158,7 @@ export function DocumentPanel() {
                 type="button"
                 className="icon-button small"
                 aria-label={`Supprimer le style de texte ${s.name}`}
-                title="Supprimer (les textes gardent leur mise en forme)"
+                data-tooltip="Supprimer (les textes gardent leur mise en forme)"
                 onClick={() => commit([{ op: 'style.delete', id: s.id }], 'Supprimer le style de texte')}
               >
                 <Icon d="M4 8h8" />

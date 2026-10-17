@@ -1,6 +1,7 @@
 import { RULE_IDS } from '../../../../vendor/taste-skill/scripts/lib/rules.mjs'
 import { STATIC_ALLOW } from '../../../taste/rules'
 import { locateFinding } from '../../../taste/locate'
+import { shortcutKeys } from '../../canvas/shortcuts'
 import { useDoc } from '../../state/store'
 import { uiStore } from '../../state/ui'
 import { isFresh, tasteStore, useTaste } from '../../taste/tasteStore'
@@ -28,7 +29,7 @@ export function CheckSection() {
     <Section
       title="Contrôle taste-skill"
       actions={
-        <button type="button" className="text-button" disabled={checking} title="Ctrl+Alt+V" onClick={() => void runCheck(frame.id)}>
+        <button type="button" className="text-button" disabled={checking} data-tooltip="Vérifier le cadre avec taste-skill" data-shortcut={shortcutKeys('tasteCheck')} onClick={() => void runCheck(frame.id)}>
           {checking ? 'Vérification…' : run ? 'Revérifier' : 'Vérifier'}
         </button>
       }

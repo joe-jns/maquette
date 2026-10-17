@@ -19,7 +19,8 @@ interface Props {
   min?: number
   max?: number
   disabled?: boolean
-  title?: string
+  /** Infobulle (par exemple la raison d’un champ désactivé). */
+  tooltip?: string
   suffix?: string
 }
 
@@ -30,7 +31,7 @@ const clamp = (v: number, min?: number, max?: number) => Math.min(max ?? Infinit
  * valident, Échap annule, « Mixte » pour des valeurs différentes ; l'étiquette se glisse (un geste
  * = une annulation). Une saisie invalide revient à la valeur précédente.
  */
-export function NumberField({ name, label, value, onCommit, scrub, step = 1, min, max, disabled, title, suffix }: Props) {
+export function NumberField({ name, label, value, onCommit, scrub, step = 1, min, max, disabled, tooltip, suffix }: Props) {
   const shown = typeof value === 'number' ? formatNumber(value) : ''
   const [draft, setDraft] = useState(shown)
   // Vrai seulement quand l'utilisateur a tapé : sinon le champ suit la valeur affichée, même avec le
@@ -90,7 +91,7 @@ export function NumberField({ name, label, value, onCommit, scrub, step = 1, min
   }
 
   return (
-    <label className={`number-field${disabled ? ' is-disabled' : ''}`} title={title}>
+    <label className={`number-field${disabled ? ' is-disabled' : ''}`} data-tooltip={tooltip}>
       <span
         className={`number-label${scrub && !disabled && typeof value === 'number' ? ' can-scrub' : ''}`}
         data-testid={`scrub-${name}`}

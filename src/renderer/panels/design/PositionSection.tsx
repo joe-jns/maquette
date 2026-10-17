@@ -52,7 +52,7 @@ export function PositionSection() {
               aria-label={`${name} : ${MODE_LABEL[mode]}`}
               aria-pressed={current === mode}
               disabled={!allowed}
-              title={allowed ? undefined : reason}
+              data-tooltip={allowed ? undefined : reason}
               onClick={() => commit(sizeOps(doc, ids, axis, mode, domMeasure), `${name} : ${MODE_LABEL[mode]}`)}
             >
               {MODE_TEXT[mode]}
@@ -74,7 +74,7 @@ export function PositionSection() {
           label="X"
           value={flowOnly ? null : mixed(free.map((l) => l.node.x ?? 0))}
           disabled={flowOnly}
-          title={flowOnly ? 'Position calculée par la mise en page automatique' : undefined}
+          tooltip={flowOnly ? 'Position calculée par la mise en page automatique' : undefined}
           onCommit={(v) => commit(positionOps(doc, ids, 'x', v), 'Déplacer')}
           scrub={scrubWith('Déplacer', (v) => positionOps(doc, ids, 'x', v))}
         />
@@ -83,7 +83,7 @@ export function PositionSection() {
           label="Y"
           value={flowOnly ? null : mixed(free.map((l) => l.node.y ?? 0))}
           disabled={flowOnly}
-          title={flowOnly ? 'Position calculée par la mise en page automatique' : undefined}
+          tooltip={flowOnly ? 'Position calculée par la mise en page automatique' : undefined}
           onCommit={(v) => commit(positionOps(doc, ids, 'y', v), 'Déplacer')}
           scrub={scrubWith('Déplacer', (v) => positionOps(doc, ids, 'y', v))}
         />

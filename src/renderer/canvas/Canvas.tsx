@@ -1,10 +1,12 @@
-import { useEffect, useLayoutEffect, useRef } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { findNode } from '../../core/tree'
 import { docStore, useDoc } from '../state/store'
 import { uiStore, useUi } from '../state/ui'
 import { wheelPan, wheelZoomFactor, zoomAt } from './camera'
 import { fitTo, stopCameraAnimation } from './camera-actions'
-import { InteractionController } from './interaction'
+import { InteractionController, type ScreenPoint } from './interaction'
+import { selectionMenu } from './contextMenu'
+import { Menu } from '../ui/Menu'
 import { NodeView } from './NodeView'
 import { Overlay } from './Overlay'
 import { HelpOverlay } from './HelpOverlay'
@@ -17,6 +19,7 @@ export function Canvas() {
   const fitRequest = useUi((s) => s.fitRequest)
   const tool = useUi((s) => s.tool)
   const ref = useRef<HTMLDivElement>(null)
+  const [menu, setMenu] = useState<ScreenPoint | null>(null)
 
   // Taille de la vue.
   useEffect(() => {
@@ -62,7 +65,7 @@ export function Canvas() {
 
   // Gestes souris et clavier.
   useEffect(() => {
-    const controller = new InteractionController(ref.current!)
+    const controller = new InteractionController(ref.current!, setMenu)
     return () => controller.dispose()
   }, [])
 
@@ -97,6 +100,15 @@ export function Canvas() {
       <Toolbar />
       <HelpOverlay />
       <div className="zoom-badge" data-testid="zoom">{formatZoom(camera.zoom)}</div>
+      {menu && (
+        <Menu
+          label="Canevas"
+          x={menu.clientX}
+          y={menu.clientY}
+          items={selectionMenu({ at: menu })}
+          onClose={() => setMenu(null)}
+        />
+      )}
     </div>
   )
 }

@@ -99,8 +99,8 @@ export function ColorRow({ name, color, styles, apply, onRemove, onCreateStyle }
       {named ? (
         <>
           <span className="swatch" style={{ background: value }} aria-hidden />
-          <span className="style-chip" title={value}>{named.name}</span>
-          <button type="button" className="icon-button small" aria-label="Détacher la couleur nommée" title="Détacher la couleur nommée" onClick={() => apply(value, 'commit')}>
+          <span className="style-chip" data-tooltip={value}>{named.name}</span>
+          <button type="button" className="icon-button small" aria-label="Détacher la couleur nommée" data-tooltip="Détacher la couleur nommée" onClick={() => apply(value, 'commit')}>
             <Icon d="M6 10 10 6M5 7.5 3.5 9a2.5 2.5 0 0 0 3.5 3.5L8.5 11M11 8.5 12.5 7A2.5 2.5 0 0 0 9 3.5L7.5 5" />
           </button>
         </>
@@ -138,7 +138,7 @@ export function ColorRow({ name, color, styles, apply, onRemove, onCreateStyle }
             type="button"
             className="icon-button small"
             aria-label={`Créer une couleur nommée depuis le ${lower(name)}`}
-            title="Créer une couleur nommée"
+            data-tooltip="Créer une couleur nommée"
             onClick={() => onCreateStyle(value)}
           >
             <Icon d="M8 3v10M3 8h10" />
@@ -148,14 +148,14 @@ export function ColorRow({ name, color, styles, apply, onRemove, onCreateStyle }
           type="button"
           className="icon-button small"
           aria-label={`Couleur nommée pour le ${lower(name)}`}
-          title="Couleurs nommées"
+          data-tooltip="Couleurs nommées"
           aria-expanded={picking}
           onClick={() => setPicking((p) => !p)}
         >
           <Icon d="M3 4h10M3 8h10M3 12h6" />
         </button>
         {onRemove && (
-          <button type="button" className="icon-button small" aria-label={`Retirer : ${lower(name)}`} title="Retirer" onClick={onRemove}>
+          <button type="button" className="icon-button small" aria-label={`Retirer : ${lower(name)}`} data-tooltip="Retirer" onClick={onRemove}>
             <Icon d="M4 8h8" />
           </button>
         )}

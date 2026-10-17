@@ -74,8 +74,8 @@ describe('MessageText (rendu)', () => {
     const out = html('Va sur https://exemple.be et [ici](https://autre.be)')
     expect(out).not.toMatch(/<a[\s>]/)
     expect(out).not.toContain('href=')
-    expect(out).toContain('<span class="chat-link" title="https://exemple.be">https://exemple.be</span>')
-    expect(out).toContain('<span class="chat-link" title="https://autre.be">ici</span>')
+    expect(out).toContain('<span class="chat-link" data-tooltip="https://exemple.be">https://exemple.be</span>')
+    expect(out).toContain('<span class="chat-link" data-tooltip="https://autre.be">ici</span>')
   })
 
   it('listes et code', () => {

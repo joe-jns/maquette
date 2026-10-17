@@ -1,0 +1,20 @@
+/* ——— Infobulle (Figma UI3) : pastille #1E1E1E, 11/16 blanc, marges 4/8, rayon 5, élévation 300 ——— */
+.tooltip {
+  position: fixed; z-index: 1000; pointer-events: none;
+  display: flex; align-items: baseline; gap: 12px;
+  max-width: 280px; padding: 4px 8px; box-sizing: border-box;
+  background: #1e1e1e; color: #fff; border-radius: var(--radius, 5px);
+  font: var(--fw, 400) 11px/16px system-ui, 'Segoe UI', sans-serif; letter-spacing: .005em;
+  box-shadow: var(--elevation-300, 0 1px 3px #0000001a, 0 5px 12px #00000021, 0 0 .5px #00000026);
+  white-space: normal; overflow-wrap: anywhere; text-align: left;
+}
+.tooltip-label { min-width: 0; }
+.tooltip-shortcut { flex: none; white-space: nowrap; color: rgba(255, 255, 255, .6); font-variant-numeric: tabular-nums; }
+
+/* Pointe vers la cible, centrée sur elle (--arrow-x), dans l'écart de 6 px. */
+.tooltip::before {
+  content: ''; position: absolute; left: var(--arrow-x, 50%); width: 0; height: 0;
+  border: 4px solid transparent; transform: translateX(-50%);
+}
+.tooltip[data-side='bottom']::before { bottom: 100%; border-top-width: 0; border-bottom-color: #1e1e1e; }
+.tooltip[data-side='top']::before { top: 100%; border-bottom-width: 0; border-top-color: #1e1e1e; }

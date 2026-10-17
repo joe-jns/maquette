@@ -16,6 +16,7 @@ import { startAutosave } from './state/autosave'
 import { confirmDiscard, runCommand } from './state/commands'
 import { fileName, openDocument } from './state/openDocument'
 import { docStore, useDoc } from './state/store'
+import { TooltipLayer } from './ui/Tooltip'
 
 export function App() {
   const notice = useDoc((s) => s.notice)
@@ -80,6 +81,7 @@ export function App() {
         {chatOpen && <ChatPanel />}
       </div>
       <Dialog />
+      <TooltipLayer />
     </div>
   )
 }

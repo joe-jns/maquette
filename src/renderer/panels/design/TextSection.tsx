@@ -198,7 +198,7 @@ export function TextSection() {
       title="Texte"
       actions={
         styleId === '' ? (
-          <button type="button" className="icon-button" aria-label="Créer un style de texte depuis la sélection" title="Créer un style de texte" onClick={createStyle}>
+          <button type="button" className="icon-button" aria-label="Créer un style de texte depuis la sélection" data-tooltip="Créer un style de texte" onClick={createStyle}>
             <Icon d="M8 3v10M3 8h10" />
           </button>
         ) : undefined
@@ -244,7 +244,7 @@ export function TextSection() {
               key={a.value}
               type="button"
               aria-label={`Aligner le texte : ${a.label}`}
-              title={`Aligner : ${a.label}`}
+              data-tooltip={`Aligner : ${a.label}`}
               aria-pressed={mixed(texts.map((t) => t.textAlign)) === a.value}
               onClick={() => commit(set({ textAlign: a.value }), 'Alignement du texte')}
             >
@@ -257,7 +257,7 @@ export function TextSection() {
           className={`icon-button${mixed(fonts.map((f) => f.fontStyle)) === 'italic' ? ' is-pressed' : ''}`}
           aria-label="Italique"
           aria-pressed={mixed(fonts.map((f) => f.fontStyle)) === 'italic'}
-          title="Italique"
+          data-tooltip="Italique"
           onClick={() => commit(set({ fontStyle: mixed(fonts.map((f) => f.fontStyle)) === 'italic' ? 'normal' : 'italic' }), 'Italique')}
         >
           <Icon d="M7 3h5M4 13h5M10 3 6 13" />

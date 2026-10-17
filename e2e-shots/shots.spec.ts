@@ -64,6 +64,17 @@ test('états de l’interface', async () => {
   await page.keyboard.press('Escape')
   await page.evaluate(() => (window as unknown as { __maquetteStore: { getState(): { showError(m: string): void } } }).__maquetteStore.getState().showError('Impossible d’ouvrir site.maquette : version future du format'))
   await shot(page, '11-bandeau')
+  await page.getByRole('alert').getByRole('button', { name: 'Fermer' }).click()
+  await page.locator('[data-tool-button="rect"]').hover()
+  await page.waitForTimeout(700)
+  await shot(page, '15-infobulle')
+  await page.mouse.move(700, 450)
+  const blue = (await page.locator('[data-node-id="rBleu1"]').boundingBox())!
+  await page.mouse.click(blue.x + blue.width / 2, blue.y + blue.height / 2, { button: 'right' })
+  await page.getByRole('menuitem', { name: 'Exporter en PNG', exact: true }).hover()
+  await page.waitForTimeout(200)
+  await shot(page, '16-menu-sous-menu')
+  await page.keyboard.press('Escape')
   // Une modification non enregistrée, puis « Nouveau » : la fenêtre de question.
   await page.evaluate(() => {
     type Store = { getState(): { doc: { pages: { id: string }[] }; dispatch(ops: unknown[], label: string): unknown } }
@@ -73,7 +84,7 @@ test('états de l’interface', async () => {
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find((w) => w.isVisible())!.webContents.send('menu', 'new'))
   await expect(page.getByRole('dialog')).toBeVisible()
   await page.waitForTimeout(200)
-  await shot(page, '15-dialogue')
+  await shot(page, '17-dialogue')
   await app.close()
 })
 

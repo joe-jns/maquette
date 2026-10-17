@@ -1,5 +1,6 @@
 import type { AutoLayout, FrameNode, Node } from '../../../core/types'
 import { addAutoLayoutOps } from '../../canvas/canvasOps'
+import { shortcutKeys } from '../../canvas/shortcuts'
 import { domMeasure } from '../../canvas/measure'
 import { useDoc } from '../../state/store'
 import { mixed, setOps } from '../props'
@@ -75,7 +76,7 @@ export function AutoLayoutSection() {
             ) : (
               <IconButton
                 label="Ajouter la mise en page automatique"
-                title="Ajouter la mise en page automatique (Maj+A)"
+                shortcut={shortcutKeys('addAutoLayout')}
                 onClick={() =>
                   commit(
                     frames.length === 1 ? addAutoLayoutOps(doc, ids, domMeasure).ops : setOps(ids, { layout: { mode: 'auto' } }),
@@ -92,10 +93,10 @@ export function AutoLayoutSection() {
             <div className="auto-layout">
               <div className="auto-layout-top">
                 <div className="segmented" role="group" aria-label="Direction">
-                  <button type="button" aria-label="Direction : colonne" title="Colonne" aria-pressed={direction === 'column'} onClick={() => commit(setLayout({ direction: 'column' }), 'Direction')}>
+                  <button type="button" aria-label="Direction : colonne" data-tooltip="Colonne" aria-pressed={direction === 'column'} onClick={() => commit(setLayout({ direction: 'column' }), 'Direction')}>
                     <Icon d="M8 3v10M5 10l3 3 3-3" />
                   </button>
-                  <button type="button" aria-label="Direction : ligne" title="Ligne" aria-pressed={direction === 'row'} onClick={() => commit(setLayout({ direction: 'row' }), 'Direction')}>
+                  <button type="button" aria-label="Direction : ligne" data-tooltip="Ligne" aria-pressed={direction === 'row'} onClick={() => commit(setLayout({ direction: 'row' }), 'Direction')}>
                     <Icon d="M3 8h10M10 5l3 3-3 3" />
                   </button>
                 </div>
@@ -106,7 +107,7 @@ export function AutoLayoutSection() {
                         key={`${r}${c}`}
                         type="button"
                         aria-label={cellLabel(r, c)}
-                        title={cellLabel(r, c)}
+                        data-tooltip={cellLabel(r, c)}
                         aria-pressed={cellPressed(r, c)}
                         onClick={() => commit(cellOps(r, c), 'Alignement')}
                       >
@@ -127,7 +128,7 @@ export function AutoLayoutSection() {
                 />
                 <IconButton
                   label="Espacement automatique"
-                  title="Espacement automatique (répartir)"
+                  tooltip="Espacement automatique (répartir)"
                   pressed={gap === 'auto'}
                   onClick={() => commit(setLayout({ gap: gap === 'auto' ? 0 : 'auto' }), 'Espacement')}
                 >
@@ -178,7 +179,7 @@ export function AutoLayoutSection() {
             </label>
             <IconButton
               label="Position absolue"
-              title="Ignorer la mise en page automatique (position absolue)"
+              tooltip="Ignorer la mise en page automatique (position absolue)"
               pressed={children.every((l) => l.node.position === 'absolute')}
               onClick={() => {
                 const absolute = children.every((l) => l.node.position === 'absolute')

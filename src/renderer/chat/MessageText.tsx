@@ -14,7 +14,7 @@ function inline(nodes: Inline[]): ReactNode[] {
         return <em key={i}>{inline(n.children)}</em>
       case 'link':
         // Affiché, pas cliquable : rien ne s'ouvre depuis le chat.
-        return <span key={i} className="chat-link" title={n.href}>{inline(n.children)}</span>
+        return <span key={i} className="chat-link" data-tooltip={n.href}>{inline(n.children)}</span>
     }
   })
 }

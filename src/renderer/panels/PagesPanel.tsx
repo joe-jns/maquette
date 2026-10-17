@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { docStore, useDoc } from '../state/store'
 import { uiStore } from '../state/ui'
-import { ContextMenu } from './ContextMenu'
+import { Menu, SEPARATOR } from '../ui/Menu'
 import { InlineName } from './InlineName'
 
 export function showPage(id: string): void {
@@ -35,7 +35,7 @@ export function PagesPanel() {
     <section className="panel-section" data-testid="pages" aria-label="Pages">
       <header className="panel-heading">
         <h2>Pages</h2>
-        <button type="button" className="icon-button" aria-label="Ajouter une page" title="Ajouter une page" onClick={add}>
+        <button type="button" className="icon-button" aria-label="Ajouter une page" data-tooltip="Ajouter une page" onClick={add}>
           <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
             <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.5" />
           </svg>
@@ -82,12 +82,14 @@ export function PagesPanel() {
         ))}
       </ul>
       {menu && (
-        <ContextMenu
+        <Menu
+          label="Page"
           x={menu.x}
           y={menu.y}
           onClose={() => setMenu(null)}
           items={[
             { label: 'Renommer', onSelect: () => setRenaming(menu.id) },
+            SEPARATOR,
             { label: 'Supprimer la page', danger: true, disabled: pages.length <= 1, onSelect: () => remove(menu.id) },
           ]}
         />

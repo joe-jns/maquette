@@ -81,6 +81,9 @@ const TABLE: Record<CommandId, Omit<Shortcut, 'id'>> = {
 
 export const SHORTCUTS: Shortcut[] = (Object.keys(TABLE) as CommandId[]).map((id) => ({ id, ...TABLE[id] }))
 
+/** Raccourci d'une commande, tel qu'affiché dans les infobulles et les menus (« Ctrl+D »). */
+export const shortcutKeys = (id: CommandId): string => TABLE[id].keys
+
 /**
  * Une liaison : touche (sur `key`, insensible à la casse, ou sur `code`) + modificateurs exacts.
  * `shift: 'any'` = Maj ignoré (ex. `?`, `Ctrl++`).
