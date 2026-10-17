@@ -39,6 +39,9 @@ describe('consigne du chat', () => {
       expect(text).toContain('Keep the source style')
       expect(text).toContain('keep its palette and its typefaces with their weights')
       expect(text).toContain('The layout may be reworked freely')
+      expect(text).toContain('First identify each typeface (headings, subheadings, body, buttons)')
+      expect(text).toContain('closest Google family, weight, case, italic, letter-spacing')
+      expect(text).toContain('capitals stay capitals')
       expect(text).toContain('never dropped just because a taste rule forbids them')
       expect(text).toContain('never turn a structured block of the source into a wall of text')
       expect(text).toContain("The user's explicit request overrides every house rule")
@@ -80,6 +83,15 @@ describe('consigne du chat', () => {
     for (const k of ['typefaces at their stated weights', 'palette', 'radii', 'elevation', 'imagery', 'composition rules']) expect(pen, k).toContain(k)
     expect(pen).toContain('guide("qualite")')
     expect(pen).toContain('Use the following style')
+    expect(pen).toContain('Main headline 88–120 px on 1440 unless the source is bigger')
+    // Sections distinctes de leurs voisines ; une section d'appel n'est pas un simple encadré.
+    for (const k of ['distinct from its neighbours', 'alternate light, dark and colour grounds', 'never a plain outlined box']) expect(pen, k).toContain(k)
+    // Relecture finale obligatoire en mode Pen aussi.
+    for (const k of ['Final review, mandatory', 'largeur:1440', 'fidelity to the source style', 'Write the 3 worst problems', 'two rounds at most']) expect(pen, k).toContain(k)
+    // Photos d'une personne : jamais une photo de banque qui fait semblant d'être elle.
+    for (const k of ["in the file's folder (assets/)", 'never a stock photo pretending to be them', 'named image placeholder at the right format', 'honest mood picture']) expect(pen, k).toContain(k)
+    // Lisibilité : texte courant 17-20 px, graisse nette, colonnes 45-75 caractères.
+    for (const k of ['running text 17–20 px', 'Cormorant: 500–600 at least', 'lines of 45–75 characters', 'no long text in narrow cards', 'Structuring keywords (step names) stay large']) expect(pen, k).toContain(k)
     // Références, images, icônes gardées ; verifier_gout facultatif.
     expect(pen).toContain('capture({ids:[…]})')
     expect(pen).toContain('never move or delete them')
