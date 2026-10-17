@@ -9,6 +9,9 @@
   outline: none; user-select: none; scrollbar-width: thin; scrollbar-color: #ffffff38 transparent;
 }
 
+/* Sous-menu : à la largeur de son contenu (1×, 2×, 3×), sans le minimum du menu principal. */
+.menu .menu { min-width: 140px; }
+
 .menu-item {
   display: flex; align-items: center; gap: 8px; flex: none;
   height: 24px; padding: 4px 8px; box-sizing: border-box; border: 0; border-radius: var(--radius, 5px);
