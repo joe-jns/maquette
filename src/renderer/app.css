@@ -1,35 +1,62 @@
 html, body, #root { margin: 0; height: 100%; }
-body { font-family: system-ui, 'Segoe UI', sans-serif; background: var(--canvas-bg); color: var(--panel-text); }
+body { font: var(--panel-font); letter-spacing: var(--ls); background: var(--canvas-bg); color: var(--panel-text); }
+/* Le contenu du document garde la police par défaut du navigateur : l'interface ne déteint pas dessus. */
+.world, [data-export-root], [data-export-measure] { font: 400 16px/normal system-ui, 'Segoe UI', sans-serif; letter-spacing: normal; }
 .app { height: 100%; position: relative; overflow: hidden; }
 .canvas { position: relative; overflow: hidden; min-width: 0; min-height: 0; }
 .world { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-origin: 0 0; }
-/* Bandeaux : en haut (la barre d'outils est en bas), empilés. Encre pour informer, rouge pour un échec. */
+
+/* Focus clavier : un seul style dans toute l'interface (anneau bleu de 2 px, décalé de 1 px).
+   Les champs de saisie n'en ont pas : leur contour passe en bleu (voir chaque champ). */
+:where(button, [role='tab'], [role='option'], summary, a, input[type='checkbox'], input[type='color']):focus-visible {
+  outline: var(--focus-ring); outline-offset: var(--focus-offset);
+}
+:where(input:not([type='checkbox']):not([type='color']), select, textarea):focus-visible { outline: none; }
+
+/* Barres de défilement fines, sans flèches (hors contenu du document). */
+:where(:not(.world, .world *))::-webkit-scrollbar { width: 8px; height: 8px; }
+:where(:not(.world, .world *))::-webkit-scrollbar-track,
+:where(:not(.world, .world *))::-webkit-scrollbar-corner { background: transparent; }
+:where(:not(.world, .world *))::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
+:where(:not(.world, .world *))::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.22); background-clip: padding-box; border: 1px solid transparent; border-radius: var(--radius-pill);
+}
+:where(:not(.world, .world *))::-webkit-scrollbar-thumb:hover { background-color: rgba(0, 0, 0, 0.35); }
+
+/* Bandeaux : en haut (la barre d'outils est en bas), empilés. Sombres pour informer, rouges pour un échec. */
 .notices {
   position: absolute; z-index: 10; top: 12px; left: 50%; transform: translateX(-50%);
   display: flex; flex-direction: column; align-items: center; gap: 8px; width: max-content; max-width: min(720px, calc(100% - 32px));
   pointer-events: none;
 }
 .notice {
-  pointer-events: auto; display: flex; gap: 10px; align-items: center;
-  background: var(--ink); color: var(--ink-text); padding: 8px 8px 8px 14px; border-radius: 10px;
-  font: var(--fs-large)/1.35 system-ui, 'Segoe UI', sans-serif; box-shadow: 0 6px 20px #0003;
+  pointer-events: auto; display: flex; gap: 12px; align-items: center; min-height: 40px; box-sizing: border-box;
+  background: var(--ink); color: var(--ink-text); padding: 8px 8px 8px 16px; border-radius: var(--radius-lg);
+  font: var(--panel-font); letter-spacing: var(--ls); box-shadow: var(--elevation-300);
 }
-.notice.is-error { background: var(--danger-ink); }
+.notice.is-error { background: var(--danger-text); }
 .notice > span { flex: 1; min-width: 0; }
 .notice button {
-  flex: none; background: var(--ink-hover); color: inherit; border: 0; border-radius: var(--radius); padding: 6px 10px;
-  font: 600 var(--fs)/1 system-ui, 'Segoe UI', sans-serif; cursor: pointer;
+  flex: none; height: var(--field-h); padding: 0 8px; background: var(--ink-hover); color: inherit; border: 0; border-radius: var(--radius);
+  font: var(--fw-strong) var(--fs) / var(--lh) var(--font-ui); letter-spacing: var(--ls); cursor: pointer;
 }
-.notice button:hover { background: #ffffff33; }
+.notice button:hover { background: rgba(255, 255, 255, 0.2); }
 .notice button.is-primary { background: var(--ink-text); color: var(--ink); }
-.notice button.is-primary:hover { background: #fff; }
-.notice button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.notice button.is-primary:hover { background: rgba(255, 255, 255, 0.85); }
+.notice button:focus-visible { outline-color: var(--ink-text); }
+
 .canvas-hint {
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none;
-  color: var(--panel-muted); font: var(--fs-large)/1.5 system-ui, 'Segoe UI', sans-serif; max-width: 360px;
+  color: var(--panel-muted); font: var(--panel-font); letter-spacing: var(--ls); max-width: 320px;
 }
-.canvas-hint strong { display: block; color: var(--panel-text); font-size: 18px; font-weight: 600; margin-bottom: 6px; }
-.canvas-hint kbd { font: 600 var(--fs)/1 system-ui, sans-serif; background: #ffffffb3; border-radius: 4px; padding: 2px 6px; color: var(--panel-text); }
+.canvas-hint strong {
+  display: block; color: var(--panel-text); font-size: var(--fs-large); line-height: var(--lh-large); font-weight: var(--fw-strong);
+  margin-bottom: 4px;
+}
+.canvas-hint kbd {
+  font: var(--fw-strong) var(--fs) / var(--lh) var(--font-ui); background: var(--panel-bg); border-radius: var(--radius-sm);
+  padding: 0 4px; color: var(--panel-text); box-shadow: inset 0 0 0 1px var(--panel-border);
+}
 .missing-image {
   display: flex; align-items: center; justify-content: center; text-align: center;
   background: repeating-linear-gradient(45deg, #fde68a, #fde68a 6px, #fcd34d 6px, #fcd34d 12px);
@@ -39,39 +66,51 @@ body { font-family: system-ui, 'Segoe UI', sans-serif; background: var(--canvas-
 .canvas[data-panning] { cursor: grabbing; }
 .overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
 .zoom-badge {
-  position: absolute; right: 12px; bottom: 12px; padding: 5px 8px; border-radius: var(--radius);
-  background: #ffffffcc; color: var(--panel-text); font: 500 var(--fs)/1 system-ui, sans-serif;
-  font-variant-numeric: tabular-nums;
+  position: absolute; right: 12px; bottom: 12px; height: var(--field-h); padding: 0 8px; display: grid; place-items: center; box-sizing: border-box;
+  border-radius: var(--radius); background: var(--panel-bg); color: var(--panel-text); box-shadow: var(--elevation-100);
+  font: var(--fw) var(--fs) / var(--lh) var(--font-ui); letter-spacing: var(--ls); font-variant-numeric: tabular-nums;
 }
 .canvas[data-tool='frame'], .canvas[data-tool='rect'], .canvas[data-tool='ellipse'] { cursor: crosshair; }
 .canvas[data-tool='text'] { cursor: text; }
+/* Barre d'outils : seulement les tokens ici (élévation, rayons) ; elle est redessinée ailleurs. */
 .toolbar {
   position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); z-index: 5;
-  display: flex; gap: 2px; padding: 4px; border-radius: 10px; background: var(--ink); box-shadow: 0 4px 14px #0003;
+  display: flex; gap: 4px; padding: 4px; border-radius: var(--radius-lg); background: var(--ink); box-shadow: var(--elevation-toolbar);
 }
 .toolbar button {
-  display: grid; place-items: center; width: 34px; height: 34px; border: 0; border-radius: 7px;
+  display: grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: var(--radius);
   background: transparent; color: var(--ink-text); cursor: pointer;
 }
 .toolbar button:hover { background: var(--ink-hover); }
 .toolbar button[aria-pressed='true'] { background: var(--accent); color: #fff; }
-.toolbar button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.help-backdrop { position: absolute; inset: 0; z-index: 20; display: grid; place-items: center; background: #0006; }
+
+/* Aide « ? » : même carte que les dialogues, voile sur toute la fenêtre. */
+.help-backdrop { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; background: rgba(0, 0, 0, 0.5); }
 .help {
-  width: min(880px, calc(100% - 48px)); max-height: calc(100% - 64px); overflow: auto;
-  background: var(--ink); color: var(--ink-text); border-radius: 12px; padding: 20px 24px; box-shadow: 0 10px 40px #0008;
-  font: var(--fs-large)/1.4 system-ui, 'Segoe UI', sans-serif;
+  width: min(880px, calc(100% - 48px)); max-height: calc(100% - 64px); overflow: auto; box-sizing: border-box;
+  background: var(--panel-bg); color: var(--panel-text); border-radius: var(--radius-lg); padding: 0 16px 16px; box-shadow: var(--elevation-500);
+  font: var(--panel-font); letter-spacing: var(--ls);
 }
-.help header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-.help h2 { margin: 0; font-size: 16px; }
-.help header button { background: transparent; border: 0; color: #aaa; font-size: 22px; cursor: pointer; }
-.help-groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px 28px; }
-.help h3 { margin: 0 0 6px; font-size: var(--fs-large); font-weight: 600; color: #ffffff99; }
+.help header {
+  position: sticky; top: 0; display: flex; justify-content: space-between; align-items: center; height: var(--header-h);
+  margin: 0 -16px 8px; padding: 0 8px 0 16px; background: var(--panel-bg); border-bottom: 1px solid var(--panel-border);
+}
+.help h2 { margin: 0; font-size: var(--fs-large); line-height: var(--lh-large); font-weight: var(--fw-strong); }
+.help header button {
+  display: grid; place-items: center; width: var(--field-h); height: var(--field-h); padding: 0; background: transparent; border: 0;
+  border-radius: var(--radius); color: var(--icon-muted); font: 400 var(--fs-large) / 1 var(--font-ui); cursor: pointer;
+}
+.help header button:hover { background: var(--panel-hover); color: var(--icon); }
+.help-groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px 32px; }
+.help h3 { margin: 0; height: var(--row-h); display: flex; align-items: center; font-size: var(--fs); font-weight: var(--fw-strong); color: var(--panel-muted); }
 .help dl { margin: 0; }
-.help dl div { display: flex; justify-content: space-between; gap: 12px; padding: 3px 0; }
+.help dl div { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: var(--field-h); }
 .help dd { margin: 0; }
-.help kbd { font: 600 var(--fs)/1 system-ui, sans-serif; background: var(--ink-hover); border-radius: 4px; padding: 4px 7px; white-space: nowrap; }
+.help kbd {
+  display: inline-block; font: var(--fw) var(--fs) / var(--lh) var(--font-ui); letter-spacing: var(--ls); color: var(--panel-muted);
+  background: var(--field-bg); border-radius: var(--radius-sm); padding: 0 4px; white-space: nowrap;
+}
 
 /* Éléments que Claude vient de toucher (outil « appliquer »). */
 [data-claude-flash] {
