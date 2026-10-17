@@ -1,5 +1,6 @@
 import type { Op } from '../../core/ops'
 import { runTool, type ToolHost, type ToolResult } from '../../mcp/tools'
+import { nodeElement } from '../canvas/rects'
 import { docStore } from '../state/store'
 import { uiStore } from '../state/ui'
 import { tasteStore } from '../taste/tasteStore'
@@ -10,7 +11,7 @@ const FLASH_MS = 1200
 function flash(ids: string[]): void {
   requestAnimationFrame(() => {
     for (const id of ids) {
-      const el = document.querySelector<HTMLElement>(`.canvas [data-node-id="${CSS.escape(id)}"]`)
+      const el = nodeElement(id)
       if (!el) continue
       el.setAttribute('data-claude-flash', '')
       setTimeout(() => el.removeAttribute('data-claude-flash'), FLASH_MS)

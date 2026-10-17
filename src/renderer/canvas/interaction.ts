@@ -1,6 +1,6 @@
 import type { Op } from '../../core/ops'
 import { containsId, findNode } from '../../core/tree'
-import type { FrameNode, MaquetteDocument, Rect } from '../../core/types'
+import type { FrameNode, MaquetteDocument, Node, Rect } from '../../core/types'
 import { chatStore } from '../chat/chatStore'
 import { runCommand } from '../state/commands'
 import { docStore } from '../state/store'
@@ -16,7 +16,7 @@ import { copyNodes, parseClipboard, pasteOps } from './clipboard'
 import { domMeasure } from './measure'
 import { createClickTracker } from './clicks'
 import { distanceLines, normalizeRect, union, type Point } from './geometry'
-import { deepestHitAt, worldRectOf } from './rects'
+import { deepestHitAt, nodeElement, worldRectOf } from './rects'
 import { ascend, contextOf, descend, marqueeSelect, nextSibling, pickClickTarget } from './selection'
 import { flowIndexToChildIndex, insertionIndex, insertionMarker } from './reorder'
 import { matchShortcut, type CommandId } from './shortcuts'
@@ -488,10 +488,13 @@ export class InteractionController {
     if (!loc || !rect) return
     const xs: number[] = []
     const ys: number[] = []
-    const siblings = (loc.parent ? loc.parent.children : loc.page.children).filter((n) => n.id !== id && n.visible).map((n) => n.id)
-    for (const other of loc.parent ? [...siblings, loc.parent.id] : siblings) {
-      const r = worldRectOf(other)
-      if (!r) continue
+    const siblings = (loc.parent ? loc.parent.children : loc.page.children).filter((n) => n.id !== id && n.visible)
+    const rects = neighbourRects(siblings, loc.parent)
+    if (loc.parent) {
+      const r = worldRectOf(loc.parent.id)
+      if (r) rects.push(r)
+    }
+    for (const r of rects) {
       xs.push(r.x, r.x + r.width / 2, r.x + r.width)
       ys.push(r.y, r.y + r.height / 2, r.y + r.height)
     }
@@ -588,13 +591,12 @@ export class InteractionController {
     const targets: Rect[] = []
     const seen = new Set<string>()
     for (const loc of locs) {
-      const siblings = loc.parent ? loc.parent.children : loc.page.children
-      for (const n of siblings) {
-        if (selected.has(n.id) || seen.has(n.id) || !n.visible) continue
+      const siblings = (loc.parent ? loc.parent.children : loc.page.children).filter((n) => {
+        if (selected.has(n.id) || seen.has(n.id) || !n.visible) return false
         seen.add(n.id)
-        const r = worldRectOf(n.id)
-        if (r) targets.push(r)
-      }
+        return true
+      })
+      targets.push(...neighbourRects(siblings, loc.parent))
       if (loc.parent && !seen.has(loc.parent.id)) {
         seen.add(loc.parent.id)
         const r = worldRectOf(loc.parent.id)
@@ -1007,17 +1009,47 @@ export class InteractionController {
   }
 }
 
+/** Zone utile au magnétisme, en coordonnées du monde : la vue, plus une vue de marge de chaque côté. */
+function snapArea(): Rect {
+  const { camera, viewport } = ui()
+  if (viewport.width <= 0 || viewport.height <= 0) return { x: -1e9, y: -1e9, width: 2e9, height: 2e9 }
+  const width = viewport.width / camera.zoom
+  const height = viewport.height / camera.zoom
+  return { x: -camera.x / camera.zoom - width, y: -camera.y / camera.zoom - height, width: width * 3, height: height * 3 }
+}
+
+const touches = (a: Rect, b: Rect) => a.x <= b.x + b.width && b.x <= a.x + a.width && a.y <= b.y + b.height && b.y <= a.y + a.height
+
+/**
+ * Rectangles des voisins pour le magnétisme, limités à ceux proches de la vue. Un voisin posé en x/y
+ * avec une taille fixe, sur la page ou dans un cadre libre, est écarté d'après le document, sans
+ * mesure dans le DOM ; les autres sont mesurés.
+ */
+function neighbourRects(siblings: Node[], parent: FrameNode | null): Rect[] {
+  const area = snapArea()
+  const origin = parent === null ? { x: 0, y: 0 } : parent.layout.mode === 'free' ? worldRectOf(parent.id) : undefined
+  const out: Rect[] = []
+  for (const n of siblings) {
+    if (origin && n.x !== undefined && n.y !== undefined && typeof n.width === 'number' && typeof n.height === 'number') {
+      if (!touches({ x: origin.x + n.x, y: origin.y + n.y, width: n.width, height: n.height }, area)) continue
+    }
+    const r = worldRectOf(n.id)
+    if (r && touches(r, area)) out.push(r)
+  }
+  return out
+}
+
 /** Positions écran des enfants d'un cadre, avant un changement d'ordre. */
 function childScreenRects(frameId: string): Map<string, DOMRect> {
   const out = new Map<string, DOMRect>()
-  const frame = document.querySelector(`[data-node-id="${CSS.escape(frameId)}"]`)
+  const frame = nodeElement(frameId)
   frame?.querySelectorAll<HTMLElement>(':scope > [data-node-id]').forEach((el) => out.set(el.dataset.nodeId!, el.getBoundingClientRect()))
   return out
 }
 
 /** Animation FLIP : chaque frère part de son ancienne place et glisse vers la nouvelle (150 ms). */
 function flip(frameId: string, before: Map<string, DOMRect>, skip: string): void {
-  const frame = document.querySelector(`[data-node-id="${CSS.escape(frameId)}"]`)
+  const frame = nodeElement(frameId)
   const zoom = uiStore.getState().camera.zoom
   frame?.querySelectorAll<HTMLElement>(':scope > [data-node-id]').forEach((el) => {
     const id = el.dataset.nodeId!

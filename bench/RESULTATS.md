@@ -208,3 +208,62 @@ des parcours complets.
 Avec les pistes 1 à 3 (une journée de travail au plus), la scène site devrait rester au moins
 « acceptable » jusqu'à ≈ 5 000 éléments, et la scène plate ne serait plus un cas à part. Il faut la piste 4
 pour un glisser fluide au-delà.
+
+## Après optimisation (pistes 2, 3, 4 et 5a)
+
+Ce qui a changé :
+- **Piste 2** : un index identifiant → élément (`src/core/tree.ts`) est construit une fois par version du
+  document. Une « version », c'est l'objet document gelé que produit chaque modification : il ne change plus,
+  donc l'index reste juste. `findNode` répond sans parcourir l'arbre, partout (canevas, sélection, panneau
+  Design, panneau Calques, MCP). Le chemin texte (`pages[0].children[2]…`) n'est calculé que s'il est lu.
+- **Piste 3** : `will-change: transform` sur le monde, **seulement pendant** un déplacement ou un zoom de la
+  vue (retiré 150 ms après le dernier mouvement). Vérifié par capture, texte d'un héros à 100 % et 200 %
+  après un zoom continu depuis 25 % : au repos, l'image est identique au pixel près à celle sans
+  `will-change`. Avec `will-change` permanent, le texte à 100 % perd le lissage sous-pixel (lettres plus
+  grises et plus fines) : d'où le choix « seulement en mouvement ».
+- **Piste 4** : pendant un geste (glisser, redimensionner, glisser une valeur du panneau Design), l'aperçu ne
+  normalise et ne valide que les éléments touchés, leurs parents et leurs enfants directs (schéma zod de
+  l'élément seul, sans descendre dans ses enfants, et règles locales). Le document entier est validé une
+  seule fois, au relâcher. Toujours une seule entrée d'annulation. Des tests comparent l'aperçu au mode
+  complet sur 13 cas (même document, mêmes patchs, mêmes refus).
+- **Piste 5a** : un registre identifiant → balise HTML, rempli par les éléments du canevas à leur montage,
+  remplace les `querySelector` par attribut (qui parcouraient tout le DOM à chaque mesure). Le magnétisme ne
+  garde que les voisins à moins d'une vue de l'écran ; ceux dont la position et la taille sont fixées dans
+  le document sont écartés sans même être mesurés.
+
+Mesures du 17/10/2026, même machine, fenêtre de test hors de l'écran (`MAQUETTE_E2E=1`, depuis le commit
+qui sort les fenêtres de test de l'écran). Les deux colonnes ont été mesurées dans ces mêmes conditions,
+l'une juste après l'autre. Les chiffres « avant » diffèrent un peu du tableau du haut, mesuré fenêtre visible.
+D'une série à l'autre, une même mesure varie de ± 30 % (un relancement de plat 2 000 donne un survol à
+14 ms au lieu de 80 ms).
+
+Temps en ms ; images : p95. Format : avant → **après**.
+
+| Scène | N | Ouverture | Survol | Pan « tout voir » | Zoom | Sélection | Glisser | Relâcher | Ctrl+Z | Échap→validé | MCP appliquer |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| site | 500 | 732 → **536** | 7,9 → **7,2** | 9,4 → **9** | 8 → **7,6** | 57 → **31** | 26,3 → **12,2** | 5 → **6** | 12 → **6** | 13 → **12** | 31 → **15** |
+| site | 1 000 | 783 → **516** | 7,6 → **7,9** | 9,1 → **8,2** | 8,1 → **7,6** | 32 → **27** | 37,6 → **11,7** | 6 → **11** | 8 → **8** | 27 → **19** | 28 → **21** |
+| site | 2 000 | 576 → **544** | 7,8 → **7,4** | 15,4 → **8,9** | 8,4 → **8,4** | 39 → **32** | 68,4 → **12,4** | 11 → **18** | 11 → **7** | 48 → **36** | 47 → **39** |
+| site | 5 000 | 1 001 → **896** | 35,5 → **13,3** | 45,3 → **13,1** | 36,3 → **15,6** | 97 → **85** | 152,2 → **26,7** | 19 → **75** | 25 → **23** | 98 → **139** | 108 → **126** |
+| site | 10 000 | 1 137 → **970** | 118,4 → **33** | 117,9 → **16** | 115,8 → **30** | 215 → **113** | 477,3 → **39** | 145 → **76** | 174 → **20** | 385 → **176** | 256 → **174** |
+| plat | 500 | 745 → **836** | 9,3 → **7,7** | 9,8 → **9,3** | 8,4 → **8** | 120 → **56** | 70,1 → **24,8** | 47 → **17** | 53 → **26** | 65 → **23** | 76 → **37** |
+| plat | 1 000 | 1 179 → **891** | 7,8 → **11,4** | 10,3 → **9,5** | 8 → **9,4** | 137 → **172** | 109,9 → **59,5** | 97 → **48** | 109 → **44** | 92 → **71** | 102 → **75** |
+| plat | 2 000 | 1 915 → **1 248** | 11,4 → **80,1** | 9,2 → **11,6** | 8,1 → **12,6** | 323 → **191** | 498,2 → **82,3** | 319 → **119** | 269 → **76** | 346 → **121** | 301 → **107** |
+| plat | 5 000 | 23 946 → **2 648** | 26,9 → **23,3** | 27,5 → **21,8** | 23,8 → **24,6** | 1 779 → **949** | 3 532 → **390** | 2 368 → **336** | 2 583 → **215** | 3 526 → **478** | 2 012 → **339** |
+| plat | 10 000 | 87 329 → **5 434** | 3 207 → **39,7** | 28,4 → **37,3** | 40,5 → **48,2** | 6 173 → **1 835** | 9 094 → **1 369** | 10 126 → **1 126** | 13 584 → **855** | 9 370 → **1 062** | 13 982 → **1 222** |
+
+Ce qu'on en retient :
+- **Scène site** : le glisser reste **fluide jusqu'à 2 000 éléments** (p95 12 ms, contre 68) et
+  **acceptable jusqu'à 10 000** (27 ms à 5 000, 39 ms à 10 000, contre 152 et 477). Déplacer et zoomer la
+  vue restent fluides ou acceptables jusqu'à 10 000 (pan 16 ms, zoom 30 ms, contre ≈ 118). Le seuil
+  « gênant » passe de ≈ 2 000 à **plus de 10 000** pour le glisser ; la sélection (113 ms) et la validation
+  d'un texte (176 ms) sont maintenant ce qui décroche en premier à 10 000.
+- **Scène plate** : l'ouverture à 10 000 passe de 87 s à 5 s, la sélection et le glisser sont divisés par
+  3 à 9. Ce gain vient surtout de l'index : le panneau Calques appelle toujours `findNode` pour chaque ligne
+  (point chaud 1), mais chaque appel ne coûte plus rien. La scène plate reste gênante dès 1 000 éléments
+  tant que le panneau Calques est redessiné en entier (pistes 1 et 6, en cours ailleurs).
+- **Relâcher** coûte un peu plus à 2 000-5 000 éléments sur la scène site (11 → 18 ms, 19 → 75 ms) : la
+  validation complète du document, autrefois payée à chaque mouvement de souris, est payée une fois au
+  relâcher. À 10 000, il baisse quand même (145 → 76 ms).
+- Échap→validé et MCP « appliquer » passent toujours par la validation complète (une modification
+  enregistrée) : ils gagnent sur la scène plate et à 10 000, et ne bougent pas au-delà du bruit ailleurs.

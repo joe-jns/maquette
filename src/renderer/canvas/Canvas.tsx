@@ -13,6 +13,7 @@ import { HelpOverlay } from './HelpOverlay'
 import { TastePins } from './TastePins'
 import { Toolbar } from './Toolbar'
 import { ZoomControl } from './ZoomControl'
+import { registerWorld } from './rects'
 
 export function Canvas() {
   const page = useDoc((s) => s.doc.pages.find((p) => p.id === s.pageId) ?? s.doc.pages[0]!)
@@ -21,6 +22,7 @@ export function Canvas() {
   const tool = useUi((s) => s.tool)
   const ref = useRef<HTMLDivElement>(null)
   const [menu, setMenu] = useState<ScreenPoint | null>(null)
+  const worldRef = useRef<HTMLDivElement>(null)
 
   // Taille de la vue.
   useEffect(() => {
@@ -50,6 +52,26 @@ export function Canvas() {
     }
     el.addEventListener('wheel', onWheel, { passive: false })
     return () => el.removeEventListener('wheel', onWheel)
+  }, [])
+
+  // Vue en mouvement (molette, zoom, cadrage animé, glisser de la vue) : le monde passe sur sa propre
+  // couche, que la carte graphique décale sans tout repeindre. Retirée au repos pour que le texte soit
+  // de nouveau rastérisé net à l'échelle courante.
+  useEffect(() => {
+    const world = worldRef.current!
+    registerWorld(world)
+    let timer = 0
+    const unsubscribe = uiStore.subscribe((state, prev) => {
+      if (state.camera === prev.camera) return
+      world.dataset.moving = ''
+      window.clearTimeout(timer)
+      timer = window.setTimeout(() => delete world.dataset.moving, CAMERA_SETTLE_MS)
+    })
+    return () => {
+      unsubscribe()
+      window.clearTimeout(timer)
+      registerWorld(null)
+    }
   }, [])
 
   // La sélection ne garde jamais un élément disparu (annulation, suppression, ouverture d'un document).
@@ -82,6 +104,7 @@ export function Canvas() {
   return (
     <div ref={ref} className="canvas" data-tool={tool} data-testid="canvas">
       <div
+        ref={worldRef}
         className="world"
         data-testid="world"
         style={{ transform: `translate(${camera.x}px, ${camera.y}px) scale(${camera.zoom})` }}
@@ -113,3 +136,6 @@ export function Canvas() {
     </div>
   )
 }
+
+/** Délai sans mouvement de la vue avant de retirer la couche dédiée du monde. */
+const CAMERA_SETTLE_MS = 150
