@@ -1,0 +1,3 @@
+# Scènes générées (plusieurs Mo) et mesures brutes : jamais versionnées.
+.scenes/
+.results/
