@@ -84,6 +84,8 @@ describe('consigne du chat', () => {
     expect(pen).toContain('guide("qualite")')
     expect(pen).toContain('Use the following style')
     expect(pen).toContain('Main headline 88–120 px on 1440 unless the source is bigger')
+    // Sections distinctes de leurs voisines ; une section d'appel n'est pas un simple encadré.
+    for (const k of ['distinct from its neighbours', 'alternate light, dark and colour grounds', 'never a plain outlined box']) expect(pen, k).toContain(k)
     // Relecture finale obligatoire en mode Pen aussi.
     for (const k of ['Final review, mandatory', 'largeur:1440', 'fidelity to the source style', 'Write the 3 worst problems', 'two rounds at most']) expect(pen, k).toContain(k)
     // Photos d'une personne : jamais une photo de banque qui fait semblant d'être elle.

@@ -61,6 +61,7 @@ const PEN = `# New page, section or screen
 
 # Style
 - Don't create repetitive styles and grids. Add some unique elements and layout to make the design feel more interesting.
+- Each section gets a background or composition treatment distinct from its neighbours (alternate light, dark and colour grounds, as the source does). A call-to-action section is a full band of colour or a strong composition, never a plain outlined box.
 - Avoid wrapping every element in its own box or card; this common AI habit makes designs look generic. Use a container only when it has a real structural or functional purpose.
 - Avoid excessive gradients, shadows and rounded corners unless requested, part of the brand identity or part of the chosen style. Be refined and intentional with effects and decorations.
 - All Google fonts are available; use each at the weights the style gives.
