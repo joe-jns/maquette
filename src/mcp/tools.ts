@@ -9,6 +9,7 @@ import type { ApplyResult, Op } from '../core/ops'
 import { formatPath } from '../core/rules'
 import { findNode, walk } from '../core/tree'
 import type { MaquetteDocument, Node, NodeInput, Size } from '../core/types'
+import { ALIASES, normalizeOperations, originPath } from './normalize'
 
 export interface ToolHost {
   doc(): MaquetteDocument
@@ -267,28 +268,24 @@ const OpSchema = z.discriminatedUnion('op', [
 
 interface Erreur { chemin: string; message: string }
 
-/** Noms devinés (CSS, Figma) → nom de Maquette : une erreur qui corrige évite un aller-retour. */
-const ALIASES: Record<string, string> = {
-  cornerRadius: 'radius', borderRadius: 'radius', strokes: 'stroke', border: 'stroke',
-  fill: 'fills', background: 'fills', backgroundColor: 'fills', effects: 'shadows', shadow: 'shadows', boxShadow: 'shadows',
-  text: 'content', characters: 'content', fontColor: 'color', textColor: 'color', align: 'textAlign',
-  autoLayout: 'layout', layoutMode: 'layout', itemSpacing: 'layout.gap', gap: 'layout.gap', padding: 'layout.padding',
-  w: 'width', h: 'height', hidden: 'visible', opacity: 'fills (#RRGGBBAA)', clipsContent: 'clip', overflow: 'clip',
-}
-
 function withHint(message: string): string {
   const keys = /Unrecognized keys?: (.+)/.exec(message)?.[1]?.match(/"([^"]+)"/g)?.map((k) => k.slice(1, -1)) ?? []
   const hints = keys.filter((k) => ALIASES[k]).map((k) => `${k} → ${ALIASES[k]}`)
   return hints.length ? `${message} (${hints.join(', ')})` : message
 }
 
-const refused = (erreurs: Erreur[]): ToolResult =>
-  error(json({ ok: false, erreurs: erreurs.slice(0, MAX_ERRORS).map((e) => ({ ...e, message: withHint(e.message) })) }))
+const refused = (erreurs: Erreur[], origins: string[] = []): ToolResult =>
+  error(json({
+    ok: false,
+    erreurs: erreurs.slice(0, MAX_ERRORS).map((e) => ({ chemin: originPath(e.chemin, origins), message: withHint(e.message) })),
+  }))
 
 function apply(host: ToolHost, operations: unknown[], libelle: string | undefined): ToolResult {
-  const parsed = z.array(OpSchema).safeParse(operations)
+  // Formes naturelles (alias, peintures objet, enfants imbriqués) ramenées à la forme canonique.
+  const norm = normalizeOperations(operations, (id) => findNode(host.doc(), id)?.node.type)
+  const parsed = z.array(OpSchema).safeParse(norm.operations)
   if (!parsed.success) {
-    return refused(parsed.error.issues.map((i) => ({ chemin: formatPath(['operations', ...i.path]), message: i.message })))
+    return refused(parsed.error.issues.map((i) => ({ chemin: formatPath(['operations', ...i.path]), message: i.message })), norm.origins)
   }
   let result: ApplyResult
   try {
@@ -297,11 +294,13 @@ function apply(host: ToolHost, operations: unknown[], libelle: string | undefine
     return refused([{ chemin: 'operations', message: e instanceof Error ? e.message : String(e) }])
   }
   if (!result.ok) {
-    return refused(result.errors.map((x) => ({ chemin: x.path.replace(/^ops\[/, 'operations['), message: x.message })))
+    return refused(result.errors.map((x) => ({ chemin: x.path.replace(/^ops\[/, 'operations['), message: x.message })), norm.origins)
   }
   const out: Record<string, unknown> = { ok: true }
-  if (Object.keys(result.ids).length) out.ids = result.ids
+  const ids = Object.fromEntries(Object.entries(result.ids).filter(([k]) => !norm.generated.has(k)))
+  if (Object.keys(ids).length) out.ids = ids
   if (result.fixes.length) out.corrections = result.fixes
+  if (norm.notes.length) out.adapte = norm.notes
   return ok(out)
 }
 

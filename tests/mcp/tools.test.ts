@@ -100,8 +100,8 @@ describe('outils MCP', () => {
     expect((await runTool(host(scene()), 'verifier_gout', { id: 'X' })).isError).toBe(true)
   })
 
-  it('appliquer : une clé devinée (CSS, Figma) est corrigée dans le message', async () => {
-    const r = await runTool(host(scene()), 'appliquer', { operations: [{ op: 'update', id: 'R1', set: { cornerRadius: 8 } }] })
+  it('appliquer : une clé devinée (CSS, Figma) en conflit est corrigée dans le message', async () => {
+    const r = await runTool(host(scene()), 'appliquer', { operations: [{ op: 'update', id: 'R1', set: { cornerRadius: 8, radius: 4 } }] })
     expect(r.isError).toBe(true)
     expect(JSON.parse(r.text).erreurs[0].message).toContain('cornerRadius → radius')
   })
