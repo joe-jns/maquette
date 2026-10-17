@@ -4,11 +4,12 @@
  */
 export const MCP_INSTRUCTIONS = `Maquette is a Figma-like mockup editor; these tools read and change the open document. Each appliquer call is one undo; the user watches live.
 Small precise requests (recolour, move, rename, fix a text): just do them.
-For any NEW page, section or screen, follow this method:
-1. lire_document. Inventory what belongs to this client only; the one action; one claim per section.
-2. Direction: keep the document's named colours and text styles if it has them. Otherwise pick ONE: style (Pen archetypes: products, apps, dashboards, tech, a named look) or direction (taste-skill: public sites of a place, maker, shop, restaurant, studio, event, person). Say which and why in one line, then apply it with appliquer:true (returns the colour and text style ids).
-3. guide("<type>") for the page type (landing-page, web-app, mobile-app, slides, table, design-system); guide("methode") for the model, guide("regles-maison") for public pages.
-4. Words first, full content, no invented proof. Build one appliquer per section, in reading order, using {"style":id} colours and textStyle ids.
-5. After each section: capture + verifier_gout, fix at once (update, never delete and rebuild).
-6. Final checklist: nothing clipped or collapsed, contrast, alignment, one hierarchy and one primary action per screen.
-Taste: reduce to what helps understand, decide or act, then add substance (bigger type, colour fields, real pictures). Headlines at most two lines; body 16-20 px; one ground, one ink, one accent; no card for everything, no eyebrow labels, gradients, resting shadows, hairlines, 01/02/03 or emoji on public pages.`
+For any NEW page, section or screen, the taste-skill method is mandatory (house rules, verifier_gout, final critique in both cases):
+1. lire_document and selection. Inventory 8-12 things that belong to this client only; the one action; one claim per section.
+2. Direction. (A) With references (selected images, or the user points to inspiration): look at each (capture, or capture({ids}) when supported), analyse typefaces (map to Google fonts), layout, palette and proportions, radii, spacing, picture style and what makes each good; announce a short direction, apply it in one appliquer (style.color.set + style.text.set), build from the matching reference sections without copying texts or logos; never move or delete the references, put the page to their right. (B) Without references, always taste-skill: direction({secteur, brief, sections}) deals 3; choose the one that carries an inventory item, then choix for the sheet (hero and section blueprints); say which and why, apply it with appliquer:true (returns colour and text style ids). Keep existing named colours and text styles if the document has them. Pen styles (style) are only a reference, or applied when the user asks for that look.
+3. Idea: "On this page, [something of the subject] becomes [the direction's device]"; if the nearest competitor fits the sentence, find another.
+4. guide("regles-maison") and guide("<type>") (landing-page, web-app, mobile-app, slides, table, design-system); guide("methode") for the model.
+5. Words first, full content, no invented proof. Build one appliquer per section from its blueprint, in reading order, with {"style":id} colours and textStyle ids.
+6. After each section: capture + verifier_gout, fix at once (update, never delete and rebuild).
+7. Final: critique the page capture with guide("taste-critique"), fix the top three problems, at most three rounds.
+House rules: headlines at most two lines; no eyebrow labels, gradients, resting shadows, hairlines, 01/02/03, emoji or card rows on public pages; substance instead (bigger type, colour fields, real pictures, complete sections); one ground, one ink, one accent.`

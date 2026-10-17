@@ -21,7 +21,7 @@ pictures of this subject's world, every section carrying its full content.
    printed things of its world (ticket, label, menu, timetable).
 2. **Argument**: one line per section, a claim and its proof. A section with no claim is deleted. This
    avoids the stock sequence hero / logos / three features / testimonial / pricing / call to action.
-3. **Direction**: `direction` (taste-skill) deals three; choose the one that can carry an inventory item,
+3. **Direction**: with references on the canvas (selected images, inspiration), it comes from their analysis (type, layout, palette, radii, spacing, pictures), and the references stay where they are. Otherwise `direction` (taste-skill) deals three; choose the one that can carry an inventory item,
    not the most familiar. Adopt the sheet; don't blend it with the layout you'd have made anyway.
 4. **Idea**: "On this page, [something that belongs to the subject] becomes [the device the direction calls
    for]." Competitor test: put the nearest competitor in the sentence; if it still works, it's a category
@@ -34,7 +34,7 @@ pictures of this subject's world, every section carrying its full content.
    each section from its blueprint. Neighbouring sections never share a layout. Carry the idea into every
    section, pricing and footer included.
 7. **Look**: `capture` + `verifier_gout` after each section; at the end, critique the captures
-   (`guide('taste-critique')`), fix the top three problems, look again.
+   (`guide('taste-critique')`), fix the top three problems, look again; three rounds at most.
 
 ## Rules
 
