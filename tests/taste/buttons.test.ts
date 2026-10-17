@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { createNode } from '../../src/core/defaults'
 import type { FrameNode, Node } from '../../src/core/types'
-import { buttonLikeIds } from '../../src/taste/rules'
+import { buttonLikeIds, navLikeIds } from '../../src/taste/rules'
 
 const auto = { mode: 'auto', direction: 'row', gap: 8, padding: [16, 28, 16, 28] } as const
 const hug = { mode: 'hug' } as const
@@ -13,6 +13,18 @@ function frame(id: string, props: Record<string, unknown>, children: Node[] = []
 }
 const text = (id: string, content: string) => createNode({ type: 'text', content } as never, id)
 const icon = (id: string) => createNode({ type: 'icon', icon: 'arrow-right' } as never, id)
+
+describe('barres de navigation (règle eyebrow)', () => {
+  it('reconnues à leur nom, sans descendre dedans ; une section « Menu du jour » n’en est pas une', () => {
+    const page = frame('page', { width: 1440, height: 900, fills: [], layout: { mode: 'auto', direction: 'column' } }, [
+      frame('n1', { name: 'Navigation', layout: auto }, [frame('n2', { name: 'Nav interne', layout: auto })]),
+      frame('n3', { name: 'Barre du haut', layout: auto }),
+      frame('n4', { name: 'En-tête', layout: auto }),
+      frame('m1', { name: 'Menu du jour', layout: auto }),
+    ])
+    expect(navLikeIds(page)).toEqual(['n1', 'n3', 'n4'])
+  })
+})
 
 describe('cadres lus comme des boutons (règle first-action)', () => {
   it('un cadre rempli en disposition auto avec un libellé court, avec ou sans icône', () => {

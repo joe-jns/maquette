@@ -8,7 +8,7 @@ import { pathToFileURL } from 'node:url'
 import type { MaquetteDocument } from '../core/types'
 import type { TasteCheck, TasteDraw } from '../shared/ipc'
 import { parseOptions, type DirectionOption, type DirectionSheet } from '../taste/direction'
-import { buttonLikeIds, STATIC_ALLOW } from '../taste/rules'
+import { buttonLikeIds, navLikeIds, STATIC_ALLOW } from '../taste/rules'
 import { findNode } from '../core/tree'
 import { evaluateInNode } from './exportPng'
 
@@ -109,8 +109,8 @@ async function check(doc: MaquetteDocument, nodeId: string, allow: string[]): Pr
   const { probe, judge } = await tasteModules()
   // Les cadres qui font office de bouton deviennent des boutons pour la sonde (une maquette n'a pas de <button>).
   const node = findNode(doc, nodeId)?.node
-  const buttons = node ? buttonLikeIds(node) : []
-  const mark = `for (const id of ${JSON.stringify(buttons)}) document.querySelector('[data-node-id="' + CSS.escape(id) + '"]')?.setAttribute('role', 'button');`
+  const roles = node ? [...buttonLikeIds(node).map((id) => [id, 'button']), ...navLikeIds(node).map((id) => [id, 'navigation'])] : []
+  const mark = `for (const [id, role] of ${JSON.stringify(roles)}) document.querySelector('[data-node-id="' + CSS.escape(id) + '"]')?.setAttribute('role', role);`
   // probe() est autonome (aucune fermeture sur son module) : son texte s'exécute tel quel dans la page.
   const shown = await evaluateInNode<unknown>(doc, nodeId, `(() => { ${mark} return (${probe.toString()})() })()`, VIEWPORT_HEIGHT)
   if (!shown) return null

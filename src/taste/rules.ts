@@ -33,6 +33,24 @@ export function buttonLikeIds(root: Node): string[] {
   return out
 }
 
+/** Nom d'une barre de navigation (Claude et l'utilisateur nomment les calques en clair). */
+const NAV_NAME = /\b(nav|navigation|navbar)\b|barre (de navigation|du haut)|en-t[êe]te/i
+
+/**
+ * Barres de navigation, marquées role="navigation" avant la sonde : sans cela, le premier lien du menu
+ * posé au-dessus du titre du hero était pris pour une étiquette (règle eyebrow), quoi que fasse Claude.
+ */
+export function navLikeIds(root: Node): string[] {
+  const out: string[] = []
+  const visit = (node: Node): void => {
+    if (node.type !== 'frame') return
+    if (NAV_NAME.test(node.name)) out.push(node.id)
+    else node.children.forEach(visit)
+  }
+  visit(root)
+  return out
+}
+
 function isButtonLike(node: FrameNode): boolean {
   if (node.layout.mode !== 'auto' || !node.visible) return false
   const painted = node.fills.length > 0 || (node.stroke !== undefined && node.stroke.width >= 1)
