@@ -38,6 +38,33 @@
 .page-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .inline-name { width: 100%; font: inherit; padding: 2px 4px; border: 1px solid var(--accent); border-radius: 4px; outline: none; }
 
+.layers { flex: 1; border-bottom: 0; min-height: 0; display: flex; flex-direction: column; }
+.layer-list { list-style: none; margin: 0; padding: 0 6px 12px; overflow: auto; flex: 1; }
+.layer-row {
+  position: relative; display: flex; align-items: center; gap: 4px; height: 28px; padding-right: 4px;
+  border-radius: 5px; cursor: default; user-select: none;
+}
+.layer-row:hover, .layer-row.is-hover { background: var(--panel-hover); }
+.layer-row.is-selected { background: var(--accent-soft); }
+.layer-row.is-hidden .layer-name, .layer-row.is-hidden .layer-icon { opacity: 0.45; }
+.layer-row.drop-before::before, .layer-row.drop-after::after {
+  content: ''; position: absolute; left: 6px; right: 6px; height: 2px; background: var(--accent); border-radius: 1px;
+}
+.layer-row.drop-before::before { top: -1px; }
+.layer-row.drop-after::after { bottom: -1px; }
+.layer-row.drop-inside { box-shadow: inset 0 0 0 2px var(--accent); }
+.twisty { display: grid; place-items: center; width: 14px; height: 18px; border: 0; padding: 0; background: transparent; color: var(--panel-muted); cursor: pointer; }
+.twisty svg { transition: transform 120ms ease; }
+.layer-icon { flex: none; color: var(--panel-muted); }
+.layer-row.is-selected .layer-icon { color: var(--accent); }
+.layer-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.layer-actions { display: flex; opacity: 0; }
+.layer-row:hover .layer-actions, .layer-actions:focus-within { opacity: 1; }
+.layer-actions .is-on { opacity: 1; }
+.layer-row .layer-actions:has(.is-on) { opacity: 1; }
+.icon-button.small { width: 20px; height: 20px; color: var(--panel-muted); }
+.empty-note { padding: 8px 12px; color: var(--panel-muted); }
+
 .panel-tabs { display: flex; gap: 4px; padding: 8px 8px 0; border-bottom: 1px solid var(--panel-border); }
 .panel-tabs button {
   border: 0; background: transparent; font: 600 11.5px/1 system-ui, sans-serif; padding: 8px;
