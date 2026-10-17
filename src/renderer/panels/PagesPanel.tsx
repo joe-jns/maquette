@@ -35,7 +35,7 @@ export function PagesPanel() {
     <section className="panel-section" data-testid="pages" aria-label="Pages">
       <header className="panel-heading">
         <h2>Pages</h2>
-        <button type="button" className="icon-button" aria-label="Ajouter une page" title="Ajouter une page" onClick={add}>
+        <button type="button" className="icon-button" aria-label="Ajouter une page" data-tooltip="Ajouter une page" onClick={add}>
           <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
             <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.5" />
           </svg>

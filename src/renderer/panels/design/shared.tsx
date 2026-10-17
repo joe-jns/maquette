@@ -55,8 +55,9 @@ export function Section({ title, actions, children }: { title: string; actions?:
   )
 }
 
-export function IconButton({ label, onClick, pressed, disabled, title, children }: {
-  label: string; onClick(): void; pressed?: boolean; disabled?: boolean; title?: string; children: ReactNode
+/** Bouton-icône : `label` est son nom accessible et, sauf `tooltip`, le texte de son infobulle. */
+export function IconButton({ label, onClick, pressed, disabled, tooltip, shortcut, children }: {
+  label: string; onClick(): void; pressed?: boolean; disabled?: boolean; tooltip?: string; shortcut?: string; children: ReactNode
 }) {
   return (
     <button
@@ -64,7 +65,8 @@ export function IconButton({ label, onClick, pressed, disabled, title, children 
       className={`icon-button${pressed ? ' is-pressed' : ''}`}
       aria-label={label}
       aria-pressed={pressed}
-      title={title ?? label}
+      data-tooltip={tooltip ?? label}
+      data-shortcut={shortcut}
       disabled={disabled}
       onClick={onClick}
     >

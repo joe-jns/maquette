@@ -125,7 +125,7 @@ export function StrokeSection() {
                   type="button"
                   aria-label={`Contour : ${a.label}`}
                   aria-pressed={current.align === a.value}
-                  title={`Contour ${a.label}`}
+                  data-tooltip={`Contour ${a.label}`}
                   onClick={() => commit(set({ ...current, align: a.value }), 'Contour')}
                 >
                   {a.label.charAt(0).toUpperCase()}

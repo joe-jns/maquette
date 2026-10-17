@@ -1,4 +1,5 @@
 import { chatStore, useChat } from '../chat/chatStore'
+import { shortcutKeys } from '../canvas/shortcuts'
 import { useUi } from '../state/ui'
 import { tasteStore, useTaste, type PanelTab } from '../taste/tasteStore'
 import { AutoLayoutSection } from './design/AutoLayoutSection'
@@ -34,7 +35,8 @@ export function RightPanel() {
           type="button"
           className="chat-open"
           aria-pressed={chatOpen}
-          title="Chat avec Claude (Ctrl+L)"
+          data-tooltip="Chat avec Claude"
+          data-shortcut={shortcutKeys('toggleChat')}
           onClick={() => chatStore.getState().toggle()}
         >
           <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden>

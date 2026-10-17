@@ -181,7 +181,7 @@ export function LayersPanel() {
                   type="button"
                   className={`icon-button small${row.locked ? ' is-on' : ''}`}
                   aria-label={row.locked ? 'Déverrouiller' : 'Verrouiller'}
-                  title={row.locked ? 'Déverrouiller' : 'Verrouiller'}
+                  data-tooltip={row.locked ? 'Déverrouiller' : 'Verrouiller'}
                   onClick={(e) => {
                     e.stopPropagation()
                     docStore.getState().dispatch([{ op: 'update', id: row.id, set: { locked: !row.locked } }], row.locked ? 'Déverrouiller' : 'Verrouiller')
@@ -195,7 +195,7 @@ export function LayersPanel() {
                   type="button"
                   className={`icon-button small${!row.visible ? ' is-on' : ''}`}
                   aria-label={row.visible ? 'Masquer' : 'Afficher'}
-                  title={row.visible ? 'Masquer' : 'Afficher'}
+                  data-tooltip={row.visible ? 'Masquer' : 'Afficher'}
                   onClick={(e) => {
                     e.stopPropagation()
                     docStore.getState().dispatch([{ op: 'update', id: row.id, set: { visible: !row.visible } }], row.visible ? 'Masquer' : 'Afficher')

@@ -56,7 +56,7 @@ test('modes de taille : impossibles grisés avec la raison, bascule fixe/contenu
   await clickOn(page, 'rBleu1')
   const fill = page.getByRole('button', { name: 'Largeur : remplir' })
   await expect(fill).toBeDisabled()
-  await expect(fill).toHaveAttribute('title', /enfants/)
+  await expect(fill).toHaveAttribute('data-tooltip', /enfants/)
   await clickOn(page, 'fHero1')
   await expect(page.getByRole('button', { name: 'Hauteur : contenu' })).toHaveAttribute('aria-pressed', 'true')
   await page.getByRole('button', { name: 'Hauteur : fixe' }).click()

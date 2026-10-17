@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ClipboardEvent, type DragEvent, type KeyboardEvent, type ReactNode } from 'react'
 import type { ChatItem, PermissionDecision } from '../../shared/chat'
+import { shortcutKeys } from '../canvas/shortcuts'
 import { docStore, useDoc } from '../state/store'
 import { useUi } from '../state/ui'
 import { chatStore, MAX_IMAGES, useChat } from './chatStore'
@@ -56,7 +57,7 @@ const toolLabel = (name: string) => TOOL_LABELS[name] ?? name
 function ToolLine({ item }: { item: Extract<ChatItem, { kind: 'tool' }> }) {
   const label = `${toolLabel(item.name)}${item.summary ? ` · ${item.summary}` : ''}`
   return (
-    <div className={`chat-tool is-${item.status}`} title={label} data-status={item.status}>
+    <div className={`chat-tool is-${item.status}`} data-tooltip={label} data-status={item.status}>
       <span className="chat-tool-state" aria-hidden>
         {item.status === 'done' ? '✓' : item.status === 'error' ? '!' : <span className="chat-dot" />}
       </span>
@@ -74,7 +75,7 @@ function PermissionCard({ item }: { item: Extract<ChatItem, { kind: 'permission'
     const allowed = item.status === 'allowed'
     const label = `${allowed ? 'Autorisé' : 'Refusé'} : ${toolLabel(item.tool)}`
     return (
-      <div className={`chat-tool ${allowed ? 'is-done' : 'is-denied'}`} title={`${label}${item.summary ? ` · ${item.summary}` : ''}`}>
+      <div className={`chat-tool ${allowed ? 'is-done' : 'is-denied'}`} data-tooltip={`${label}${item.summary ? ` · ${item.summary}` : ''}`}>
         <span className="chat-tool-state" aria-hidden>{allowed ? '✓' : '×'}</span>
         <span className="chat-tool-name">{label}</span>
         {item.summary && <span className="chat-tool-summary">{item.summary}</span>}
@@ -246,11 +247,11 @@ function Composer() {
           onKeyDown={onKeyDown}
         />
         {busy ? (
-          <button type="button" className="chat-send is-stop" aria-label="Arrêter" title="Arrêter" onClick={() => chatApi()?.stop()}>
+          <button type="button" className="chat-send is-stop" aria-label="Arrêter" data-tooltip="Arrêter" onClick={() => chatApi()?.stop()}>
             <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden><rect x="5" y="5" width="14" height="14" rx="2" fill="currentColor" /></svg>
           </button>
         ) : (
-          <button type="submit" className="chat-send" aria-label="Envoyer" title="Envoyer (Entrée)" disabled={!canSend}>
+          <button type="submit" className="chat-send" aria-label="Envoyer" data-tooltip="Envoyer" data-shortcut="Entrée" disabled={!canSend}>
             <Icon d={ARROW} size={16} width={2.2} />
           </button>
         )}
@@ -336,11 +337,11 @@ export function ChatPanel() {
     >
       <header className="chat-head">
         <h2>Claude</h2>
-        <button type="button" className="chat-head-button" onClick={() => void reset()} disabled={items.length === 0 && !busy} title="Nouvelle conversation">
+        <button type="button" className="chat-head-button" onClick={() => void reset()} disabled={items.length === 0 && !busy} data-tooltip="Nouvelle conversation">
           <Icon d={NEW} size={14} width={2} />
           <span>Nouvelle conversation</span>
         </button>
-        <button type="button" className="icon-button" aria-label="Fermer le chat" title="Fermer (Ctrl+L)" onClick={() => chatStore.getState().setOpen(false)}>
+        <button type="button" className="icon-button" aria-label="Fermer le chat" data-tooltip="Fermer le chat" data-shortcut={shortcutKeys('toggleChat')} onClick={() => chatStore.getState().setOpen(false)}>
           <Icon d={CLOSE} size={14} width={1.8} />
         </button>
       </header>
