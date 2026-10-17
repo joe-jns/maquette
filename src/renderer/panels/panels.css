@@ -1,99 +1,160 @@
 /* ——— Mise en page de la fenêtre et panneaux ——— */
 :root {
-  /* Surfaces : séparées par un écart de ton ; l'encre de l'icône pour ce qui flotte (outils, menus, bandeaux). */
+  /* Neutres (Figma UI3) : blanc, un gris de survol/champ, un gris appuyé/bordure. Rien de chaud. */
   --panel-bg: #ffffff;
-  --panel-border: #e8e8e6;
-  --panel-text: #1c1d21;
-  --panel-muted: #75767c;
-  --panel-hover: #f1f1ef;
-  --field-bg: #f3f3f1;
-  --canvas-bg: #e4e4e1;
-  --ink: #16181d;
-  --ink-text: #f1f0ec;
-  --ink-hover: #ffffff1f;
+  --panel-hover: #f5f5f5;
+  --field-bg: #f5f5f5;
+  --pressed: #e6e6e6;
+  --panel-border: #e6e6e6;
+  --control-border: rgba(0, 0, 0, 0.1);
+  --canvas-bg: #f5f5f5;
+  /* Texte : trois niveaux d'encre, en transparence sur le fond. */
+  --panel-text: rgba(0, 0, 0, 0.9);
+  --panel-muted: rgba(0, 0, 0, 0.5);
+  --panel-faint: rgba(0, 0, 0, 0.3);
+  --icon: rgba(0, 0, 0, 0.9);
+  --icon-muted: rgba(0, 0, 0, 0.5);
+  /* Ce qui flotte en sombre (menus, bandeaux, barre d'outils tant qu'elle n'est pas refaite). */
+  --ink: #1e1e1e;
+  --ink-text: #ffffff;
+  --ink-muted: rgba(255, 255, 255, 0.7);
+  --ink-hover: rgba(255, 255, 255, 0.12);
+  /* Le bleu est réservé à la sélection, au focus et à l'action principale. */
   --accent: #0d99ff;
-  --accent-soft: #e6f4ff;
-  --danger: #d92d20;
-  --danger-ink: #8c1d16;
-  /* Trois tailles : petit (notes, unités), courant (tout le panneau), grand (aperçus de polices). */
-  --fs-small: 11px;
-  --fs: 12px;
-  --fs-large: 14px;
-  --radius: 6px;
-  --panel-font: var(--fs)/1.4 system-ui, 'Segoe UI', sans-serif;
+  --accent-hover: #007be5;
+  --accent-text: #007be5;
+  --accent-soft: #e5f4ff;
+  --accent-soft-hover: #bde3ff;
+  --in-selection: #f2f9ff;
+  --danger: #f24822;
+  --danger-text: #dc3412;
+  --warning: #ffcd29;
+  --warning-text: #b86200;
+  --warning-soft: #fff1c2;
+
+  /* Typo : Inter embarquée, trois tailles (9 rare, 11 partout, 13 pour les titres et aperçus). */
+  --font-ui: 'Inter Variable', system-ui, 'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  --fs-small: 9px;
+  --fs: 11px;
+  --fs-large: 13px;
+  --lh: 16px;
+  --lh-large: 20px;
+  --fw: 450;
+  --fw-strong: 550;
+  --ls: 0.005em;
+  --panel-font: var(--fw) var(--fs) / var(--lh) var(--font-ui);
+
+  /* Rayons : trois, plus la pilule. */
+  --radius-sm: 2px;
+  --radius: 5px;
+  --radius-lg: 13px;
+  --radius-pill: 999px;
+
+  /* Élévations (Figma UI3) : îlot, liste, infobulle, menu, dialogue. */
+  --elevation-100: 0 1px 3px #00000026, 0 0 0.5px #0000004d;
+  --elevation-200: 0 1px 3px #0000001a, 0 3px 8px #0000001a, 0 0 0.5px #0000002e;
+  --elevation-300: 0 1px 3px #0000001a, 0 5px 12px #00000021, 0 0 0.5px #00000026;
+  --elevation-400: 0 2px 5px #00000026, 0 10px 16px #0000001f, 0 0 0.5px #0000001f;
+  --elevation-500: 0 2px 5px #00000026, 0 10px 24px #0000002e, 0 0 0.5px #00000014;
+  --elevation-toolbar: 0 0 1px rgba(0, 0, 0, 0.18), 0 3px 8px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.1);
+
+  /* Focus clavier : un seul anneau, 2 px décalé de 1 px ; les champs, eux, passent leur contour en bleu. */
+  --focus-ring: 2px solid var(--accent);
+  --focus-offset: 1px;
+
+  /* Densité : champ de 24 px, rangée au pas de 32 px, marges du panneau de 16 px. */
+  --field-h: 24px;
+  --row-h: 32px;
+  --header-h: 40px;
+  --panel-pad: 16px;
+  --panel-left-w: 240px;
+  --panel-right-w: 240px;
 }
 
-.layout { display: grid; grid-template-columns: 240px minmax(0, 1fr) 280px; height: 100%; }
+.layout { display: grid; grid-template-columns: var(--panel-left-w) minmax(0, 1fr) var(--panel-right-w); height: 100%; }
 .panel {
-  background: var(--panel-bg); color: var(--panel-text); font: var(--panel-font);
+  background: var(--panel-bg); color: var(--panel-text); font: var(--panel-font); letter-spacing: var(--ls);
   overflow: hidden auto; display: flex; flex-direction: column; min-height: 0;
 }
+.panel, .panel *, .panel *::before, .panel *::after { box-sizing: border-box; }
 .panel-left { border-right: 1px solid var(--panel-border); }
 .panel-right { border-left: 1px solid var(--panel-border); }
-.panel-section { border-bottom: 1px solid var(--panel-border); padding: 6px 0 8px; }
-.panel-heading { display: flex; align-items: center; justify-content: space-between; padding: 4px 8px 4px 12px; }
-.panel-heading h2 { margin: 0; font-size: var(--fs); font-weight: 600; }
+.panel-section { border-bottom: 1px solid var(--panel-border); padding: 4px 0 8px; }
+.panel-heading { display: flex; align-items: center; justify-content: space-between; min-height: var(--row-h); padding: 0 8px 0 var(--panel-pad); }
+.panel-heading h2 { margin: 0; font-size: var(--fs); font-weight: var(--fw-strong); }
 
 .icon-button {
-  display: grid; place-items: center; width: 24px; height: 24px; border: 0; border-radius: 5px;
-  background: transparent; color: var(--panel-text); cursor: pointer;
+  display: grid; place-items: center; width: var(--field-h); height: var(--field-h); border: 0; border-radius: var(--radius);
+  background: transparent; color: var(--icon); cursor: pointer;
 }
 .icon-button:hover { background: var(--panel-hover); }
-.panel button:focus-visible, .panel input:focus-visible, .panel select:focus-visible {
-  outline: 2px solid var(--accent); outline-offset: -2px;
+.icon-button:active { background: var(--pressed); }
+
+.page-list { list-style: none; margin: 0; padding: 0 8px; }
+.page-list li { display: flex; align-items: center; height: 28px; padding: 0 8px; border-radius: var(--radius); cursor: default; }
+.page-list li:hover { background: var(--panel-hover); }
+.page-list li.is-current { font-weight: var(--fw-strong); background: var(--field-bg); }
+.page-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.inline-name {
+  width: 100%; height: 20px; font: inherit; letter-spacing: inherit; padding: 0 4px; border: 1px solid var(--accent);
+  border-radius: var(--radius-sm); outline: none;
 }
 
-.page-list { list-style: none; margin: 0; padding: 0 6px; }
-.page-list li { display: flex; align-items: center; height: 28px; padding: 0 8px; border-radius: 5px; cursor: default; }
-.page-list li:hover { background: var(--panel-hover); }
-.page-list li.is-current { font-weight: 600; background: var(--accent-soft); }
-.page-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.inline-name { width: 100%; font: inherit; padding: 2px 4px; border: 1px solid var(--accent); border-radius: 4px; outline: none; }
-
 .layers { flex: 1; border-bottom: 0; min-height: 0; display: flex; flex-direction: column; }
-.layer-list { list-style: none; margin: 0; padding: 0 6px 12px; overflow: auto; flex: 1; }
+.layer-list { list-style: none; margin: 0; padding: 0 8px 12px; overflow: auto; flex: 1; }
 .layer-row {
   position: relative; display: flex; align-items: center; gap: 4px; height: 28px; padding-right: 4px;
-  border-radius: 5px; cursor: default; user-select: none;
+  border-radius: var(--radius); cursor: default; user-select: none;
 }
 .layer-row:hover, .layer-row.is-hover { background: var(--panel-hover); }
 .layer-row.is-selected { background: var(--accent-soft); }
+.layer-row.is-selected:hover { background: var(--accent-soft-hover); }
 .layer-row.is-hidden .layer-name, .layer-row.is-hidden .layer-icon { opacity: 0.45; }
 .layer-row.drop-before::before, .layer-row.drop-after::after {
-  content: ''; position: absolute; left: 6px; right: 6px; height: 2px; background: var(--accent); border-radius: 1px;
+  content: ''; position: absolute; left: 8px; right: 8px; height: 2px; background: var(--accent); border-radius: var(--radius-sm);
 }
 .layer-row.drop-before::before { top: -1px; }
 .layer-row.drop-after::after { bottom: -1px; }
 .layer-row.drop-inside { box-shadow: inset 0 0 0 2px var(--accent); }
-.twisty { display: grid; place-items: center; width: 14px; height: 18px; border: 0; padding: 0; background: transparent; color: var(--panel-muted); cursor: pointer; }
+.twisty { display: grid; place-items: center; width: 16px; height: 16px; border: 0; padding: 0; background: transparent; color: var(--icon-muted); cursor: pointer; }
 .twisty svg { transition: transform 120ms ease; }
-.layer-icon { flex: none; color: var(--panel-muted); }
-.layer-row.is-selected .layer-icon { color: var(--accent); }
+.layer-icon { flex: none; color: var(--icon-muted); }
+.layer-row.is-selected .layer-icon { color: var(--accent-text); }
 .layer-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .layer-actions { display: flex; opacity: 0; }
 .layer-row:hover .layer-actions, .layer-actions:focus-within { opacity: 1; }
 .layer-actions .is-on { opacity: 1; }
 .layer-row .layer-actions:has(.is-on) { opacity: 1; }
-.icon-button.small { width: 20px; height: 20px; color: var(--panel-muted); }
-.empty-note { padding: 8px 12px; color: var(--panel-muted); }
+.icon-button.small { width: 20px; height: 20px; color: var(--icon-muted); }
+.icon-button.small:hover { color: var(--icon); }
+/* Dans une liste (déjà en retrait de 8 px) ou une section (déjà en retrait de 16 px) : aligné sur le texte voisin. */
+.empty-note { margin: 0; padding: 4px 8px; color: var(--panel-muted); }
+.design-section .empty-note { padding: 0; }
 
-.panel-tabs { display: flex; gap: 4px; padding: 8px 8px 0; border-bottom: 1px solid var(--panel-border); }
+/* En-tête du panneau droit : 40 px, onglets en pilule (actif = fond gris, texte fort). */
+.panel-tabs {
+  flex: none; display: flex; align-items: center; gap: 4px; height: var(--header-h); padding: 0 8px;
+  border-bottom: 1px solid var(--panel-border);
+}
 .panel-tablist { display: flex; gap: 4px; }
 .panel-tablist button {
-  border: 0; background: transparent; font: 600 var(--fs)/1 system-ui, sans-serif; padding: 8px;
-  color: var(--panel-muted); border-bottom: 2px solid transparent; cursor: pointer;
+  height: var(--field-h); padding: 0 8px; border: 0; border-radius: var(--radius); background: transparent;
+  font: var(--fw-strong) var(--fs) / var(--lh) var(--font-ui); letter-spacing: var(--ls); color: var(--panel-muted); cursor: pointer;
 }
-.panel-tablist button[aria-selected='true'] { color: var(--panel-text); border-bottom-color: var(--panel-text); }
+.panel-tablist button:hover { color: var(--panel-text); }
+.panel-tablist button[aria-selected='true'] { color: var(--panel-text); background: var(--field-bg); }
 
+/* Menu contextuel : seulement les tokens ici, le menu lui-même est refait ailleurs. */
 .context-menu {
-  position: fixed; z-index: 50; min-width: 180px; padding: 4px; border-radius: 8px; background: var(--ink);
-  box-shadow: 0 8px 24px #0005; display: flex; flex-direction: column;
+  position: fixed; z-index: 50; min-width: 180px; padding: 8px; border-radius: var(--radius-lg); background: var(--ink);
+  box-shadow: var(--elevation-400); display: flex; flex-direction: column; box-sizing: border-box;
 }
 .context-menu button {
-  text-align: left; padding: 7px 10px; border: 0; border-radius: 5px; background: transparent;
-  color: var(--ink-text); font: var(--fs)/1.2 system-ui, sans-serif; cursor: pointer;
+  text-align: left; height: var(--field-h); padding: 0 8px; border: 0; border-radius: var(--radius); background: transparent;
+  color: var(--ink-text); font: var(--panel-font); letter-spacing: var(--ls); cursor: pointer;
 }
 .context-menu button:hover:not(:disabled), .context-menu button:focus-visible { background: var(--accent); outline: none; }
-.context-menu button:disabled { color: #ffffff59; cursor: default; }
-.context-menu button.danger:not(:disabled) { color: #ff8a80; }
+.context-menu button:disabled { color: rgba(255, 255, 255, 0.35); cursor: default; }
+.context-menu button.danger:not(:disabled) { color: #ff8a73; }
 .context-menu button.danger:hover:not(:disabled), .context-menu button.danger:focus-visible { color: #fff; background: var(--danger); }
