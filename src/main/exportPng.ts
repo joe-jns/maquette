@@ -129,25 +129,38 @@ async function capture(wc: WebContents, width: number, height: number): Promise<
   }
 }
 
-async function renderOnce(doc: MaquetteDocument, nodeId: string, opts: RenderOptions): Promise<Rendered | null> {
+interface Shown { w: BrowserWindow; wc: WebContents; width: number; height: number }
+
+/**
+ * Affiche l'élément seul dans la fenêtre cachée, à la taille donnée par `fit` (à partir de sa taille
+ * mesurée), et attend qu'elle soit dessinée.
+ */
+async function show(doc: MaquetteDocument, nodeId: string, scale: number, maxWidth: number | undefined, fit: (m: { width: number; height: number }) => { width: number; height: number }): Promise<Shown | null> {
   const { win: w, ready: loaded } = exportWindow()
   await loaded
   const wc = w.webContents
   const id = nextId++
-  const job: ExportJob = { doc, nodeId, scale: opts.scale, ...(opts.maxWidth ? { maxWidth: opts.maxWidth } : {}) }
+  const job: ExportJob = { doc, nodeId, scale, ...(maxWidth ? { maxWidth } : {}) }
   const measure = await new Promise<ExportMeasure>((resolve) => {
     pending.set(id, resolve)
     wc.send('export:job', id, job)
   })
   pending.delete(id)
   if (!measure || w.isDestroyed()) return null
-  const { width, height } = measure
+  const { width, height } = fit(measure)
   const before = w.getContentSize()
   const previous = lastPaint
   w.setContentSize(width, height)
   const after = w.getContentSize()
   await nextPaint(wc, previous, before[0] !== after[0] || before[1] !== after[1])
   if (w.isDestroyed()) return null
+  return { w, wc, width, height }
+}
+
+async function renderOnce(doc: MaquetteDocument, nodeId: string, opts: RenderOptions): Promise<Rendered | null> {
+  const shown = await show(doc, nodeId, opts.scale, opts.maxWidth, (m) => m)
+  if (!shown) return null
+  const { wc, width, height } = shown
   let image = await capture(wc, width, height)
   if (image.isEmpty()) return null
   const size = image.getSize()
@@ -157,25 +170,20 @@ async function renderOnce(doc: MaquetteDocument, nodeId: string, opts: RenderOpt
   return { buffer, width, height }
 }
 
-/**
- * Rend un élément seul en image (fenêtre cachée, rendu hors écran) : null si l'élément n'existe pas,
- * est masqué, ou si le rendu dépasse 15 s. Un seul rendu à la fois (file d'attente).
- */
-export function renderNode(doc: MaquetteDocument, nodeId: string, opts: RenderOptions): Promise<Rendered | null> {
-  const run = queue.then(async (): Promise<Rendered | null> => {
+/** Un seul travail à la fois dans la fenêtre cachée ; abandon (et fenêtre recréée) après 15 s. */
+function enqueue<T>(doc: MaquetteDocument, nodeId: string, work: () => Promise<T | null>): Promise<T | null> {
+  const run = queue.then(async (): Promise<T | null> => {
     if (!findVisible(doc, nodeId)) return null
-    const scale = Number.isFinite(opts.scale) && opts.scale > 0 ? Math.min(opts.scale, MAX_SCALE) : 1
-    const maxWidth = opts.maxWidth && opts.maxWidth > 0 ? Math.floor(opts.maxWidth) : undefined
     let timer: ReturnType<typeof setTimeout> | undefined
     const timeout = new Promise<null>((resolve) => {
       timer = setTimeout(() => {
-        // Rendu bloqué : la fenêtre repart de zéro au prochain export.
+        // Rendu bloqué : la fenêtre repart de zéro au prochain travail.
         closeExportWindow()
         resolve(null)
       }, TIMEOUT_MS)
     })
     try {
-      return await Promise.race([renderOnce(doc, nodeId, { scale, format: opts.format, ...(maxWidth ? { maxWidth } : {}) }), timeout])
+      return await Promise.race([work(), timeout])
     } catch {
       return null
     } finally {
@@ -184,6 +192,33 @@ export function renderNode(doc: MaquetteDocument, nodeId: string, opts: RenderOp
   })
   queue = run.catch(() => undefined)
   return run
+}
+
+/**
+ * Rend un élément seul en image (fenêtre cachée, rendu hors écran) : null si l'élément n'existe pas,
+ * est masqué, ou si le rendu dépasse 15 s. Un seul rendu à la fois (file d'attente).
+ */
+export function renderNode(doc: MaquetteDocument, nodeId: string, opts: RenderOptions): Promise<Rendered | null> {
+  const scale = Number.isFinite(opts.scale) && opts.scale > 0 ? Math.min(opts.scale, MAX_SCALE) : 1
+  const maxWidth = opts.maxWidth && opts.maxWidth > 0 ? Math.floor(opts.maxWidth) : undefined
+  return enqueue(doc, nodeId, () => renderOnce(doc, nodeId, { scale, format: opts.format, ...(maxWidth ? { maxWidth } : {}) }))
+}
+
+/**
+ * Affiche un élément seul, à 1×, dans une fenêtre de sa largeur et d'au plus `viewportHeight` de haut
+ * (comme un écran), puis y exécute `script` (une expression JavaScript) : son résultat, ou null.
+ */
+export function evaluateInNode<T>(doc: MaquetteDocument, nodeId: string, script: string, viewportHeight: number): Promise<{ result: T; width: number; height: number } | null> {
+  return enqueue(doc, nodeId, async () => {
+    let full = { width: 0, height: 0 }
+    const shown = await show(doc, nodeId, 1, undefined, (m) => {
+      full = m
+      return { width: m.width, height: Math.min(m.height, viewportHeight) }
+    })
+    if (!shown) return null
+    const result = (await shown.wc.executeJavaScript(script, true)) as T
+    return { result, ...full }
+  })
 }
 
 /** Nom de fichier proposé : `<nom de l'élément>@<n>x.png`, sans caractères interdits. */
