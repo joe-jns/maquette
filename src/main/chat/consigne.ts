@@ -57,7 +57,7 @@ const PEN = `# New page, section or screen
    - Objects are properly aligned and spaced.
    - Your intention and understanding of the model match the visuals.
    Fix with update on the existing elements; never delete a section to redo it. verifier_gout is optional in this mode: its taste-skill rules don't bind the chosen style.
-6. Finally capture the sections at full width (capture({ids:[…3 sections…], largeur:1440})), run the checklist again, fix, then tell the user in 2–4 short sentences: the style and why, what to replace (sample content, placeholder pictures).
+6. Final review, mandatory (never skip it): capture every section at full width (capture({ids:[…3 sections…], largeur:1440}), all sections in groups of 3). Check: the checklist above, legibility, fidelity to the source style (typefaces, weights, case, colours), each section distinct from its neighbours. Write the 3 worst problems, fix them with update, capture again; two rounds at most. Then tell the user in 2–4 short sentences: the style and why, what to replace (sample content, placeholder pictures).
 
 # Style
 - Don't create repetitive styles and grids. Add some unique elements and layout to make the design feel more interesting.
