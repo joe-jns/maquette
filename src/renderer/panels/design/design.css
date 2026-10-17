@@ -111,3 +111,15 @@
 .align-grid button[aria-pressed='true'] span { width: 10px; height: 4px; border-radius: 2px; background: var(--accent); }
 .child-layout { display: flex; gap: 6px; align-items: center; }
 .child-layout .select-field { flex: 1; }
+
+.style-row { display: flex; align-items: center; gap: 6px; }
+.name-field {
+  flex: 1; min-width: 0; height: 28px; border: 1px solid transparent; border-radius: 5px; background: transparent;
+  font: inherit; font-weight: 500; padding: 0 6px; color: var(--panel-text);
+}
+.name-field:hover { border-color: var(--panel-border); }
+.name-field:focus { outline: none; border-color: var(--accent); background: #fff; }
+.text-style-block { display: flex; flex-direction: column; gap: 6px; }
+.text-style-block + .text-style-block { border-top: 1px dashed var(--panel-border); padding-top: 10px; }
+.text-style-preview { width: 24px; text-align: center; font-size: 15px; }
+.empty-note.inline { padding: 0; margin: 0; }

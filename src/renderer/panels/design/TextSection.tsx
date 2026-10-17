@@ -11,11 +11,11 @@ import { applyPhase } from './PaintSections'
 import { commit, Icon, scrubWith, Section, useSelection } from './shared'
 
 /** Polices installées sur Windows, proposées en plus du catalogue Google. */
-const SYSTEM_FONTS: FontInfo[] = ['Arial', 'Georgia', 'Times New Roman', 'Verdana', 'Courier New', 'Segoe UI', 'Tahoma', 'Trebuchet MS'].map(
+export const SYSTEM_FONTS: FontInfo[] = ['Arial', 'Georgia', 'Times New Roman', 'Verdana', 'Courier New', 'Segoe UI', 'Tahoma', 'Trebuchet MS'].map(
   (family) => ({ family, category: 'Système', weights: [400, 700], italic: true, variable: null }),
 )
 
-const WEIGHT_NAMES: Record<number, string> = {
+export const WEIGHT_NAMES: Record<number, string> = {
   100: 'Thin', 200: 'ExtraLight', 300: 'Light', 400: 'Regular', 500: 'Medium', 600: 'SemiBold', 700: 'Bold', 800: 'ExtraBold', 900: 'Black',
 }
 
@@ -25,13 +25,13 @@ type FontProps = Pick<TextStyle, (typeof FONT_KEYS)[number]>
 /** Valeurs de police réellement appliquées : celles du style de texte nommé s'il y en a un. */
 const fontOf = (t: TextNode, styles: TextStyle[]): FontProps => styles.find((s) => s.id === t.textStyle) ?? t
 
-function weightsOf(info: FontInfo | undefined): number[] {
+export function weightsOf(info: FontInfo | undefined): number[] {
   if (!info) return [100, 200, 300, 400, 500, 600, 700, 800, 900]
   if (info.variable) return Object.keys(WEIGHT_NAMES).map(Number).filter((w) => w >= info.variable!.min && w <= info.variable!.max)
   return info.weights
 }
 
-function FontPicker({ current, catalog, onPick, onClose }: { current: string; catalog: FontInfo[]; onPick(family: string): void; onClose(): void }) {
+export function FontPicker({ current, catalog, onPick, onClose }: { current: string; catalog: FontInfo[]; onPick(family: string): void; onClose(): void }) {
   const [query, setQuery] = useState('')
   const box = useRef<HTMLDivElement>(null)
   const results = useMemo(() => {
@@ -151,8 +151,31 @@ export function TextSection() {
       return { op: 'update' as const, id: t.id, set: { ...size, textSizing: value } }
     })
 
+  const createStyle = () => {
+    const f = fonts[0]!
+    commit(
+      [
+        {
+          op: 'style.text.set', id: '$text', name: `Texte ${styles.text.length + 1}`,
+          fontFamily: f.fontFamily, fontWeight: f.fontWeight, fontStyle: f.fontStyle, fontSize: f.fontSize, lineHeight: f.lineHeight, letterSpacing: f.letterSpacing,
+        },
+        ...set({ textStyle: '$text' }),
+      ],
+      'Créer un style de texte',
+    )
+  }
+
   return (
-    <Section title="Texte">
+    <Section
+      title="Texte"
+      actions={
+        styleId === '' ? (
+          <button type="button" className="icon-button" aria-label="Créer un style de texte depuis la sélection" title="Créer un style de texte" onClick={createStyle}>
+            <Icon d="M8 3v10M3 8h10" />
+          </button>
+        ) : undefined
+      }
+    >
       {styles.text.length > 0 && (
         <label className="select-field">
           <span>Style</span>

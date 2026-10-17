@@ -15,7 +15,7 @@ const withAlpha = (hex: string, alpha: number) => {
   return alpha >= 1 ? base : base + Math.round(alpha * 255).toString(16).padStart(2, '0').toUpperCase()
 }
 
-function HexField({ name, value, onCommit }: { name: string; value: string; onCommit(hex: string): void }) {
+export function HexField({ name, value, onCommit }: { name: string; value: string; onCommit(hex: string): void }) {
   const shown = value.slice(1, 7)
   const [draft, setDraft] = useState(shown)
   const dirty = useRef(false)
@@ -61,12 +61,14 @@ function HexField({ name, value, onCommit }: { name: string; value: string; onCo
  * Une couleur du panneau : pastille (sélecteur natif), valeur hexadécimale, opacité, ou bien une
  * couleur nommée (pastille + nom, « détacher »). Choisir une couleur nommée ouvre la liste du document.
  */
-export function ColorRow({ name, color, styles, apply, onRemove }: {
+export function ColorRow({ name, color, styles, apply, onRemove, onCreateStyle }: {
   name: string
   color: Color
   styles: DocStyles
   apply(color: Color, phase: ColorPhase): void
   onRemove?: () => void
+  /** Crée une couleur nommée à partir de cette couleur et l'applique. */
+  onCreateStyle?: (value: string) => void
 }) {
   const value = resolveColor(color, styles)
   const named = typeof color === 'object' ? styles.colors.find((s) => s.id === color.style) : undefined
@@ -125,6 +127,17 @@ export function ColorRow({ name, color, styles, apply, onRemove }: {
         </>
       )}
       <span className="color-row-actions">
+        {!named && onCreateStyle && (
+          <button
+            type="button"
+            className="icon-button small"
+            aria-label={`Créer une couleur nommée depuis le ${lower(name)}`}
+            title="Créer une couleur nommée"
+            onClick={() => onCreateStyle(value)}
+          >
+            <Icon d="M8 3v10M3 8h10" />
+          </button>
+        )}
         <button
           type="button"
           className="icon-button small"

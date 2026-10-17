@@ -1,5 +1,6 @@
 import { useUi } from '../state/ui'
 import { AutoLayoutSection } from './design/AutoLayoutSection'
+import { DocumentPanel } from './design/DocumentPanel'
 import { FillSection, ShadowSection, StrokeSection } from './design/PaintSections'
 import { PositionSection } from './design/PositionSection'
 import { TextSection } from './design/TextSection'
@@ -23,7 +24,7 @@ export function RightPanel() {
           <ShadowSection />
         </div>
       ) : (
-        <p className="empty-note">Sélectionnez un élément pour voir ses propriétés.</p>
+        <DocumentPanel />
       )}
     </aside>
   )

@@ -54,6 +54,15 @@ export function FillSection() {
             styles={styles}
             apply={(color, phase) => applyPhase(set((fills ?? []).map((f, k) => (k === i ? color : f))), phase, 'Remplissage')}
             onRemove={() => commit(set((fills ?? []).filter((_, k) => k !== i)), 'Retirer un remplissage')}
+            onCreateStyle={(value) =>
+              commit(
+                [
+                  { op: 'style.color.set', id: '$style', name: `Couleur ${styles.colors.length + 1}`, value },
+                  ...set((fills ?? []).map((f, k) => (k === i ? { style: '$style' } : f))),
+                ],
+                'Créer une couleur nommée',
+              )
+            }
           />
         ))
       )}
