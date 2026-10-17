@@ -13,7 +13,7 @@ export function FileChangedBanner() {
 
   const reload = async () => {
     // Des changements non enregistrés seraient perdus : on demande d'abord.
-    if (!confirmDiscard()) return
+    if (!(await confirmDiscard())) return
     setPath(null)
     const file = await window.maquette.reloadFile(path)
     if (file) await openDocument(file)

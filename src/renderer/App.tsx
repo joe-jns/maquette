@@ -42,7 +42,7 @@ export function App() {
   useEffect(
     () =>
       window.maquette.onOpenFile((file) => {
-        if (confirmDiscard()) void openDocument(file)
+        void confirmDiscard().then((ok) => ok && openDocument(file))
       }),
     [],
   )

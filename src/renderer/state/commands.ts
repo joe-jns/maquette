@@ -1,12 +1,21 @@
 import { newDocument } from '../../core/defaults'
 import { serializeDocument } from '../../core/format'
 import type { MenuCommand } from '../../shared/ipc'
+import { ask } from '../dialog/dialogStore'
 import { openDocument } from './openDocument'
 import { docStore } from './store'
 import { uiStore } from './ui'
 
-export const confirmDiscard = () =>
-  !docStore.getState().dirty || window.confirm('Abandonner les modifications non enregistrées ?')
+/** Document modifié : demande avant de le remplacer (Annuler par défaut, rien n'est perdu sur Entrée). */
+export const confirmDiscard = async (): Promise<boolean> =>
+  !docStore.getState().dirty ||
+  (await ask({
+    message: 'Abandonner les modifications non enregistrées ?',
+    detail: 'Elles seront perdues.',
+    buttons: [{ label: 'Annuler' }, { label: 'Abandonner', kind: 'danger' }],
+    cancelIndex: 0,
+    defaultIndex: 0,
+  })) === 1
 
 async function save(asNew: boolean): Promise<boolean> {
   // Un texte en cours d'édition n'est dans le document qu'à sa fermeture : on le valide d'abord.
@@ -46,7 +55,7 @@ export async function runCommand(cmd: MenuCommand): Promise<void> {
   const store = docStore.getState()
   switch (cmd) {
     case 'new':
-      if (confirmDiscard()) {
+      if (await confirmDiscard()) {
         await window.maquette.documentLoaded(null)
         store.load(newDocument(), null)
         uiStore.getState().select([])
@@ -55,7 +64,7 @@ export async function runCommand(cmd: MenuCommand): Promise<void> {
       }
       return
     case 'open': {
-      if (!confirmDiscard()) return
+      if (!(await confirmDiscard())) return
       const file = await window.maquette.openFile()
       if (file) await openDocument(file)
       return
