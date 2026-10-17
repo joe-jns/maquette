@@ -67,6 +67,37 @@ test('états de l’interface', async () => {
   await page.waitForTimeout(500)
   await shot(page, '07-polices')
   await page.keyboard.press('Escape')
+  // Liste déroulante maison ouverte (graisse), puis plusieurs éléments et l'alignement.
+  await page.getByRole('combobox', { name: 'Graisse', exact: true }).click()
+  await page.waitForTimeout(200)
+  await shot(page, '16-liste-ouverte')
+  await page.keyboard.press('Escape')
+  await select(page, ['rBleu1', 'rVert1', 'fLibre'])
+  await page.waitForTimeout(300)
+  await page.getByRole('button', { name: 'Aligner en haut' }).hover()
+  await shot(page, '17-alignement')
+  await select(page, ['fHero1'])
+  await page.waitForTimeout(300)
+  await page.getByRole('combobox', { name: 'Largeur : mode' }).click()
+  await page.waitForTimeout(200)
+  await shot(page, '18-mode-taille')
+  await page.keyboard.press('Escape')
+  // Contour, ombre, couleur nommée et style de texte : les rangées les plus chargées du panneau.
+  await page.evaluate(() => {
+    const store = (window as unknown as { __maquetteStore: { getState(): { dispatch(ops: unknown[], label: string): unknown } } }).__maquetteStore
+    store.getState().dispatch([
+      { op: 'style.color.set', id: '$c', name: 'Accent', value: '#C2410C' },
+      { op: 'style.text.set', id: '$t', name: 'Titre 1', fontFamily: 'Inter', fontWeight: 700, fontStyle: 'normal', fontSize: 40, lineHeight: 48, letterSpacing: 0 },
+      { op: 'update', id: 'rBleu1', set: { stroke: { color: { style: '$c' }, width: 2, align: 'inside' }, shadows: [{ x: 0, y: 4, blur: 12, spread: 0, color: '#00000026', inset: true }] } },
+    ], 'capture')
+  })
+  await select(page, ['rBleu1'])
+  await page.waitForTimeout(300)
+  await shot(page, '19-contour-ombre')
+  await select(page, [])
+  await page.waitForTimeout(300)
+  await shot(page, '20-styles-document')
+  await page.evaluate(() => (window as unknown as { __maquetteStore: { getState(): { undo(): void } } }).__maquetteStore.getState().undo())
   await page.getByRole('tab', { name: 'Direction' }).click()
   await shot(page, '08-direction')
   await page.getByRole('tab', { name: 'Design' }).click()

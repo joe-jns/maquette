@@ -6,8 +6,9 @@ import type { Op } from '../../../core/ops'
 import { HexField } from './ColorRow'
 import { applyPhase } from './PaintSections'
 import { NumberField } from './NumberField'
-import { commit, Icon, IconButton, Section } from './shared'
-import { FontPicker, SYSTEM_FONTS, WEIGHT_NAMES, weightsOf } from './TextSection'
+import { commit, FIELD_GLYPH, Icon, IconButton, Section } from './shared'
+import { Select } from '../../ui/Select'
+import { FontPicker, SYSTEM_FONTS, weightOptions, weightsOf } from './TextSection'
 
 /** Sélecteur natif d'une couleur nommée : aperçu en direct, une seule entrée d'historique à la fermeture. */
 function StyleColorInput({ label, value, opsFor }: { label: string; value: string; opsFor(value: string): Op[] }) {
@@ -186,17 +187,15 @@ export function DocumentPanel() {
               )}
             </div>
             <div className="field-grid">
-              <label className="select-field">
-                <span className="visually-hidden">Graisse du style {i + 1}</span>
-                <select aria-label={`Graisse du style ${i + 1}`} value={String(s.fontWeight)} onChange={(e) => setText(s, { fontWeight: Number(e.target.value) })}>
-                  {weightsOf(fullCatalog.find((f) => f.family === s.fontFamily)).map((w) => (
-                    <option key={w} value={w}>{WEIGHT_NAMES[w] ?? w} {w}</option>
-                  ))}
-                </select>
-              </label>
-              <NumberField name={`Taille du style ${i + 1}`} label="T" min={1} value={s.fontSize} onCommit={(fontSize) => setText(s, { fontSize })} />
-              <NumberField name={`Interligne du style ${i + 1}`} label="↕" min={1} value={s.lineHeight} onCommit={(lineHeight) => setText(s, { lineHeight })} />
-              <NumberField name={`Espacement du style ${i + 1}`} label="↔" step={0.1} value={s.letterSpacing} onCommit={(letterSpacing) => setText(s, { letterSpacing })} />
+              <Select
+                label={`Graisse du style ${i + 1}`}
+                value={String(s.fontWeight)}
+                options={weightOptions(weightsOf(fullCatalog.find((f) => f.family === s.fontFamily)))}
+                onChange={(v) => setText(s, { fontWeight: Number(v) })}
+              />
+              <NumberField name={`Taille du style ${i + 1}`} label={<Icon d={FIELD_GLYPH.fontSize} />} min={1} value={s.fontSize} onCommit={(fontSize) => setText(s, { fontSize })} />
+              <NumberField name={`Interligne du style ${i + 1}`} label={<Icon d={FIELD_GLYPH.lineHeight} />} min={1} value={s.lineHeight} onCommit={(lineHeight) => setText(s, { lineHeight })} />
+              <NumberField name={`Espacement du style ${i + 1}`} label={<Icon d={FIELD_GLYPH.letterSpacing} />} step={0.1} value={s.letterSpacing} onCommit={(letterSpacing) => setText(s, { letterSpacing })} />
             </div>
           </div>
         ))}

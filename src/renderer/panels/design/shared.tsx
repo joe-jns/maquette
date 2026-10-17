@@ -75,8 +75,23 @@ export function IconButton({ label, onClick, pressed, disabled, tooltip, shortcu
   )
 }
 
-export const Icon = ({ d, size = 14 }: { d: string; size?: number }) => (
+/** Glyphes des étiquettes de champ (à la place de caractères Unicode de tailles inégales). */
+export const FIELD_GLYPH = {
+  opacity: 'M8 2.75a5.25 5.25 0 1 0 0 10.5a5.25 5.25 0 1 0 0-10.5zM8 2.75v10.5',
+  radius: 'M3.5 12.5V8A4.5 4.5 0 0 1 8 3.5h4.5',
+  padH: 'M2.5 3v10M13.5 3v10M6 6h4v4H6z',
+  padV: 'M3 2.5h10M3 13.5h10M6 6h4v4H6z',
+  stroke: 'M3 4.5h10M3 8h10M3 11.5h10',
+  fontSize: 'M4 5V3.5h8V5M8 3.5v9M6.5 12.5h3',
+  lineHeight: 'M3 2.5h10M3 13.5h10M8 5.5v5M6.5 7 8 5.5 9.5 7M6.5 9 8 10.5 9.5 9',
+  letterSpacing: 'M2.5 3v10M13.5 3v10M5.5 11.5 8 4.5l2.5 7M6.5 9h3',
+  blur: 'M8 2.5c2 2.6 4 4.8 4 7a4 4 0 0 1-8 0c0-2.2 2-4.4 4-7z',
+  spread: 'M2.5 2.5h11v11h-11zM5.5 5.5h5v5h-5z',
+} as const
+
+/** Glyphe de 16 px (dans une boîte de 24), trait de 1,25 px, bouts ronds. */
+export const Icon = ({ d, size = 16 }: { d: string; size?: number }) => (
   <svg viewBox="0 0 16 16" width={size} height={size} aria-hidden>
-    <path d={d} fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+    <path d={d} fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 )

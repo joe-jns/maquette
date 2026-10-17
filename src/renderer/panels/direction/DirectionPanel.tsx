@@ -3,6 +3,7 @@ import { applyDirectionOps, directionStyles, SECTORS, TONES } from '../../../tas
 import { ensureFont } from '../../fonts/fontLoader'
 import { docStore } from '../../state/store'
 import { tasteStore, useTaste } from '../../taste/tasteStore'
+import { Select } from '../../ui/Select'
 import { Section } from '../design/shared'
 import './direction.css'
 
@@ -31,23 +32,19 @@ export function DirectionPanel() {
   return (
     <div className="design direction-panel">
       <Section title="Brief">
-        <label className="select-field">
-          <span>Secteur</span>
-          <select aria-label="Secteur" value={input.sector} onChange={(e) => setInput({ sector: e.target.value })}>
-            {SECTORS.map((s) => (
-              <option key={s.id} value={s.id}>{s.label}</option>
-            ))}
-          </select>
-        </label>
-        <label className="select-field">
-          <span>Ton</span>
-          <select aria-label="Ton" value={input.tone ?? ''} onChange={(e) => setInput({ tone: e.target.value || undefined })}>
-            <option value="">Au hasard</option>
-            {TONES.map((t) => (
-              <option key={t.id} value={t.id}>{t.label}</option>
-            ))}
-          </select>
-        </label>
+        <div className="select-field">
+          <span aria-hidden>Secteur</span>
+          <Select label="Secteur" value={input.sector} options={SECTORS.map((s) => ({ value: s.id, label: s.label }))} onChange={(sector) => setInput({ sector })} />
+        </div>
+        <div className="select-field">
+          <span aria-hidden>Ton</span>
+          <Select
+            label="Ton"
+            value={input.tone ?? ''}
+            options={[{ value: '', label: 'Au hasard' }, ...TONES.map((t) => ({ value: t.id, label: t.label }))]}
+            onChange={(tone) => setInput({ tone: tone || undefined })}
+          />
+        </div>
         <textarea
           className="brief-field"
           aria-label="Brief en une phrase"

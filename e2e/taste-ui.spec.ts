@@ -8,7 +8,9 @@ test('onglet Direction : tirer, choisir, appliquer, annuler en une fois', async 
   const { app, page } = await launch([scene])
   try {
     await page.getByRole('tab', { name: 'Direction' }).click()
-    await page.getByLabel('Secteur').selectOption('restaurant')
+    await page.getByRole('combobox', { name: 'Secteur' }).click()
+    await page.getByRole('option', { name: 'Restaurant', exact: true }).click()
+    await expect(page.getByRole('combobox', { name: 'Secteur' })).toHaveText('Restaurant')
     await page.getByLabel('Brief en une phrase').fill('Bistrot de quartier à Charleroi, cuisine du marché')
     await page.getByRole('button', { name: 'Tirer 3 directions' }).click()
     const cards = page.locator('.direction-card')

@@ -94,18 +94,18 @@ export function ColorRow({ name, color, styles, apply, onRemove, onCreateStyle }
     return () => el.removeEventListener('change', onChange)
   }, [apply, value])
 
+  const STYLES = 'M3.5 5a1.5 1.5 0 1 0 3 0a1.5 1.5 0 1 0-3 0zM9.5 5a1.5 1.5 0 1 0 3 0a1.5 1.5 0 1 0-3 0zM3.5 11a1.5 1.5 0 1 0 3 0a1.5 1.5 0 1 0-3 0zM9.5 11a1.5 1.5 0 1 0 3 0a1.5 1.5 0 1 0-3 0z'
+
+  // Comme Figma : une seule boîte de 24 px (pastille, valeur, opacité), les actions au bout, au survol.
   return (
     <div className="color-row">
       {named ? (
-        <>
+        <div className="color-box is-named">
           <span className="swatch" style={{ background: value }} aria-hidden />
           <span className="style-chip" data-tooltip={value}>{named.name}</span>
-          <button type="button" className="icon-button small" aria-label="Détacher la couleur nommée" data-tooltip="Détacher la couleur nommée" onClick={() => apply(value, 'commit')}>
-            <Icon d="M6 10 10 6M5 7.5 3.5 9a2.5 2.5 0 0 0 3.5 3.5L8.5 11M11 8.5 12.5 7A2.5 2.5 0 0 0 9 3.5L7.5 5" />
-          </button>
-        </>
+        </div>
       ) : (
-        <>
+        <div className="color-box">
           <span className="swatch" style={{ background: value }}>
             <input
               ref={swatch}
@@ -130,15 +130,20 @@ export function ColorRow({ name, color, styles, apply, onRemove, onCreateStyle }
               onCommit={(v) => apply(withAlpha(value, v / 100), 'commit')}
             />
           </div>
-        </>
+        </div>
       )}
       <span className="color-row-actions">
+        {named && (
+          <button type="button" className="icon-button" aria-label="Détacher la couleur nommée" data-tooltip="Détacher la couleur nommée" onClick={() => apply(value, 'commit')}>
+            <Icon d="M6 10 10 6M5 7.5 3.5 9a2.5 2.5 0 0 0 3.5 3.5L8.5 11M11 8.5 12.5 7A2.5 2.5 0 0 0 9 3.5L7.5 5" />
+          </button>
+        )}
         {!named && onCreateStyle && (
           <button
             type="button"
-            className="icon-button small"
+            className="icon-button"
             aria-label={`Créer une couleur nommée depuis le ${lower(name)}`}
-            data-tooltip="Créer une couleur nommée"
+            title="Créer une couleur nommée"
             onClick={() => onCreateStyle(value)}
           >
             <Icon d="M8 3v10M3 8h10" />
@@ -146,16 +151,16 @@ export function ColorRow({ name, color, styles, apply, onRemove, onCreateStyle }
         )}
         <button
           type="button"
-          className="icon-button small"
+          className="icon-button"
           aria-label={`Couleur nommée pour le ${lower(name)}`}
-          data-tooltip="Couleurs nommées"
+          title="Couleurs nommées"
           aria-expanded={picking}
           onClick={() => setPicking((p) => !p)}
         >
-          <Icon d="M3 4h10M3 8h10M3 12h6" />
+          <Icon d={STYLES} />
         </button>
         {onRemove && (
-          <button type="button" className="icon-button small" aria-label={`Retirer : ${lower(name)}`} data-tooltip="Retirer" onClick={onRemove}>
+          <button type="button" className="icon-button" aria-label={`Retirer : ${lower(name)}`} data-tooltip="Retirer" onClick={onRemove}>
             <Icon d="M4 8h8" />
           </button>
         )}
