@@ -40,7 +40,7 @@ describe('historique des conversations', () => {
     expect(items.at(-1)!.id).toBe(`a${MAX_ITEMS + 29}`)
     expect(JSON.parse(readFileSync(file, 'utf8')).k.items).toHaveLength(MAX_ITEMS)
     expect(existsSync(`${file}.tmp`)).toBe(false)
-  })
+  }, 20_000) // 230 écritures de fichier à la suite : lent quand toute la suite tourne
 
   it('reset oublie la conversation et sa session', async () => {
     const store = new ChatStore(fresh())
