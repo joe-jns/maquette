@@ -9,7 +9,7 @@ The design rules are kept; Pen's format and functions are replaced by Maquette's
 - `lire_elements` / `chercher` — read details, find by name, type or text.
 - `appliquer` — one atomic batch of operations = one undo for the user. One batch per section.
 - `capture` — JPEG of an element. Use after each finished section, on the section frame (not the whole page).
-- `verifier_gout` — taste-skill rules measured on the real render of a frame. After each section and on the finished page.
+- `verifier_gout` — taste-skill rules measured on the real render of a frame, when the chat's method asks for it.
 - `style` — Pen's style archetypes (identity, type, palette, radii, elevation, imagery); `appliquer:true` creates the named colours and text styles.
 - `direction` — taste-skill: deal 3 directions for a brief, then the full sheet of one; `appliquer:true` creates colours and text styles.
 - `guide` — this text and the others (page types, house rules, typography, colour, layout, critique).
@@ -74,7 +74,7 @@ Example — a hero section in one batch:
 
 ## Verify each section right away
 
-After each section: `capture` of the section frame, then `verifier_gout` on it. Fix with `update` (never delete and redo). Checklist:
+After each section: `capture` of the section frame (and `verifier_gout` when the method asks for it). Fix with `update` (never delete and redo). Checklist:
 - Layout not collapsed or broken; nothing at 0 width.
 - No content clipped or cut; frames grow with their content (`hug`), or are resized.
 - Text contrast on its real background; no grey running text.

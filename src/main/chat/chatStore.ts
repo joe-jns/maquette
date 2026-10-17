@@ -1,6 +1,7 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
-import type { ChatItem } from '../../shared/chat'
+import { DEFAULT_CHAT_OPTIONS, type ChatItem, type ChatOptions } from '../../shared/chat'
+import { cleanStyle } from '../../shared/chatStyle'
 import { imageHashes } from './chatImages'
 
 /** Clé de la conversation d'un document sans titre. */
@@ -8,7 +9,13 @@ export const UNTITLED = 'sans-titre'
 /** Éléments gardés par conversation (les plus anciens partent). */
 export const MAX_ITEMS = 200
 
-export interface Conversation { sessionId: string | null; items: ChatItem[] }
+export interface Conversation { sessionId: string | null; items: ChatItem[]; options?: Partial<ChatOptions> }
+
+/** Réglages lus dans le fichier : seules les valeurs du bon type comptent, le reste prend la valeur par défaut. */
+export function cleanOptions(raw: unknown): ChatOptions {
+  const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {}
+  return { taste: typeof o.taste === 'boolean' ? o.taste : DEFAULT_CHAT_OPTIONS.taste, style: cleanStyle(o.style) }
+}
 type Data = Record<string, Conversation>
 
 export const chatKey = (path: string | null): string => path ?? UNTITLED
@@ -93,8 +100,26 @@ export class ChatStore {
     })
   }
 
-  /** Oublie la conversation (nouvelle conversation, ou document sans titre au démarrage). */
-  reset(key: string): Promise<void> {
-    return this.change(key, () => null)
+  /** Réglages de la conversation (valeurs par défaut si elle n'en a pas). */
+  options(key: string): Promise<ChatOptions> {
+    return this.serial(async () => cleanOptions((await this.load())[key]?.options))
+  }
+
+  /** Change des réglages ; renvoie les réglages à jour. */
+  async setOptions(key: string, patch: Partial<ChatOptions>): Promise<ChatOptions> {
+    let next = DEFAULT_CHAT_OPTIONS
+    await this.change(key, (c) => {
+      next = cleanOptions({ ...cleanOptions(c.options), ...patch })
+      return { ...c, sessionId: c.sessionId ?? null, items: Array.isArray(c.items) ? c.items : [], options: next }
+    })
+    return next
+  }
+
+  /**
+   * Oublie la conversation (nouvelle conversation, ou document sans titre au démarrage).
+   * `keepOptions` : ses réglages restent (nouvelle conversation sur le même fichier).
+   */
+  reset(key: string, keepOptions = false): Promise<void> {
+    return this.change(key, (c) => (keepOptions && c.options ? { sessionId: null, items: [], options: c.options } : null))
   }
 }

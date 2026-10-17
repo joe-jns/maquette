@@ -1,4 +1,5 @@
 /** Chat avec Claude (Claude Code lancé par l'app) : ce qui circule entre le principal et la fenêtre. */
+import type { ChatStyle } from './chatStyle'
 
 /**
  * Vignette d'une image du chat (jointe par l'utilisateur ou vue par Claude), enregistrée par le principal
@@ -36,13 +37,25 @@ export interface ChatImage { mediaType: string; data: string }
 export interface ChatSend { text: string; context: string; images: ChatImage[] }
 export type PermissionDecision = 'allow' | 'always' | 'deny'
 
+/**
+ * Réglages d'une conversation, mémorisés avec elle (chats.json) : taste = méthode taste-skill
+ * (sinon méthode de Pen ; un changement relance claude avec --resume au message suivant) ;
+ * style = style de Pen choisi dans la saisie, joint à chaque message (null : le prompt décide).
+ */
+export interface ChatOptions { taste: boolean; style: ChatStyle | null }
+export const DEFAULT_CHAT_OPTIONS: ChatOptions = { taste: false, style: null }
+
 export interface ChatApi {
   /** Conversation du fichier (null = sans titre) : arrête l'ancienne, renvoie l'historique de celle-ci. */
   open(path: string | null): Promise<ChatItem[]>
   send(message: ChatSend): void
   stop(): void
   permission(requestId: string, decision: PermissionDecision): void
-  /** Nouvelle conversation pour le fichier courant (oublie l'ancienne). */
+  /** Nouvelle conversation pour le fichier courant (oublie l'ancienne, garde ses réglages). */
   reset(): Promise<void>
+  /** Réglages de la conversation ouverte. */
+  options(): Promise<ChatOptions>
+  /** Change des réglages de la conversation ouverte ; renvoie les réglages à jour. */
+  setOptions(patch: Partial<ChatOptions>): Promise<ChatOptions>
   onEvent(cb: (event: ChatEvent) => void): () => void
 }

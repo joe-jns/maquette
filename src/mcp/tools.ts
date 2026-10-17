@@ -117,7 +117,7 @@ export const TOOLS: ToolDef[] = [
   },
   {
     name: 'verifier_gout',
-    description: 'Contrôle taste-skill d’un cadre sur son rendu réel : [niveau, règle, message, correction] (au plus 15), "page" = cadre de la taille d’une page. À lancer après une section ou une page. ecran:"app" pour un écran d’application (tableau de bord, mobile) : les règles propres aux pages publiques (étiquettes, cartes, filets, photos…) sont ignorées.',
+    description: 'Contrôle des règles taste-skill sur le rendu réel d’un cadre : [niveau, règle, message, correction] (au plus 15), "page" = cadre de la taille d’une page. ecran:"app" pour un écran d’application (tableau de bord, mobile) : les règles propres aux pages publiques (étiquettes, cartes, filets, photos…) sont ignorées.',
     input: INPUTS.verifier_gout,
   },
   { name: 'images', description: IMAGES_DESCRIPTION, input: INPUTS.images },

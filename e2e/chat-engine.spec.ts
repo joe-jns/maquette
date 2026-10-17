@@ -80,9 +80,9 @@ test.describe('chat : moteur', () => {
       expect(args).not.toContain('--resume')
       const prompt = readFileSync(run!.argv[run!.argv.indexOf('--append-system-prompt-file') + 1]!, 'utf8')
       expect(prompt).toContain('scène chat.maquette')
-      // Consigne permanente : méthode de design et règles de goût.
-      expect(prompt).toContain('New page, section or screen: mandatory taste-skill method')
-      expect(prompt).toContain('capture of the section frame + verifier_gout')
+      // Consigne permanente, taste-skill éteint par défaut : méthode de Pen.
+      expect(prompt).toContain('choose the Pen style archetype that fits the subject')
+      expect(prompt).not.toContain('mandatory taste-skill method')
 
       // Le processus reste vivant entre les tours.
       await clear(page)

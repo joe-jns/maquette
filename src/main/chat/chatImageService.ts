@@ -26,15 +26,26 @@ export const nativeThumb: MakeThumb = (bytes) => {
   return { jpeg: small.toJPEG(80), width: out.width, height: out.height }
 }
 
-/** maquette-chat://img/<hash>.jpg → vignette du dossier `dir`, rien d'autre. */
-export function handleChatImages(dir: string): void {
+/** Vignette du sélecteur de styles : un nom de fichier .webp simple, dans `dir` (vendor/design/thumbs). */
+export function styleThumbFile(dir: string, pathname: string): string | null {
+  const name = decodeURIComponent(pathname.replace(/^\//, ''))
+  return STYLE_THUMB.test(name) ? join(dir, name) : null
+}
+const STYLE_THUMB = /^[a-z0-9][a-z0-9-]{0,120}\.webp$/
+
+/**
+ * maquette-chat://img/<hash>.jpg → vignette du dossier `dir` ;
+ * maquette-chat://style/<nom>.webp → vignette du sélecteur de styles (`thumbs`) ; rien d'autre.
+ */
+export function handleChatImages(dir: string, thumbs: string): void {
   protocol.handle(CHAT_IMAGE_SCHEME, async (request) => {
     const url = new URL(request.url)
-    const file = url.host === 'img' ? imageFile(dir, url.pathname) : null
+    const file = url.host === 'img' ? imageFile(dir, url.pathname) : url.host === 'style' ? styleThumbFile(thumbs, url.pathname) : null
     if (!file) return new Response('introuvable', { status: 404 })
     try {
       const body = await readFile(file)
-      return new Response(new Uint8Array(body), { headers: { 'content-type': 'image/jpeg', 'cache-control': 'max-age=31536000, immutable' } })
+      const type = url.host === 'style' ? 'image/webp' : 'image/jpeg'
+      return new Response(new Uint8Array(body), { headers: { 'content-type': type, 'cache-control': 'max-age=31536000, immutable' } })
     } catch {
       return new Response('introuvable', { status: 404 })
     }

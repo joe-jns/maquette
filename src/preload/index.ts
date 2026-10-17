@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
-import type { ChatEvent, ChatItem } from '../shared/chat'
+import type { ChatEvent, ChatItem, ChatOptions } from '../shared/chat'
 import type { ImageCredit, ImagePlace, ImageSearch } from '../shared/images'
 import type { ClipboardContent, DialogRequest, ExportJob, ExportMeasure, FontInfo, ImageImport, MaquetteApi, MenuCommand, OpenedFile, RenderedImage } from '../shared/ipc'
 
@@ -95,6 +95,8 @@ const api: MaquetteApi = {
     stop: () => ipcRenderer.send('chat:stop'),
     permission: (requestId, decision) => ipcRenderer.send('chat:permission', requestId, decision),
     reset: () => ipcRenderer.invoke('chat:reset') as Promise<void>,
+    options: () => ipcRenderer.invoke('chat:options') as Promise<ChatOptions>,
+    setOptions: (patch) => ipcRenderer.invoke('chat:set-options', patch) as Promise<ChatOptions>,
     onEvent: (cb) => {
       const handler = (_e: IpcRendererEvent, event: ChatEvent) => cb(event)
       ipcRenderer.on('chat:event', handler)

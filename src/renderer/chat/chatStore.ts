@@ -1,5 +1,5 @@
 import { createStore, useStore } from 'zustand'
-import type { ChatEvent, ChatImage, ChatImageRef, ChatItem } from '../../shared/chat'
+import { DEFAULT_CHAT_OPTIONS, type ChatEvent, type ChatImage, type ChatImageRef, type ChatItem, type ChatOptions } from '../../shared/chat'
 
 /** Image collée ou glissée, en attente d'envoi ; `url` sert à la vignette. */
 export interface PendingImage extends ChatImage {
@@ -23,6 +23,12 @@ interface ChatState {
   focusRequest: number
   /** Image montrée en grand par-dessus l'app (null : aucune). */
   preview: ChatImageRef | null
+  /** Réglages de la conversation ouverte (interrupteur taste-skill…). */
+  options: ChatOptions
+  setOptions(options: ChatOptions): void
+  /** Sélecteur de style ouvert. */
+  stylePicker: boolean
+  setStylePicker(open: boolean): void
   setOpen(open: boolean): void
   toggle(): void
   setItems(items: ChatItem[]): void
@@ -64,6 +70,10 @@ export const chatStore = createStore<ChatState>()((set, get) => ({
   contextAttached: true,
   focusRequest: 0,
   preview: null,
+  options: DEFAULT_CHAT_OPTIONS,
+  setOptions: (options) => set({ options }),
+  stylePicker: false,
+  setStylePicker: (stylePicker) => set({ stylePicker }),
   setOpen(open) {
     writeOpen(open)
     set(open ? { open, focusRequest: get().focusRequest + 1 } : { open, preview: null })

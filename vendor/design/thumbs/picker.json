@@ -1,0 +1,744 @@
+[
+ {
+  "name": "Centered Serif List - Prismatic White",
+  "style": "Centered Serif List",
+  "params": {
+   "headings": "Cormorant Infant",
+   "body": "Instrument Sans",
+   "captions": "Fragment Mono",
+   "colorPalette": "Prismatic White",
+   "roundness": "Basic Roundness",
+   "decorativeImagery": "Prismatic Cell Overlay"
+  },
+  "web": "centered-serif-list-prismatic-white-web.webp",
+  "mobile": "centered-serif-list-prismatic-white-mobile.webp"
+ },
+ {
+  "name": "Dark Centered Platform - Violet Void",
+  "style": "Dark Centered Platform",
+  "params": {
+   "headings": "Chakra Petch",
+   "body": "Instrument Sans",
+   "captions": "Fragment Mono",
+   "colorPalette": "Violet Void",
+   "roundness": "Basic Roundness",
+   "elevation": "Sharp Depth",
+   "decorativeImagery": "Neon Streak Overlay"
+  },
+  "web": "dark-centered-platform-violet-void-web.webp",
+  "mobile": "dark-centered-platform-violet-void-mobile.webp"
+ },
+ {
+  "name": "Saturated Code Bridge - Electric Cobalt",
+  "style": "Saturated Code Bridge",
+  "params": {
+   "headings": "Space Grotesk",
+   "body": "IBM Plex Mono",
+   "captions": "Instrument Sans",
+   "data": "Fragment Mono",
+   "colorPalette": "Electric Cobalt",
+   "roundness": "Basic Roundness",
+   "elevation": "Gentle Lift",
+   "decorativeImagery": "Pixel Grid Illustration"
+  },
+  "web": "saturated-code-bridge-electric-cobalt-web.webp",
+  "mobile": "saturated-code-bridge-electric-cobalt-mobile.webp"
+ },
+ {
+  "name": "Modular Bento Showcase - Onyx Peach",
+  "style": "Modular Bento Showcase",
+  "params": {
+   "headings": "Fraunces",
+   "body": "Instrument Sans",
+   "captions": "Karla",
+   "colorPalette": "Onyx Peach",
+   "roundness": "Basic Roundness",
+   "elevation": "Soft Lift",
+   "decorativeImagery": "Cinematic Grain Photography"
+  },
+  "web": "modular-bento-showcase-onyx-peach-web.webp",
+  "mobile": "modular-bento-showcase-onyx-peach-mobile.webp"
+ },
+ {
+  "name": "Gradient Prompt Stack - Solar Warmth",
+  "style": "Gradient Prompt Stack",
+  "params": {
+   "headings": "Syne",
+   "body": "Instrument Sans",
+   "captions": "Fragment Mono",
+   "data": "IBM Plex Mono",
+   "colorPalette": "Solar Warmth",
+   "roundness": "Basic Roundness",
+   "elevation": "Gentle Lift"
+  },
+  "web": "gradient-prompt-stack-solar-warmth-web.webp",
+  "mobile": "gradient-prompt-stack-solar-warmth-mobile.webp"
+ },
+ {
+  "name": "Editorial Landscape Stack - Alpine Terracotta",
+  "style": "Editorial Landscape Stack",
+  "params": {
+   "headings": "Instrument Serif",
+   "body": "Hanken Grotesk",
+   "captions": "Fragment Mono",
+   "data": "Geist",
+   "colorPalette": "Alpine Terracotta",
+   "roundness": "Basic Roundness",
+   "decorativeImagery": "Landscape Photography"
+  },
+  "web": "editorial-landscape-stack-alpine-terracotta-web.webp",
+  "mobile": "editorial-landscape-stack-alpine-terracotta-mobile.webp"
+ },
+ {
+  "name": "Color Block Stack - Bold Tangerine",
+  "style": "Color Block Stack",
+  "params": {
+   "headings": "Archivo Black",
+   "body": "DM Sans",
+   "captions": "Instrument Sans",
+   "data": "IBM Plex Mono",
+   "colorPalette": "Bold Tangerine",
+   "roundness": "Basic Roundness"
+  },
+  "web": "color-block-stack-bold-tangerine-web.webp",
+  "mobile": "color-block-stack-bold-tangerine-mobile.webp"
+ },
+ {
+  "name": "Blueprint Technical - Rose Charcoal",
+  "style": "Blueprint Technical",
+  "params": {
+   "headings": "Space Grotesk",
+   "body": "Instrument Sans",
+   "captions": "Fragment Mono",
+   "data": "IBM Plex Mono",
+   "colorPalette": "Rose Charcoal",
+   "roundness": "Basic Roundness",
+   "decorativeImagery": "Technical Construction Overlay"
+  },
+  "web": "blueprint-technical-rose-charcoal-web.webp",
+  "mobile": "blueprint-technical-rose-charcoal-mobile.webp"
+ },
+ {
+  "name": "Narrative Illustrated - Twilight Garden",
+  "style": "Narrative Illustrated",
+  "params": {
+   "headings": "Fraunces",
+   "body": "Karla",
+   "colorPalette": "Twilight Garden",
+   "roundness": "Basic Roundness",
+   "elevation": "Soft Cloud",
+   "decorativeImagery": "Painterly Scene Illustration"
+  },
+  "web": "narrative-illustrated-twilight-garden-web.webp",
+  "mobile": "narrative-illustrated-twilight-garden-mobile.webp"
+ },
+ {
+  "name": "Cinematic Device Column - Lavender Mist",
+  "style": "Cinematic Device Column",
+  "params": {
+   "headings": "Barlow Condensed",
+   "body": "Manrope",
+   "colorPalette": "Lavender Mist",
+   "roundness": "Basic Roundness",
+   "elevation": "Sharp Depth",
+   "decorativeImagery": "Atmospheric Landscape Photography"
+  },
+  "web": "cinematic-device-column-lavender-mist-web.webp",
+  "mobile": "cinematic-device-column-lavender-mist-mobile.webp"
+ },
+ {
+  "name": "Split Inverse Showcase - Warm Parchment",
+  "style": "Split Inverse Showcase",
+  "params": {
+   "headings": "Space Grotesk",
+   "body": "Manrope",
+   "captions": "Instrument Sans",
+   "colorPalette": "Warm Parchment",
+   "roundness": "Basic Roundness",
+   "elevation": "Soft Lift"
+  },
+  "web": "split-inverse-showcase-warm-parchment-web.webp",
+  "mobile": "split-inverse-showcase-warm-parchment-mobile.webp"
+ },
+ {
+  "name": "Illustrated Ribbon Stack - Spring Meadow",
+  "style": "Illustrated Ribbon Stack",
+  "params": {
+   "headings": "Bricolage Grotesque",
+   "body": "Outfit",
+   "colorPalette": "Spring Meadow",
+   "roundness": "Basic Roundness",
+   "decorativeImagery": "Storybook Character Illustrations"
+  },
+  "web": "illustrated-ribbon-stack-spring-meadow-web.webp",
+  "mobile": "illustrated-ribbon-stack-spring-meadow-mobile.webp"
+ },
+ {
+  "name": "Centered Device Cascade - Minimal Ink",
+  "style": "Centered Device Cascade",
+  "params": {
+   "headings": "Manrope",
+   "body": "Instrument Sans",
+   "captions": "Fragment Mono",
+   "colorPalette": "Minimal Ink",
+   "roundness": "Basic Roundness",
+   "elevation": "Soft Cloud"
+  },
+  "web": "centered-device-cascade-minimal-ink-web.webp",
+  "mobile": "centered-device-cascade-minimal-ink-mobile.webp"
+ },
+ {
+  "name": "Anchored Ribbon Grid - Lavender Cream",
+  "style": "Anchored Ribbon Grid",
+  "params": {
+   "headings": "Syne",
+   "body": "Manrope",
+   "captions": "Instrument Sans",
+   "colorPalette": "Lavender Cream",
+   "roundness": "Basic Roundness",
+   "elevation": "Gentle Lift",
+   "decorativeImagery": "Fluid Ribbon Gradients"
+  },
+  "web": "anchored-ribbon-grid-lavender-cream-web.webp",
+  "mobile": "anchored-ribbon-grid-lavender-cream-mobile.webp"
+ },
+ {
+  "name": "Product Data Grid - Amber Night",
+  "style": "Product Data Grid",
+  "params": {
+   "headings": "Barlow Condensed",
+   "body": "Hanken Grotesk",
+   "captions": "Instrument Sans",
+   "data": "IBM Plex Mono",
+   "colorPalette": "Amber Night",
+   "roundness": "Basic Roundness",
+   "decorativeImagery": "Product Still Photography"
+  },
+  "web": "product-data-grid-amber-night-web.webp",
+  "mobile": "product-data-grid-amber-night-mobile.webp"
+ },
+ {
+  "name": "Zigzag Bold Split - Violet Bloom",
+  "style": "Zigzag Bold Split",
+  "params": {
+   "headings": "Big Shoulders",
+   "body": "Instrument Sans",
+   "captions": "Fragment Mono",
+   "colorPalette": "Violet Bloom",
+   "roundness": "Basic Roundness",
+   "elevation": "Soft Lift",
+   "decorativeImagery": "Candid Lifestyle Photography"
+  },
+  "web": "zigzag-bold-split-violet-bloom-web.webp",
+  "mobile": "zigzag-bold-split-violet-bloom-mobile.webp"
+ },
+ {
+  "name": "Swiss Type Atlas",
+  "style": "Swiss Type Atlas",
+  "params": {
+   "headings": "Schibsted Grotesk",
+   "body": "Public Sans",
+   "data": "Martian Mono",
+   "colorPalette": "Minimal Ink",
+   "roundness": "Basic Roundness",
+   "elevation": "Soft Cloud"
+  },
+  "web": "swiss-type-atlas-web.webp",
+  "mobile": "swiss-type-atlas-mobile.webp"
+ },
+ {
+  "name": "Annotated Lookbook",
+  "style": "Annotated Lookbook",
+  "params": {
+   "headings": "Big Shoulders",
+   "body": "Instrument Sans",
+   "captions": "Caveat",
+   "colorPalette": "Warm Parchment",
+   "roundness": "Basic Roundness",
+   "elevation": "Soft Cloud"
+  },
+  "web": "annotated-lookbook-web.webp",
+  "mobile": "annotated-lookbook-mobile.webp"
+ },
+ {
+  "name": "Ceramic Console",
+  "style": "Ceramic Console",
+  "params": {
+   "headings": "Familjen Grotesk",
+   "body": "Familjen Grotesk",
+   "data": "Martian Mono",
+   "colorPalette": "Warm Concrete",
+   "roundness": "Basic Roundness",
+   "elevation": "Soft Cloud"
+  },
+  "web": "ceramic-console-web.webp",
+  "mobile": "ceramic-console-mobile.webp"
+ },
+ {
+  "name": "Optical Glass",
+  "style": "Optical Glass",
+  "params": {
+   "headings": "Red Hat Display",
+   "body": "Instrument Sans",
+   "colorPalette": "Prismatic White",
+   "roundness": "Basic Roundness",
+   "elevation": "Soft Cloud"
+  },
+  "web": "optical-glass-web.webp",
+  "mobile": "optical-glass-mobile.webp"
+ },
+ {
+  "name": "Playful",
+  "style": "Playful",
+  "params": {
+   "headings": "Unbounded",
+   "body": "Outfit",
+   "captions": "Silkscreen",
+   "colorPalette": "Lavender Cream",
+   "roundness": "Basic Roundness",
+   "elevation": "Soft Cloud"
+  },
+  "web": "y2k-playground-web.webp",
+  "mobile": "y2k-playground-mobile.webp"
+ },
+ {
+  "name": "Post Internet Archive",
+  "style": "Post Internet Archive",
+  "params": {
+   "headings": "Anton",
+   "body": "Public Sans",
+   "captions": "VT323",
+   "colorPalette": "Minimal Ink",
+   "roundness": "Basic Roundness",
+   "elevation": "Soft Cloud"
+  },
+  "web": "post-internet-archive-web.webp",
+  "mobile": "post-internet-archive-mobile.webp"
+ },
+ {
+  "name": "Calligraphic Atelier",
+  "style": "Calligraphic Atelier",
+  "params": {
+   "headings": "Italiana",
+   "body": "Archivo",
+   "captions": "Ballet",
+   "colorPalette": "Parchment Gold",
+   "roundness": "Basic Roundness",
+   "elevation": "Soft Cloud"
+  },
+  "web": "calligraphic-atelier-web.webp",
+  "mobile": "calligraphic-atelier-mobile.webp"
+ },
+ {
+  "name": "Prismatic Cinema",
+  "style": "Prismatic Cinema",
+  "params": {
+   "headings": "Cormorant Garamond",
+   "body": "Instrument Sans",
+   "colorPalette": "Forest Sage",
+   "roundness": "Basic Roundness",
+   "elevation": "Soft Cloud"
+  },
+  "web": "prismatic-cinema-web.webp",
+  "mobile": "prismatic-cinema-mobile.webp"
+ },
+ {
+  "name": "Brutalist Console 3",
+  "style": "Brutalist Console 3",
+  "params": {
+   "headings": "Big Shoulders",
+   "body": "Chivo",
+   "captions": "Sometype Mono",
+   "data": "Big Shoulders",
+   "colorPalette": "Carbon Frost",
+   "roundness": "Basic Roundness"
+  },
+  "web": "brutalist-console-3-web.webp",
+  "mobile": "brutalist-console-3-mobile.webp"
+ },
+ {
+  "name": "Brutalist Editorial 1",
+  "style": "Brutalist Editorial 1",
+  "params": {
+   "headings": "Archivo Black",
+   "body": "Chivo",
+   "captions": "Space Mono",
+   "data": "Archivo Black",
+   "colorPalette": "Minimal Ink",
+   "roundness": "Basic Roundness"
+  },
+  "web": "brutalist-editorial-1-web.webp",
+  "mobile": "brutalist-editorial-1-mobile.webp"
+ },
+ {
+  "name": "Brutalist Lattice 5",
+  "style": "Brutalist Lattice 5",
+  "params": {
+   "headings": "Bungee",
+   "body": "Archivo",
+   "captions": "Martian Mono",
+   "data": "Bungee",
+   "colorPalette": "Minimal Ink",
+   "roundness": "Basic Roundness"
+  },
+  "web": "brutalist-lattice-5-web.webp",
+  "mobile": "brutalist-lattice-5-mobile.webp"
+ },
+ {
+  "name": "Brutalist Poster 4",
+  "style": "Brutalist Poster 4",
+  "params": {
+   "headings": "Rubik Mono One",
+   "body": "IBM Plex Sans",
+   "captions": "Azeret Mono",
+   "data": "Rubik Mono One",
+   "colorPalette": "Carbon Frost",
+   "roundness": "Basic Roundness"
+  },
+  "web": "brutalist-poster-4-web.webp",
+  "mobile": "brutalist-poster-4-mobile.webp"
+ },
+ {
+  "name": "Brutalist Spine 2",
+  "style": "Brutalist Spine 2",
+  "params": {
+   "headings": "Zilla Slab",
+   "body": "Karla",
+   "captions": "Inconsolata",
+   "data": "Zilla Slab",
+   "colorPalette": "Minimal Ink",
+   "roundness": "Basic Roundness"
+  },
+  "web": "brutalist-spine-2-web.webp",
+  "mobile": "brutalist-spine-2-mobile.webp"
+ },
+ {
+  "name": "Elegant Bento 2",
+  "style": "Elegant Bento 2",
+  "params": {
+   "headings": "Caprasimo",
+   "body": "Urbanist",
+   "captions": "Urbanist",
+   "data": "Urbanist",
+   "colorPalette": "Minimal Ink",
+   "roundness": "Basic Roundness"
+  },
+  "web": "elegant-bento-2-web.webp",
+  "mobile": "elegant-bento-2-mobile.webp"
+ },
+ {
+  "name": "Elegant Couture 4",
+  "style": "Elegant Couture 4",
+  "params": {
+   "headings": "Bodoni Moda SC",
+   "body": "Archivo",
+   "captions": "Archivo",
+   "data": "Bodoni Moda SC",
+   "colorPalette": "Carbon Frost",
+   "roundness": "Basic Roundness"
+  },
+  "web": "elegant-couture-4-web.webp",
+  "mobile": "elegant-couture-4-mobile.webp"
+ },
+ {
+  "name": "Elegant Editorial 1",
+  "style": "Elegant Editorial 1",
+  "params": {
+   "headings": "Petrona",
+   "body": "Alata",
+   "captions": "Alata",
+   "data": "Petrona",
+   "colorPalette": "Minimal Ink",
+   "roundness": "Basic Roundness"
+  },
+  "web": "elegant-editorial-1-web.webp",
+  "mobile": "elegant-editorial-1-mobile.webp"
+ },
+ {
+  "name": "Elegant Serene 3",
+  "style": "Elegant Serene 3",
+  "params": {
+   "headings": "Berkshire Swash",
+   "body": "Tenor Sans",
+   "captions": "Tenor Sans",
+   "data": "Tenor Sans",
+   "colorPalette": "Minimal Ink",
+   "roundness": "Basic Roundness"
+  },
+  "web": "elegant-serene-3-web.webp",
+  "mobile": "elegant-serene-3-mobile.webp"
+ },
+ {
+  "name": "Gradient Aurora 1",
+  "style": "Gradient Aurora 1",
+  "params": {
+   "headings": "Darker Grotesque",
+   "body": "Darker Grotesque",
+   "captions": "Darker Grotesque",
+   "data": "Darker Grotesque",
+   "colorPalette": "Carbon Frost",
+   "roundness": "Basic Roundness"
+  },
+  "web": "gradient-aurora-1-web.webp",
+  "mobile": "gradient-aurora-1-mobile.webp"
+ },
+ {
+  "name": "Gradient Bubble 2",
+  "style": "Gradient Bubble 2",
+  "params": {
+   "headings": "Outfit",
+   "body": "Manrope",
+   "captions": "Manrope",
+   "data": "Outfit",
+   "colorPalette": "Prismatic White",
+   "roundness": "Basic Roundness",
+   "elevation": "Soft Cloud"
+  },
+  "web": "gradient-bubble-2-web.webp",
+  "mobile": "gradient-bubble-2-mobile.webp"
+ },
+ {
+  "name": "Gradient Editorial 5",
+  "style": "Gradient Editorial 5",
+  "params": {
+   "headings": "Bricolage Grotesque",
+   "body": "Wix Madefor Text",
+   "captions": "Wix Madefor Text",
+   "data": "Bricolage Grotesque",
+   "expression": "Bodoni Moda",
+   "colorPalette": "Minimal Ink",
+   "roundness": "Basic Roundness"
+  },
+  "web": "gradient-editorial-5-web.webp",
+  "mobile": "gradient-editorial-5-mobile.webp"
+ },
+ {
+  "name": "Gradient Halftone 3",
+  "style": "Gradient Halftone 3",
+  "params": {
+   "headings": "Mona Sans",
+   "body": "Mona Sans",
+   "captions": "Mona Sans",
+   "data": "Mona Sans",
+   "colorPalette": "Minimal Ink",
+   "roundness": "Basic Roundness",
+   "elevation": "Soft Cloud"
+  },
+  "web": "gradient-halftone-3-web.webp",
+  "mobile": "gradient-halftone-3-mobile.webp"
+ },
+ {
+  "name": "Gradient Haze 4",
+  "style": "Gradient Haze 4",
+  "params": {
+   "headings": "Red Hat Display",
+   "body": "Red Hat Display",
+   "captions": "Red Hat Display",
+   "data": "Red Hat Display",
+   "colorPalette": "Prismatic White",
+   "roundness": "Basic Roundness"
+  },
+  "web": "gradient-haze-4-web.webp",
+  "mobile": "gradient-haze-4-mobile.webp"
+ },
+ {
+  "name": "Minimalistic Atrium 5",
+  "style": "Minimalistic Atrium 5",
+  "params": {
+   "headings": "Saira",
+   "body": "Golos Text",
+   "captions": "Golos Text",
+   "data": "Saira",
+   "colorPalette": "Minimal Ink",
+   "roundness": "Basic Roundness",
+   "elevation": "Soft Cloud"
+  },
+  "web": "minimalistic-atrium-5-web.webp",
+  "mobile": "minimalistic-atrium-5-mobile.webp"
+ },
+ {
+  "name": "Minimalistic Hairline 3",
+  "style": "Minimalistic Hairline 3",
+  "params": {
+   "headings": "Geologica",
+   "body": "Geologica",
+   "captions": "Geologica",
+   "data": "Geologica",
+   "colorPalette": "Minimal Ink",
+   "roundness": "Basic Roundness"
+  },
+  "web": "minimalistic-hairline-3-web.webp",
+  "mobile": "minimalistic-hairline-3-mobile.webp"
+ },
+ {
+  "name": "Minimalistic Monolith 6",
+  "style": "Minimalistic Monolith 6",
+  "params": {
+   "headings": "Chivo",
+   "body": "Chivo",
+   "captions": "Martian Mono",
+   "data": "Chivo",
+   "colorPalette": "Minimal Ink",
+   "roundness": "Basic Roundness"
+  },
+  "web": "minimalistic-monolith-6-web.webp",
+  "mobile": "minimalistic-monolith-6-mobile.webp"
+ },
+ {
+  "name": "Minimalistic Mosaic 4",
+  "style": "Minimalistic Mosaic 4",
+  "params": {
+   "headings": "Hubot Sans",
+   "body": "Instrument Sans",
+   "captions": "Instrument Sans",
+   "data": "Hubot Sans",
+   "colorPalette": "Minimal Ink",
+   "roundness": "Basic Roundness"
+  },
+  "web": "minimalistic-mosaic-4-web.webp",
+  "mobile": "minimalistic-mosaic-4-mobile.webp"
+ },
+ {
+  "name": "Minimalistic Panel 2",
+  "style": "Minimalistic Panel 2",
+  "params": {
+   "headings": "Familjen Grotesk",
+   "body": "Familjen Grotesk",
+   "captions": "Azeret Mono",
+   "data": "Familjen Grotesk",
+   "colorPalette": "Prismatic White",
+   "roundness": "Basic Roundness"
+  },
+  "web": "minimalistic-panel-2-web.webp",
+  "mobile": "minimalistic-panel-2-mobile.webp"
+ },
+ {
+  "name": "Minimalistic Swiss 7",
+  "style": "Minimalistic Swiss 7",
+  "params": {
+   "headings": "Schibsted Grotesk",
+   "body": "Public Sans",
+   "captions": "Public Sans",
+   "data": "Schibsted Grotesk",
+   "colorPalette": "Minimal Ink",
+   "roundness": "Basic Roundness",
+   "elevation": "Soft Cloud"
+  },
+  "web": "minimalistic-swiss-7-web.webp",
+  "mobile": "minimalistic-swiss-7-mobile.webp"
+ },
+ {
+  "name": "Technical Blueprint 2",
+  "style": "Technical Blueprint 2",
+  "params": {
+   "headings": "Rajdhani",
+   "body": "Rajdhani",
+   "captions": "Share Tech Mono",
+   "data": "Rajdhani",
+   "colorPalette": "Minimal Ink",
+   "roundness": "Basic Roundness"
+  },
+  "web": "technical-blueprint-2-web.webp",
+  "mobile": "technical-blueprint-2-mobile.webp"
+ },
+ {
+  "name": "Technical Console 1",
+  "style": "Technical Console 1",
+  "params": {
+   "headings": "Titillium Web",
+   "body": "Titillium Web",
+   "captions": "IBM Plex Mono",
+   "data": "Titillium Web",
+   "colorPalette": "Minimal Ink",
+   "roundness": "Basic Roundness"
+  },
+  "web": "technical-console-1-web.webp",
+  "mobile": "technical-console-1-mobile.webp"
+ },
+ {
+  "name": "Technical Dispatch 3",
+  "style": "Technical Dispatch 3",
+  "params": {
+   "headings": "Martian Mono",
+   "body": "Martian Mono",
+   "captions": "Martian Mono",
+   "data": "Martian Mono",
+   "colorPalette": "Minimal Ink",
+   "roundness": "Basic Roundness"
+  },
+  "web": "technical-dispatch-3-web.webp",
+  "mobile": "technical-dispatch-3-mobile.webp"
+ },
+ {
+  "name": "Technical Phosphor 4",
+  "style": "Technical Phosphor 4",
+  "params": {
+   "headings": "Orbitron",
+   "body": "Fragment Mono",
+   "captions": "Fragment Mono",
+   "data": "Orbitron",
+   "colorPalette": "Carbon Frost",
+   "roundness": "Basic Roundness"
+  },
+  "web": "technical-phosphor-4-web.webp",
+  "mobile": "technical-phosphor-4-mobile.webp"
+ },
+ {
+  "name": "Technical Terminal 5",
+  "style": "Technical Terminal 5",
+  "params": {
+   "headings": "Goldman",
+   "body": "IBM Plex Sans",
+   "captions": "Azeret Mono",
+   "data": "Goldman",
+   "colorPalette": "Carbon Frost",
+   "roundness": "Basic Roundness"
+  },
+  "web": "technical-terminal-5-web.webp",
+  "mobile": "technical-terminal-5-mobile.webp"
+ },
+ {
+  "name": "Visual Cinematic 1",
+  "style": "Visual Cinematic 1",
+  "params": {
+   "headings": "Sofia Sans",
+   "body": "Sofia Sans",
+   "captions": "Sofia Sans",
+   "data": "Sofia Sans",
+   "colorPalette": "Carbon Frost",
+   "roundness": "Basic Roundness"
+  },
+  "web": "visual-cinematic-1-web.webp",
+  "mobile": "visual-cinematic-1-mobile.webp"
+ },
+ {
+  "name": "Visual Editorial 2",
+  "style": "Visual Editorial 2",
+  "params": {
+   "headings": "Cormorant Infant",
+   "body": "Karla",
+   "captions": "Karla",
+   "data": "Karla",
+   "colorPalette": "Minimal Ink",
+   "roundness": "Basic Roundness",
+   "elevation": "Soft Cloud"
+  },
+  "web": "visual-editorial-2-web.webp",
+  "mobile": "visual-editorial-2-mobile.webp"
+ },
+ {
+  "name": "Visual Soft 3",
+  "style": "Visual Soft 3",
+  "params": {
+   "headings": "Winky Sans",
+   "body": "Winky Sans",
+   "captions": "Winky Sans",
+   "data": "Winky Sans",
+   "colorPalette": "Prismatic White",
+   "roundness": "Basic Roundness",
+   "elevation": "Soft Cloud"
+  },
+  "web": "visual-soft-3-web.webp",
+  "mobile": "visual-soft-3-mobile.webp"
+ }
+]

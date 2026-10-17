@@ -1,7 +1,7 @@
 # Landing page
 
-Pen's landing-page guide (text kept), with Maquette notes at the end. For public pages the house rules
-apply too: `guide('regles-maison')`.
+Pen's landing-page guide (text kept), with Maquette notes at the end. With the taste-skill method, the house
+rules apply too: `guide('regles-maison')`.
 
 ## Purpose
 
