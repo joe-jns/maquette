@@ -1,5 +1,5 @@
 import { createStore, useStore } from 'zustand'
-import type { ChatEvent, ChatImage, ChatItem } from '../../shared/chat'
+import type { ChatEvent, ChatImage, ChatImageRef, ChatItem } from '../../shared/chat'
 
 /** Image collée ou glissée, en attente d'envoi ; `url` sert à la vignette. */
 export interface PendingImage extends ChatImage {
@@ -21,6 +21,8 @@ interface ChatState {
   contextAttached: boolean
   /** Incrémenté pour demander le focus dans la saisie. */
   focusRequest: number
+  /** Image montrée en grand par-dessus l'app (null : aucune). */
+  preview: ChatImageRef | null
   setOpen(open: boolean): void
   toggle(): void
   setItems(items: ChatItem[]): void
@@ -32,6 +34,7 @@ interface ChatState {
   setContextAttached(attached: boolean): void
   /** Après l'envoi : brouillon et images vidés. */
   clearComposer(): void
+  setPreview(preview: ChatImageRef | null): void
 }
 
 function readOpen(): boolean {
@@ -60,14 +63,15 @@ export const chatStore = createStore<ChatState>()((set, get) => ({
   images: [],
   contextAttached: true,
   focusRequest: 0,
+  preview: null,
   setOpen(open) {
     writeOpen(open)
-    set(open ? { open, focusRequest: get().focusRequest + 1 } : { open })
+    set(open ? { open, focusRequest: get().focusRequest + 1 } : { open, preview: null })
   },
   toggle() {
     get().setOpen(!get().open)
   },
-  setItems: (items) => set({ items, busy: false }),
+  setItems: (items) => set({ items, busy: false, preview: null }),
   applyEvent(event) {
     const items = get().items
     switch (event.type) {
@@ -104,6 +108,7 @@ export const chatStore = createStore<ChatState>()((set, get) => ({
   removeImage: (id) => set({ images: get().images.filter((img) => img.id !== id) }),
   setContextAttached: (contextAttached) => set({ contextAttached }),
   clearComposer: () => set({ draft: '', images: [] }),
+  setPreview: (preview) => set({ preview }),
 }))
 
 export const useChat = <T,>(selector: (s: ChatState) => T): T => useStore(chatStore, selector)

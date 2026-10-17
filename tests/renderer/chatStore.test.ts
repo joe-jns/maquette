@@ -81,6 +81,33 @@ describe('chatStore', () => {
     expect(store.getState()).toMatchObject({ busy: false, items: [user] })
   })
 
+  it('vignettes d’un outil : arrivent en remplaçant l’élément ; ancien historique sans détail accepté', async () => {
+    const store = await freshStore(memoryStorage())
+    const s = store.getState()
+    const old: ChatItem = { kind: 'tool', id: 't0', name: 'Read', summary: 'a.ts', status: 'done' }
+    s.setItems([user, old])
+    const done: ChatItem = { kind: 'tool', id: 't1', name: 'capture', summary: '', input: '{}', output: 'capture', status: 'done' }
+    s.applyEvent({ type: 'item', item: done })
+    const ref = { hash: 'a'.repeat(64), width: 640, height: 400 }
+    s.applyEvent({ type: 'item', item: { ...done, images: [ref] } })
+    expect(store.getState().items).toEqual([user, old, { ...done, images: [ref] }])
+  })
+
+  it('aperçu en grand : ouvert, fermé, oublié en fermant le panneau ou en changeant d’historique', async () => {
+    const store = await freshStore(memoryStorage())
+    const ref = { hash: 'b'.repeat(64), width: 10, height: 10 }
+    store.getState().setPreview(ref)
+    expect(store.getState().preview).toEqual(ref)
+    store.getState().setPreview(null)
+    expect(store.getState().preview).toBeNull()
+    store.getState().setPreview(ref)
+    store.getState().setOpen(false)
+    expect(store.getState().preview).toBeNull()
+    store.getState().setPreview(ref)
+    store.getState().setItems([])
+    expect(store.getState().preview).toBeNull()
+  })
+
   it('images : 5 au plus, retirées une à une, vidées avec le brouillon', async () => {
     const store = await freshStore(memoryStorage())
     const s = store.getState()

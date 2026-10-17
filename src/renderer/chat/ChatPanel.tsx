@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ClipboardEvent, type DragEvent, type KeyboardEvent, type ReactNode } from 'react'
-import type { ChatItem, PermissionDecision } from '../../shared/chat'
+import { createPortal } from 'react-dom'
+import { chatImageUrl, type ChatImageRef, type ChatItem, type PermissionDecision } from '../../shared/chat'
 import { shortcutKeys } from '../canvas/shortcuts'
 import { docStore, useDoc } from '../state/store'
 import { useUi } from '../state/ui'
@@ -26,6 +27,7 @@ function Icon({ d, size = 16, width = 1.8 }: { d: string; size?: number; width?:
 const CLOSE = 'M6 6l12 12M18 6L6 18'
 const ARROW = 'M12 19V5M6 11l6-6 6 6'
 const NEW = 'M12 5v14M5 12h14'
+const CHEVRON = 'M9 6l6 6-6 6'
 
 // ——— Éléments de la conversation ———
 
@@ -54,16 +56,180 @@ const TOOL_LABELS: Record<string, string> = {
 }
 const toolLabel = (name: string) => TOOL_LABELS[name] ?? name
 
-function ToolLine({ item }: { item: Extract<ChatItem, { kind: 'tool' }> }) {
-  const label = `${toolLabel(item.name)}${item.summary ? ` · ${item.summary}` : ''}`
+// ——— Images ———
+
+/** Vignettes cliquables (aperçu en grand), trois par ligne au plus. */
+function Thumbs({ refs, label, className = '' }: { refs: ChatImageRef[]; label: string; className?: string }) {
   return (
-    <div className={`chat-tool is-${item.status}`} data-tooltip={label} data-status={item.status}>
+    <div className={`chat-images${refs.length === 1 ? ' is-single' : ''} ${className}`} data-count={refs.length}>
+      {refs.map((ref, i) => (
+        <button
+          key={`${ref.hash}-${i}`}
+          type="button"
+          className="chat-image"
+          aria-label={refs.length > 1 ? `Agrandir ${label} ${i + 1}` : `Agrandir ${label}`}
+          onClick={() => chatStore.getState().setPreview(ref)}
+        >
+          <img src={chatImageUrl(ref.hash)} alt="" width={ref.width} height={ref.height} draggable={false} />
+        </button>
+      ))}
+    </div>
+  )
+}
+
+/** Image en grand par-dessus l'app : Échap, un clic ou le bouton ferment ; le focus revient où il était. */
+function Lightbox() {
+  const preview = useChat((s) => s.preview)
+  if (!preview) return null
+  return createPortal(<LightboxView image={preview} />, document.body)
+}
+
+function LightboxView({ image }: { image: ChatImageRef }) {
+  const closeButton = useRef<HTMLButtonElement>(null)
+  const close = () => chatStore.getState().setPreview(null)
+
+  useEffect(() => {
+    const before = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    closeButton.current?.focus()
+    // Capture sur la fenêtre : aucun raccourci de l'éditeur ne passe sous l'aperçu.
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      e.stopPropagation()
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        close()
+      } else if (e.key === 'Tab') {
+        // Un seul élément à atteindre : le focus reste sur Fermer.
+        e.preventDefault()
+        closeButton.current?.focus()
+      }
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => {
+      window.removeEventListener('keydown', onKey, true)
+      if (before?.isConnected) before.focus()
+    }
+  }, [])
+
+  return (
+    <div
+      className="chat-lightbox"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Aperçu de l’image"
+      data-ui
+      onClick={close}
+      onPointerDown={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
+    >
+      {/* Les petites images sont doublées (480 px de large au moins quand c'est possible) ; l'écran borne le reste. */}
+      <img
+        src={chatImageUrl(image.hash)}
+        alt=""
+        width={image.width}
+        height={image.height}
+        style={{ width: Math.round(image.width * Math.min(2, Math.max(1, 480 / image.width))) }}
+        draggable={false}
+      />
+      <button ref={closeButton} type="button" className="chat-lightbox-close" aria-label="Fermer l’aperçu" data-tooltip="Fermer" data-shortcut="Échap" onClick={close}>
+        <Icon d={CLOSE} size={16} width={2} />
+      </button>
+    </div>
+  )
+}
+
+// ——— Outils ———
+
+/** Bloc de texte du détail d'un outil, sélectionnable, avec un bouton Copier. */
+function DetailBlock({ title, text, error, children }: { title: string; text: string | null; error?: boolean; children?: ReactNode }) {
+  const [copied, setCopied] = useState(false)
+  useEffect(() => {
+    if (!copied) return
+    const t = setTimeout(() => setCopied(false), 1500)
+    return () => clearTimeout(t)
+  }, [copied])
+  const copy = () => {
+    if (!text) return
+    void navigator.clipboard?.writeText(text).then(() => setCopied(true), () => undefined)
+  }
+  return (
+    <section className="chat-detail" aria-label={title}>
+      <header className="chat-detail-head">
+        <h3>{title}</h3>
+        {text ? (
+          <button type="button" className="chat-detail-copy" aria-label={`Copier : ${title.toLowerCase()}`} data-tooltip={copied ? 'Copié' : 'Copier'} onClick={copy}>
+            {copied ? 'Copié' : 'Copier'}
+          </button>
+        ) : null}
+      </header>
+      {text !== null && <pre className={`chat-detail-text${error ? ' is-error' : ''}`}>{text || '(vide)'}</pre>}
+      {children}
+    </section>
+  )
+}
+
+function ToolDetail({ item }: { item: Extract<ChatItem, { kind: 'tool' }> }) {
+  const images = item.images ?? []
+  return (
+    <div className="chat-tool-detail">
+      {item.input ? <DetailBlock title="Entrée" text={item.input} /> : null}
+      {item.status === 'running' && item.output === undefined ? (
+        <p className="chat-detail-wait">En cours…</p>
+      ) : (
+        <DetailBlock title="Résultat" text={item.output || !images.length ? (item.output ?? '') : null} error={item.status === 'error'}>
+          {images.length > 0 && <Thumbs refs={images} label="l’image vue par Claude" />}
+        </DetailBlock>
+      )}
+    </div>
+  )
+}
+
+/** Ligne d'un outil : un clic (ou Entrée, Espace) déplie ce que Claude a envoyé et ce qu'il a reçu. */
+function ToolLine({ item }: { item: Extract<ChatItem, { kind: 'tool' }> }) {
+  const [open, setOpen] = useState(false)
+  const label = `${toolLabel(item.name)}${item.summary ? ` · ${item.summary}` : ''}`
+  // L'ancien historique n'a pas le détail : la ligne ne se déplie pas.
+  const expandable = item.input !== undefined || item.output !== undefined || !!item.images?.length
+  const first = item.images?.[0]
+  const toggle = () => setOpen((o) => !o)
+  const row = (
+    <div
+      className={`chat-tool is-${item.status}${expandable ? ' is-expandable' : ''}`}
+      data-tooltip={label}
+      data-status={item.status}
+      {...(expandable
+        ? {
+            role: 'button',
+            tabIndex: 0,
+            'aria-expanded': open,
+            onClick: toggle,
+            onKeyDown: (e: KeyboardEvent<HTMLDivElement>) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                toggle()
+              }
+            },
+          }
+        : {})}
+    >
       <span className="chat-tool-state" aria-hidden>
         {item.status === 'done' ? '✓' : item.status === 'error' ? '!' : <span className="chat-dot" />}
       </span>
       <span className="chat-tool-name">{toolLabel(item.name)}</span>
       {item.summary && <span className="chat-tool-summary">{item.summary}</span>}
       <span className="visually-hidden">{item.status === 'running' ? ' (en cours)' : item.status === 'error' ? ' (erreur)' : ' (fait)'}</span>
+      {first && !open && <img className="chat-tool-peek" src={chatImageUrl(first.hash)} alt="" draggable={false} />}
+      {expandable && (
+        <span className="chat-tool-chevron" aria-hidden>
+          <Icon d={CHEVRON} size={12} width={2} />
+        </span>
+      )}
+    </div>
+  )
+  if (!expandable) return row
+  return (
+    <div className={`chat-tool-entry${open ? ' is-open' : ''}`}>
+      {row}
+      {open && <ToolDetail item={item} />}
     </div>
   )
 }
@@ -105,15 +271,22 @@ const caret = <span className="chat-caret" aria-hidden />
 
 function Item({ item, last, busy }: { item: ChatItem; last: boolean; busy: boolean }) {
   switch (item.kind) {
-    case 'user':
+    case 'user': {
+      const thumbs = Array.isArray(item.thumbs) ? item.thumbs : []
+      // Vignettes absentes (ancien historique, format illisible) : on dit combien d'images sont parties.
+      const missing = item.images - thumbs.length
       return (
         <div className="chat-user">
-          <div className="chat-bubble">
-            {item.text}
-            {item.images > 0 && <span className="chat-bubble-note">+ {item.images} image{item.images > 1 ? 's' : ''}</span>}
-          </div>
+          {(item.text || missing > 0 || !thumbs.length) && (
+            <div className="chat-bubble">
+              {item.text}
+              {missing > 0 && <span className="chat-bubble-note">+ {missing} image{missing > 1 ? 's' : ''}</span>}
+            </div>
+          )}
+          {thumbs.length > 0 && <Thumbs refs={thumbs} label="l’image jointe" className="chat-user-images" />}
         </div>
       )
+    }
     case 'assistant':
       return <div className="chat-assistant"><MessageText text={item.text} caret={busy && last ? caret : undefined} /></div>
     case 'tool':
@@ -375,6 +548,7 @@ export function ChatPanel() {
       {notice && <p className="chat-notice" role="status">{notice}</p>}
       <Composer />
       {dropping && <div className="chat-drop" aria-hidden><span>Dépose l’image pour la joindre</span></div>}
+      <Lightbox />
     </aside>
   )
 }
