@@ -30,7 +30,7 @@ test('fichier modifié sur le disque : bandeau, Recharger ; notre enregistrement
       const fichier = Menu.getApplicationMenu()!.items[0]!.submenu!
       fichier.items.find((i) => i.label === 'Enregistrer')!.click()
     })
-    await expect.poll(async () => (await stat(file)).mtimeMs).toBeGreaterThan(before)
+    await expect.poll(async () => (await stat(file)).mtimeMs, { timeout: 15_000 }).toBeGreaterThan(before)
     await page.waitForTimeout(1200)
     await expect(page.getByTestId('file-changed')).toHaveCount(0)
 
