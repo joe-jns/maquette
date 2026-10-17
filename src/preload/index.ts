@@ -70,6 +70,13 @@ const api: MaquetteApi = {
     ipcRenderer.on('mcp:call', handler)
     return () => ipcRenderer.removeListener('mcp:call', handler)
   },
+  home: {
+    list: () => ipcRenderer.invoke('home:list'),
+    thumb: (hash) => ipcRenderer.invoke('home:thumb', hash),
+    open: (path) => ipcRenderer.invoke('home:open', path),
+    remove: (path) => ipcRenderer.invoke('home:remove', path),
+    reveal: (path) => ipcRenderer.invoke('home:reveal', path),
+  },
   chat: {
     open: (path) => ipcRenderer.invoke('chat:open', path) as Promise<ChatItem[]>,
     send: (message) => ipcRenderer.send('chat:send', message),

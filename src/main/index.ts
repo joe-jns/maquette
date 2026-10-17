@@ -5,6 +5,7 @@ import { registerChatIpc } from './chat/chatIpc'
 import { closeExportWindow, isExportWindow, registerExportIpc, renderNode } from './exportPng'
 import { FONT_SCHEME, handleFonts, registerFontIpc } from './fontService'
 import { registerFileIpc } from './ipc'
+import { registerHomeIpc } from './home'
 import { guardClose, registerSessionIpc } from './docSession'
 import { startMcp } from './mcpApp'
 import { registerTasteIpc } from './taste'
@@ -70,6 +71,7 @@ function createWindow(): BrowserWindow {
 const editorWindows = () => BrowserWindow.getAllWindows().filter((w) => !isExportWindow(w))
 
 registerFileIpc(fileArg)
+registerHomeIpc()
 registerFontIpc()
 registerExportIpc()
 registerTasteIpc()
