@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { join, resolve } from 'node:path'
+import { z } from 'zod'
 import { applyOps } from '../../src/core/ops'
 import type { MaquetteDocument } from '../../src/core/types'
-import { runTool, type ToolHost } from '../../src/mcp/tools'
+import { runTool, TOOLS, type ToolHost } from '../../src/mcp/tools'
 import { docWith, frame } from '../core/helpers'
 
 /**
@@ -21,6 +24,12 @@ function host(start: MaquetteDocument): ToolHost {
     },
     capture: async () => null,
     check: async () => null,
+    design: {
+      read: async (path) => readFileSync(join(resolve(__dirname, '../../vendor/design'), path), 'utf8'),
+      tasteOptions: async () => ({ ok: false, message: 'hors banc' }),
+      tasteDirection: async () => ({ ok: false, message: 'hors banc' }),
+      loadFonts: async () => [],
+    },
   }
 }
 
@@ -71,5 +80,37 @@ describe('banc d’essai tokens', () => {
     await call('appliquer', { operations: [{ op: 'update', id: ids.$hero, set: { fills: ['#EFEDE6'] } }, { op: 'update', id: ids.$intro, set: { content: 'Des intérieurs calmes et durables, à Bruxelles.' } }] })
 
     expect(exchanged).toBeLessThan(6000)
+  })
+
+  /**
+   * Définitions des outils (noms, descriptions, schémas JSON) : envoyées à chaque tour de Claude.
+   * 10 outils (7 d’édition + guide, style, direction) : ~5 400 caractères mesurés, plafond 6 000 (~1 700 tokens).
+   */
+  it('définitions des outils : moins de 6 000 caractères', () => {
+    const size = TOOLS.reduce((n, t) => n + JSON.stringify({ name: t.name, description: t.description, inputSchema: z.toJSONSchema(z.object(t.input)) }).length, 0)
+    expect(size).toBeLessThan(6000)
+  })
+
+  /**
+   * Méthode de design complète pour une nouvelle landing, avant la première section : sommaire des
+   * guides, variantes d'un style, application du style (fiche comprise), guide du type de page. Le
+   * détail est lu à la demande, une fois : moins de 13 000 caractères (~3 500 tokens ; ~10 200 mesurés), hors capture.
+   */
+  it('méthode avant la première section (guide, style, guide du type) : moins de 13 000 caractères', async () => {
+    const h = host(docWith([]))
+    let exchanged = 0
+    const call = async (name: string, args: object) => {
+      const r = await runTool(h, name, args)
+      expect(r.isError, r.text).toBeFalsy()
+      exchanged += JSON.stringify(args).length + r.text.length
+      return r.text
+    }
+    await call('lire_document', {})
+    await call('guide', {})
+    await call('style', { nom: 'Artisan Editorial' })
+    const applied = await call('style', { nom: 'Artisan Editorial', variante: 'Heritage Warmth', appliquer: true })
+    expect(applied).toContain('"couleurs"')
+    await call('guide', { sujet: 'landing-page' })
+    expect(exchanged).toBeLessThan(13000)
   })
 })
