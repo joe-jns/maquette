@@ -2,7 +2,7 @@ const ALPHABET = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 const LENGTH = 6
 
 /** Identifiant court, aléatoire, absent de `taken`. */
-export function newId(taken?: ReadonlySet<string>): string {
+export function newId(taken?: { has(id: string): boolean }): string {
   for (;;) {
     const bytes = globalThis.crypto.getRandomValues(new Uint8Array(LENGTH))
     let id = ''

@@ -1,6 +1,6 @@
-import { DocumentSchema } from './schema'
+import { DocumentSchema, NodeSchema } from './schema'
 import { isFill, isHug, walk } from './tree'
-import type { Axis, Color, MaquetteDocument, Node } from './types'
+import type { Axis, Color, FrameNode, MaquetteDocument, Node } from './types'
 
 export interface Issue { path: string; message: string }
 
@@ -22,8 +22,6 @@ export function validateDocument(doc: MaquetteDocument): Issue[] {
   const add = (path: string, message: string) => issues.push({ path, message })
   if (doc.pages.length === 0) add('pages', 'le document doit avoir au moins une page')
 
-  const colorIds = new Set(doc.styles.colors.map((s) => s.id))
-  const textIds = new Set(doc.styles.text.map((s) => s.id))
   const seen = new Set<string>()
   const claim = (id: string, path: string) => {
     if (seen.has(id)) add(path, `identifiant en double : ${id}`)
@@ -33,12 +31,48 @@ export function validateDocument(doc: MaquetteDocument): Issue[] {
   doc.styles.text.forEach((s, i) => claim(s.id, `styles.text[${i}].id`))
   doc.pages.forEach((p, i) => claim(p.id, `pages[${i}].id`))
 
+  const rules = nodeRules(doc, add)
+  walk(doc, ({ node, parent, path }) => {
+    claim(node.id, `${path}.id`)
+    rules(node, parent, path)
+  })
+
+  return issues
+}
+
+/**
+ * Validation limitée à quelques éléments (aperçu d'un geste) : schéma de chaque élément sans
+ * descendre dans ses enfants, puis règles locales. Le reste du document est supposé valide et
+ * inchangé ; la validation complète (validateDocument) reste celle des modifications enregistrées.
+ */
+export function validateNodes(
+  doc: MaquetteDocument,
+  nodes: Iterable<{ node: Node; parent: FrameNode | null; path: string }>,
+): Issue[] {
+  const issues: Issue[] = []
+  const add = (path: string, message: string) => issues.push({ path, message })
+  const rules = nodeRules(doc, add)
+  for (const { node, parent, path } of nodes) {
+    const shallow = node.type === 'frame' ? { ...node, children: [] } : { ...node }
+    const parsed = NodeSchema.safeParse(shallow)
+    if (!parsed.success) {
+      parsed.error.issues.forEach((i) => add(i.path.length ? `${path}.${formatPath(i.path)}` : path, i.message))
+      continue
+    }
+    rules(node, parent, path)
+  }
+  return issues
+}
+
+/** Règles de la spec (§6) qui ne regardent qu'un élément, son parent et ses enfants directs. */
+function nodeRules(doc: MaquetteDocument, add: (path: string, message: string) => void) {
+  const colorIds = new Set(doc.styles.colors.map((s) => s.id))
+  const textIds = new Set(doc.styles.text.map((s) => s.id))
   const checkColor = (c: Color, path: string) => {
     if (typeof c === 'object' && !colorIds.has(c.style)) add(path, `couleur nommée inconnue : ${c.style}`)
   }
 
-  walk(doc, ({ node, parent, path }) => {
-    claim(node.id, `${path}.id`)
+  return (node: Node, parent: FrameNode | null, path: string): void => {
     const autoParent = parent?.layout.mode === 'auto'
     const inFlow = autoParent && node.position === 'flow'
     const autoSelf = node.type === 'frame' && node.layout.mode === 'auto'
@@ -110,9 +144,7 @@ export function validateDocument(doc: MaquetteDocument): Issue[] {
         add(`${path}.textStyle`, `style de texte inconnu : ${node.textStyle}`)
       }
     }
-  })
-
-  return issues
+  }
 }
 
 function checkPaint(node: Node, path: string, checkColor: (c: Color, path: string) => void): void {

@@ -113,6 +113,46 @@ export function findNode(doc: MaquetteDocument, id: string): NodeLocation | null
   return entry ? locationOf(index, entry) : null
 }
 
+/**
+ * Emplacement de `id` dans `draft`, une copie de travail Immer de `base` (document gelé, indexé).
+ * Le chemin connu dans `base` est suivi dans la copie : seuls les intermédiaires de ce chemin sont
+ * créés, au lieu d'un par élément visité. Si une opération précédente du lot a déplacé les choses
+ * (ou si l'élément vient d'être créé), on retombe sur la recherche directe.
+ */
+export function findNodeIn(draft: MaquetteDocument, base: MaquetteDocument, id: string): NodeLocation | null {
+  const index = indexOf(base)
+  const entry = index?.nodes.get(id)
+  if (index && entry) {
+    const chain: number[] = []
+    for (let cur: Entry | undefined = entry; cur; cur = cur.parent ? index.nodes.get(cur.parent.id) : undefined) chain.unshift(cur.index)
+    const page = draft.pages[entry.pageIndex]
+    if (page && page.id === entry.page.id) {
+      let parent: FrameNode | null = null
+      let list: Node[] = page.children
+      let path = `pages[${entry.pageIndex}]`
+      for (let k = 0; k < chain.length; k++) {
+        const i = chain[k]!
+        const node = list[i]
+        if (!node) break
+        path += `.children[${i}]`
+        if (k === chain.length - 1) {
+          if (node.id === id) return { node, parent, page, index: i, path }
+          break
+        }
+        if (node.type !== 'frame') break
+        parent = node
+        list = node.children
+      }
+    }
+  }
+  return searchNode(draft, id)
+}
+
+/** Identifiants pris (pages, styles, éléments), en lecture seule et sans copie si le document est indexé. */
+export function takenIds(doc: MaquetteDocument): ReadonlySet<string> {
+  return indexOf(doc)?.ids ?? collectIds(doc)
+}
+
 export function collectIds(doc: MaquetteDocument): Set<string> {
   const index = indexOf(doc)
   if (index) return new Set(index.ids)

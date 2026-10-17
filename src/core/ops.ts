@@ -3,8 +3,8 @@ import { normalizeColor, normalizeColorValue } from './color'
 import { autoLayoutDefaults, createNode } from './defaults'
 import { alignTextSizing } from './fixes'
 import { newId } from './ids'
-import { validateDocument, type Issue } from './rules'
-import { collectIds, containsId, findNode, isFill, isHug, walk } from './tree'
+import { validateDocument, validateNodes, type Issue } from './rules'
+import { containsId, findNodeIn, isFill, isHug, takenIds, walk, type NodeLocation } from './tree'
 import type { AutoLayout, Axis, Color, FrameNode, MaquetteDocument, Node, NodeInput, Page, Rect, TextNode, TextStyle } from './types'
 
 enablePatches()
@@ -40,10 +40,28 @@ const fail = (i: number, field: string, message: string): never => {
 
 interface Ctx {
   draft: MaquetteDocument
-  taken: Set<string>
+  /** Le document de départ (gelé) : son index sert à retrouver les éléments dans la copie de travail. */
+  base: MaquetteDocument
+  taken: { has(id: string): boolean; add(id: string): void }
   ids: Record<string, string>
   fixes: string[]
   measure?: Measure
+  /** Aperçu : identifiants touchés par l'opération en cours ; `null` = tout le document (page, style). */
+  touched: Set<string> | null
+}
+
+/** Identifiants pris : ceux du document de départ (sans copie) plus ceux attribués pendant le lot. */
+function takenSet(doc: MaquetteDocument): Ctx['taken'] {
+  const base = takenIds(doc)
+  const added = new Set<string>()
+  return { has: (id) => base.has(id) || added.has(id), add: (id) => void added.add(id) }
+}
+
+const locate = (ctx: Ctx, id: string) => findNodeIn(ctx.draft, ctx.base, id)
+
+/** Aperçu : note les éléments touchés (rien à faire en mode complet). */
+function touch(ctx: Ctx, ...ids: (string | null | undefined)[]): void {
+  for (const id of ids) if (id) ctx.touched?.add(id)
 }
 
 type Container = { kind: 'page'; page: Page } | { kind: 'frame'; node: FrameNode }
@@ -52,18 +70,32 @@ const AXES: Axis[] = ['width', 'height']
 const LOCKED_KEYS = new Set(['id', 'type', 'children'])
 const FONT_KEYS = ['fontFamily', 'fontWeight', 'fontStyle', 'fontSize', 'lineHeight', 'letterSpacing']
 
-/** Applique un lot d'opérations d'un bloc : tout ou rien. */
-export function applyOps(doc: MaquetteDocument, ops: Op[], opts: { measure?: Measure } = {}): ApplyResult {
+/**
+ * Applique un lot d'opérations d'un bloc : tout ou rien.
+ *
+ * `preview` (aperçu d'un geste, à chaque mouvement de souris) : seuls les éléments touchés, leurs
+ * parents et leurs enfants directs sont normalisés et validés, au lieu de tout le document. Le
+ * document de départ doit être valide. Le résultat est le même qu'en mode complet ; l'appelant
+ * valide le document entier une fois le geste terminé (voir `commitGesture`).
+ */
+export function applyOps(doc: MaquetteDocument, ops: Op[], opts: { measure?: Measure; preview?: boolean } = {}): ApplyResult {
   const ids: Record<string, string> = {}
   const fixes: string[] = []
   try {
     const [next, patches, inversePatches] = produceWithPatches(doc, (draft) => {
-      const ctx: Ctx = { draft: draft as MaquetteDocument, taken: collectIds(draft as MaquetteDocument), ids, fixes, measure: opts.measure }
+      const ctx: Ctx = { draft: draft as MaquetteDocument, base: doc, taken: takenSet(doc), ids, fixes, measure: opts.measure, touched: null }
       ops.forEach((op, i) => {
+        ctx.touched = opts.preview ? new Set() : null
         applyOne(ctx, op, i)
-        normalizeHugFill(ctx)
-        normalizeContext(ctx)
-        const issues = validateDocument(current(draft) as MaquetteDocument)
+        const scope = ctx.touched ? scopeOf(ctx, ctx.touched) : null
+        if (scope) {
+          for (const { node } of scope) normalizeHugFillAt(ctx, node)
+          for (const { node, parent } of scope) normalizeContextAt(ctx, node, parent)
+        } else {
+          normalizeHugFill(ctx)
+          normalizeContext(ctx)
+        }
+        const issues = scope ? validateNodes(ctx.draft, scope) : validateDocument(current(draft) as MaquetteDocument)
         if (issues.length) throw new OpError(issues.map((x) => ({ path: `ops[${i}] → ${x.path}`, message: x.message })))
       })
     })
@@ -109,7 +141,7 @@ function container(ctx: Ctx, ref: string, i: number, field: string): Container {
   const id = resolve(ctx, ref, i, field)
   const page = ctx.draft.pages.find((p) => p.id === id)
   if (page) return { kind: 'page', page }
-  const loc = findNode(ctx.draft, id)
+  const loc = locate(ctx, id)
   if (!loc) return fail(i, field, `conteneur introuvable : ${ref}`)
   if (loc.node.type !== 'frame') return fail(i, field, `un élément de type "${loc.node.type}" ne peut pas avoir d’enfants`)
   return { kind: 'frame', node: loc.node }
@@ -142,6 +174,8 @@ function leaveFlow(ctx: Ctx, node: Node, x?: number, y?: number): void {
 }
 
 function applyOne(ctx: Ctx, op: Op, i: number): void {
+  // Pages et styles : l'aperçu ne sait pas borner ce qu'ils touchent, tout le document est revu.
+  if (op.op.startsWith('page.') || op.op.startsWith('style.')) ctx.touched = null
   switch (op.op) {
     case 'create': {
       const c = container(ctx, op.parent, i, 'parent')
@@ -160,10 +194,11 @@ function applyOne(ctx: Ctx, op: Op, i: number): void {
       if (node.type === 'text' && ('width' in input || 'height' in input) && !('textSizing' in input)) realignText(ctx, node)
       const list = childrenOf(c)
       list.splice(clampIndex(op.index, list.length), 0, node)
+      touch(ctx, node.id, c.kind === 'frame' ? c.node.id : null)
       return
     }
     case 'update': {
-      const loc = findNode(ctx.draft, resolve(ctx, op.id, i, 'id'))
+      const loc = locate(ctx, resolve(ctx, op.id, i, 'id'))
       if (!loc) return fail(i, 'id', `élément introuvable : ${op.id}`)
       const node = loc.node
       const bag = node as unknown as Record<string, unknown>
@@ -190,10 +225,11 @@ function applyOne(ctx: Ctx, op: Op, i: number): void {
       if (loc.parent?.layout.mode === 'auto' && node.position === 'absolute' && (node.x === undefined || node.y === undefined)) {
         leaveFlow(ctx, node)
       }
+      touch(ctx, node.id, loc.parent?.id)
       return
     }
     case 'move': {
-      const loc = findNode(ctx.draft, resolve(ctx, op.id, i, 'id'))
+      const loc = locate(ctx, resolve(ctx, op.id, i, 'id'))
       if (!loc) return fail(i, 'id', `élément introuvable : ${op.id}`)
       const target = container(ctx, op.parent, i, 'parent')
       if (target.kind === 'frame' && containsId(loc.node, target.node.id)) {
@@ -212,12 +248,14 @@ function applyOne(ctx: Ctx, op: Op, i: number): void {
       ;(loc.parent ? loc.parent.children : loc.page.children).splice(loc.index, 1)
       const list = childrenOf(target)
       list.splice(clampIndex(op.index, list.length), 0, node)
+      touch(ctx, node.id, loc.parent?.id, target.kind === 'frame' ? target.node.id : null)
       return
     }
     case 'delete': {
-      const loc = findNode(ctx.draft, resolve(ctx, op.id, i, 'id'))
+      const loc = locate(ctx, resolve(ctx, op.id, i, 'id'))
       if (!loc) return fail(i, 'id', `élément introuvable : ${op.id}`)
       ;(loc.parent ? loc.parent.children : loc.page.children).splice(loc.index, 1)
+      touch(ctx, loc.parent?.id)
       return
     }
     case 'page.create': {
@@ -334,46 +372,74 @@ const MIN_MAX = ['minWidth', 'maxWidth', 'minHeight', 'maxHeight'] as const
  * à la ligne, baseline hors ligne. Chaque retrait est noté dans `fixes`.
  */
 function normalizeContext(ctx: Ctx): void {
+  walk(ctx.draft, ({ node, parent }) => normalizeContextAt(ctx, node, parent))
+}
+
+function normalizeContextAt(ctx: Ctx, node: Node, parent: FrameNode | null): void {
   const note = (node: Node, what: string) => ctx.fixes.push(`${node.name} (${node.id}) : ${what}`)
-  walk(ctx.draft, ({ node, parent }) => {
-    const autoParent = parent?.layout.mode === 'auto'
-    const autoSelf = node.type === 'frame' && node.layout.mode === 'auto'
-    if (!autoParent && !autoSelf) {
-      for (const key of MIN_MAX) {
-        if (node[key] !== undefined) {
-          delete node[key]
-          note(node, `${key} retiré, il ne s’applique qu’en mise en page automatique`)
-        }
+  const autoParent = parent?.layout.mode === 'auto'
+  const autoSelf = node.type === 'frame' && node.layout.mode === 'auto'
+  if (!autoParent && !autoSelf) {
+    for (const key of MIN_MAX) {
+      if (node[key] !== undefined) {
+        delete node[key]
+        note(node, `${key} retiré, il ne s’applique qu’en mise en page automatique`)
       }
     }
-    if (node.alignSelf !== undefined && !(autoParent && node.position === 'flow')) {
-      delete node.alignSelf
-      note(node, 'alignSelf retiré, il ne s’applique qu’à un enfant en flux')
+  }
+  if (node.alignSelf !== undefined && !(autoParent && node.position === 'flow')) {
+    delete node.alignSelf
+    note(node, 'alignSelf retiré, il ne s’applique qu’à un enfant en flux')
+  }
+  if (node.type === 'frame' && node.layout.mode === 'auto') {
+    const layout = node.layout
+    if (layout.rowGap !== undefined && !layout.wrap) {
+      delete layout.rowGap
+      note(node, 'rowGap retiré, il ne s’applique qu’avec le retour à la ligne')
     }
-    if (node.type === 'frame' && node.layout.mode === 'auto') {
-      const layout = node.layout
-      if (layout.rowGap !== undefined && !layout.wrap) {
-        delete layout.rowGap
-        note(node, 'rowGap retiré, il ne s’applique qu’avec le retour à la ligne')
-      }
-      if (layout.align === 'baseline' && layout.direction !== 'row') {
-        layout.align = 'start'
-        note(node, 'alignement "baseline" ramené à "start", il n’existe qu’en ligne')
-      }
+    if (layout.align === 'baseline' && layout.direction !== 'row') {
+      layout.align = 'start'
+      note(node, 'alignement "baseline" ramené à "start", il n’existe qu’en ligne')
     }
-  })
+  }
+}
+
+/**
+ * Aperçu : éléments à normaliser et valider après une opération — ceux touchés, leurs parents et
+ * leurs enfants directs (le contexte d'un enfant dépend de son parent). Le reste est inchangé.
+ */
+function scopeOf(ctx: Ctx, touched: Set<string>): NodeLocation[] {
+  const out = new Map<string, NodeLocation>()
+  for (const id of touched) {
+    const loc = locate(ctx, id)
+    if (!loc) continue
+    out.set(id, loc)
+    if (loc.parent && !out.has(loc.parent.id)) {
+      const up = locate(ctx, loc.parent.id)
+      if (up) out.set(up.node.id, up)
+    }
+    if (loc.node.type === 'frame') {
+      const frame = loc.node
+      frame.children.forEach((node, index) => {
+        if (!out.has(node.id)) out.set(node.id, { node, parent: frame, page: loc.page, index, path: `${loc.path}.children[${index}]` })
+      })
+    }
+  }
+  return [...out.values()]
 }
 
 /** Règle 3 : un cadre "hug" dont un enfant en flux est "fill" sur le même axe passe en fixe. */
 function normalizeHugFill(ctx: Ctx): void {
-  walk(ctx.draft, ({ node }) => {
-    if (node.type !== 'frame' || node.layout.mode !== 'auto') return
-    for (const axis of AXES) {
-      if (isHug(node[axis]) && node.children.some((c) => c.position === 'flow' && isFill(c[axis]))) {
-        toFixed(ctx, node, axis, 'un enfant est en "fill" sur cet axe')
-      }
+  walk(ctx.draft, ({ node }) => normalizeHugFillAt(ctx, node))
+}
+
+function normalizeHugFillAt(ctx: Ctx, node: Node): void {
+  if (node.type !== 'frame' || node.layout.mode !== 'auto') return
+  for (const axis of AXES) {
+    if (isHug(node[axis]) && node.children.some((c) => c.position === 'flow' && isFill(c[axis]))) {
+      toFixed(ctx, node, axis, 'un enfant est en "fill" sur cet axe')
     }
-  })
+  }
 }
 
 /** Convertit les couleurs CSS lisibles d'une saisie (fills, stroke.color, shadows[].color, color) ; refuse les illisibles. */

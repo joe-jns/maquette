@@ -2,6 +2,7 @@ import { freeze } from 'immer'
 import { createStore, useStore } from 'zustand'
 import { History } from '../../core/history'
 import { applyOps, type ApplyResult, type Measure, type Op } from '../../core/ops'
+import { validateDocument } from '../../core/rules'
 import type { MaquetteDocument } from '../../core/types'
 import { newDocument } from '../../core/defaults'
 
@@ -36,8 +37,12 @@ export interface DocState {
 
 type Applied = Extract<ApplyResult, { ok: true }>
 
-/** Geste en cours : base, et dernier aperçu valide (ses patchs vont de la base à l'aperçu). */
-interface Gesture { base: MaquetteDocument; last: Applied | null }
+/**
+ * Geste en cours : base, dernier aperçu valide (ses patchs vont de la base à l'aperçu) et les
+ * opérations qui l'ont produit. L'aperçu n'est validé que localement (applyOps `preview`) ; la
+ * validation complète a lieu une fois, au relâcher.
+ */
+interface Gesture { base: MaquetteDocument; last: Applied | null; lastOps: Op[] }
 
 /** Libellé d'un geste validé d'office (undo, dispatch… arrivés en plein geste). */
 const IMPLICIT_LABEL = 'Modification'
@@ -110,16 +115,17 @@ export const docStore = createStore<DocState>()((set, get) => ({
   beginGesture() {
     // Un geste précédent jamais terminé est validé plutôt que perdu.
     if (gesture) get().commitGesture(IMPLICIT_LABEL)
-    gesture = { base: get().doc, last: null }
+    gesture = { base: get().doc, last: null, lastOps: [] }
     set({ inGesture: true })
   },
 
   previewGesture(ops) {
     if (!gesture) get().beginGesture()
     const g = gesture!
-    const result = applyOps(g.base, ops, { measure })
+    const result = applyOps(g.base, ops, { measure, preview: true })
     if (result.ok) {
       g.last = result
+      g.lastOps = ops
       set({ doc: result.doc })
     }
     return result
@@ -133,8 +139,13 @@ export const docStore = createStore<DocState>()((set, get) => ({
       set({ inGesture: false })
       return
     }
-    history.push({ label, patches: g.last.patches, inversePatches: g.last.inversePatches })
-    set({ doc: g.last.doc, dirty: true, inGesture: false, canUndo: history.canUndo(), canRedo: history.canRedo() })
+    const last = checked(g)
+    if (!last) {
+      set({ doc: g.base, inGesture: false })
+      return
+    }
+    history.push({ label, patches: last.patches, inversePatches: last.inversePatches })
+    set({ doc: last.doc, dirty: true, inGesture: false, canUndo: history.canUndo(), canRedo: history.canRedo() })
   },
 
   cancelGesture() {
@@ -144,6 +155,18 @@ export const docStore = createStore<DocState>()((set, get) => ({
     set({ doc: g.base, inGesture: false })
   },
 }))
+
+/**
+ * Aperçu final d'un geste, validé sur tout le document. Par sécurité, s'il ne passe pas (l'aperçu
+ * n'a vérifié que les éléments touchés), les opérations sont rejouées en mode complet ; refusées
+ * aussi, le geste est abandonné.
+ */
+function checked(g: Gesture): Applied | null {
+  const last = g.last!
+  if (validateDocument(last.doc).length === 0) return last
+  const replay = applyOps(g.base, g.lastOps, { measure })
+  return replay.ok ? replay : null
+}
 
 export function useDoc<T>(selector: (s: DocState) => T): T {
   return useStore(docStore, selector)
