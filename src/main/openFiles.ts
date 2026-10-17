@@ -35,6 +35,9 @@ export function initOpenFiles(opts: { editorWindow: () => BrowserWindow | undefi
   })
 }
 
+/** La fenêtre de l'éditeur (pas celle, cachée, de l'export), s'il y en a une. */
+export const currentEditorWindow = (): BrowserWindow | undefined => editorWindow()
+
 /** Lit un fichier pour la fenêtre : il lui est proposé, et son contenu devient la référence de la surveillance. */
 export async function readForWindow(path: string): Promise<OpenedFile> {
   const text = await readFile(path, 'utf8')
