@@ -62,7 +62,7 @@ test('contrôle qualité : fautes listées, épingles sur le canevas, clic = sé
     await page.locator('.finding', { hasText: 'headline-lines' }).click()
     const selected = await page.evaluate(() => (window as unknown as { __maquetteUi: { getState(): { selection: string[] } } }).__maquetteUi.getState().selection)
     expect(selected).toHaveLength(1)
-    expect((await docNode(page, selected[0]!))?.type).toBe('text')
+    expect(((await docNode(page, selected[0]!)) as { type?: string } | undefined)?.type).toBe('text')
   } finally {
     await app.close()
   }
