@@ -101,6 +101,17 @@ describe('outils MCP', () => {
     expect((await runTool(host(scene()), 'verifier_gout', { id: 'X' })).isError).toBe(true)
   })
 
+  it('verifier_gout ecran:"app" : les règles des pages publiques sont ignorées', async () => {
+    const h = host(scene())
+    const seen: (string[] | undefined)[] = []
+    h.check = async (_id, allow) => (seen.push(allow), { isPage: true, findings: [] })
+    await runTool(h, 'verifier_gout', { id: 'F1' })
+    await runTool(h, 'verifier_gout', { id: 'F1', ecran: 'app' })
+    expect(seen[0]).toBeUndefined()
+    expect(seen[1]).toEqual(expect.arrayContaining(['eyebrow', 'card-rows', 'first-action', 'few-pictures', 'hairline']))
+    expect(seen[1]).not.toContain('contrast')
+  })
+
   it('appliquer : une clé devinée (CSS, Figma) en conflit est corrigée dans le message', async () => {
     const r = await runTool(host(scene()), 'appliquer', { operations: [{ op: 'update', id: 'R1', set: { cornerRadius: 8, radius: 4 } }] })
     expect(r.isError).toBe(true)

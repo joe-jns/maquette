@@ -8,7 +8,8 @@ import { pathToFileURL } from 'node:url'
 import type { MaquetteDocument } from '../core/types'
 import type { TasteCheck, TasteDraw } from '../shared/ipc'
 import { parseOptions, type DirectionOption, type DirectionSheet } from '../taste/direction'
-import { STATIC_ALLOW } from '../taste/rules'
+import { buttonLikeIds, navLikeIds, STATIC_ALLOW } from '../taste/rules'
+import { findNode } from '../core/tree'
 import { evaluateInNode } from './exportPng'
 
 const DRAW_TIMEOUT_MS = 20_000
@@ -106,13 +107,19 @@ export async function checkFrame(doc: MaquetteDocument, nodeId: string, allow: s
 
 async function check(doc: MaquetteDocument, nodeId: string, allow: string[]): Promise<TasteCheck | null> {
   const { probe, judge } = await tasteModules()
+  // Les cadres qui font office de bouton deviennent des boutons pour la sonde (une maquette n'a pas de <button>).
+  const node = findNode(doc, nodeId)?.node
+  const roles = node ? [...buttonLikeIds(node).map((id) => [id, 'button']), ...navLikeIds(node).map((id) => [id, 'navigation'])] : []
+  const mark = `for (const [id, role] of ${JSON.stringify(roles)}) document.querySelector('[data-node-id="' + CSS.escape(id) + '"]')?.setAttribute('role', role);`
   // probe() est autonome (aucune fermeture sur son module) : son texte s'exécute tel quel dans la page.
-  const shown = await evaluateInNode<unknown>(doc, nodeId, `(${probe.toString()})()`, VIEWPORT_HEIGHT)
+  const shown = await evaluateInNode<unknown>(doc, nodeId, `(() => { ${mark} return (${probe.toString()})() })()`, VIEWPORT_HEIGHT)
   if (!shown) return null
   const isPage = shown.width >= 900 && shown.height >= 600
   // Les fautes bloquantes d'abord : une liste tronquée (outil MCP) les garde.
   const findings = judge(shown.result, { width: shown.width, allow: [...STATIC_ALLOW, ...allow] })
     .sort((a, b) => Number(b.level === 'FAIL') - Number(a.level === 'FAIL'))
+    // Les corrections citent le script de taste-skill ; dans Maquette, c'est l'outil images.
+    .map((f) => ({ ...f, fix: f.fix.replace(/scripts\/assets\.mjs(?: --video)?/g, 'the images tool').replace(/download them to assets\/ and /g, '') }))
   return { findings, isPage, width: shown.width, height: shown.height }
 }
 

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { deflateSync } from 'node:zlib'
 import {
   commonsLicence, commonsThumb, creditLine, download, fetchRecord, imageSize, licenceLabel, parseCommons, parseOpenverse,
-  safeFileName, searchImages, selectResults, webSized, type Fetch, type FoundImage,
+  retryDelay, safeFileName, searchImages, selectResults, webSized, type Fetch, type FoundImage,
 } from '../../src/main/imageSources'
 
 /** Réponses réelles réduites (Openverse /v1/images, Commons generator=search + imageinfo). */
@@ -206,6 +206,21 @@ describe('téléchargement et fichiers', () => {
     await expect(download(big, 'https://x', 1000)).rejects.toThrow('trop lourde')
     const ok = fakeFetch(() => new Response(png(3, 2) as BlobPart, { headers: { 'content-type': 'image/png; charset=binary' } }))
     expect((await download(ok, 'https://x', 10_000)).ext).toBe('png')
+  })
+
+  it('HTTP 429 : réessaie après Retry-After (borné), puis abandonne avec un conseil', async () => {
+    let calls = 0
+    const waits: number[] = []
+    const wait = async (ms: number) => void waits.push(ms)
+    const flaky = fakeFetch(() => (++calls < 2
+      ? new Response('', { status: 429, headers: { 'retry-after': '3' } })
+      : new Response(png(3, 2) as BlobPart, { headers: { 'content-type': 'image/png' } })))
+    expect((await download(flaky, 'https://x', 10_000, 1000, wait)).ext).toBe('png')
+    expect(waits).toEqual([3000])
+    const busy = fakeFetch(() => new Response('', { status: 429 }))
+    await expect(download(busy, 'https://x', 10_000, 1000, wait)).rejects.toThrow(/HTTP 429.*une à une/)
+    expect(retryDelay('600', 0)).toBe(8000)
+    expect(retryDelay(null, 1)).toBe(3000)
   })
 
   it('taille lue dans l’en-tête', () => {

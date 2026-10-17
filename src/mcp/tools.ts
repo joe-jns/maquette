@@ -8,6 +8,7 @@ import { createNode } from '../core/defaults'
 import type { ApplyResult, Op } from '../core/ops'
 import { formatPath } from '../core/rules'
 import { searchIcons } from '../core/icons/lucide'
+import { APP_ALLOW } from '../taste/rules'
 import { findNode, walk } from '../core/tree'
 import type { MaquetteDocument, Node, NodeInput, Size } from '../core/types'
 import { IMAGES_DESCRIPTION, IMAGES_INPUT, runImages, type ImageHost } from './images'
@@ -21,7 +22,7 @@ export interface ToolHost {
   apply(ops: Op[], label: string): ApplyResult
   capture(id: string, width: number): Promise<{ data: string; mimeType: string } | null>
   /** Contrôle taste-skill d'un cadre (rendu réel) ; null si impossible. */
-  check(id: string): Promise<{ findings: { level: 'FAIL' | 'WARN'; id: string; message: string; fix: string }[]; isPage: boolean } | null>
+  check(id: string, allow?: string[]): Promise<{ findings: { level: 'FAIL' | 'WARN'; id: string; message: string; fix: string }[]; isPage: boolean } | null>
   /** Photos libres (outil images) ; absent : l'outil répond qu'il n'est pas disponible. */
   images?: ImageHost
   /** Guides, styles et directions (outils guide, style, direction) ; absent : ces outils sont indisponibles. */
@@ -62,7 +63,7 @@ const INPUTS = {
     largeur: z.number().int().min(100).max(1600).optional(),
   },
   selection: {},
-  verifier_gout: { id: z.string() },
+  verifier_gout: { id: z.string(), ecran: z.enum(['page', 'app']).optional() },
   images: IMAGES_INPUT,
   icones: {
     cherche: z.string().min(1),
@@ -116,7 +117,7 @@ export const TOOLS: ToolDef[] = [
   },
   {
     name: 'verifier_gout',
-    description: 'Contrôle taste-skill d’un cadre sur son rendu réel : [niveau, règle, message, correction] (au plus 15), "page" = cadre de la taille d’une page. À lancer après une section ou une page.',
+    description: 'Contrôle taste-skill d’un cadre sur son rendu réel : [niveau, règle, message, correction] (au plus 15), "page" = cadre de la taille d’une page. À lancer après une section ou une page. ecran:"app" pour un écran d’application (tableau de bord, mobile) : les règles propres aux pages publiques (étiquettes, cartes, filets, photos…) sont ignorées.',
     input: INPUTS.verifier_gout,
   },
   { name: 'images', description: IMAGES_DESCRIPTION, input: INPUTS.images },
@@ -160,7 +161,7 @@ export async function runTool(host: ToolHost, name: string, args: unknown): Prom
     case 'selection':
       return ok(selection(host))
     case 'verifier_gout':
-      return checkTaste(host, a.id as string)
+      return checkTaste(host, a.id as string, a.ecran === 'app')
     case 'images':
       return runImages(host, parsed.data as Parameters<typeof runImages>[1])
     case 'icones':
@@ -396,11 +397,11 @@ function icons(query: string, limit: number) {
 
 const MAX_FINDINGS = 15
 
-async function checkTaste(host: ToolHost, id: string): Promise<ToolResult> {
+async function checkTaste(host: ToolHost, id: string, app: boolean): Promise<ToolResult> {
   const loc = findNode(host.doc(), id)
   if (!loc) return error(`élément introuvable : ${id}`)
   if (loc.node.type !== 'frame') return error(`${loc.node.name} n’est pas un cadre : le contrôle porte sur un cadre (section ou page)`)
-  const r = await host.check(id)
+  const r = await (app ? host.check(id, APP_ALLOW) : host.check(id))
   if (!r) return error(`contrôle impossible pour ${loc.node.name} (masqué, ou rendu trop long)`)
   const fautes = r.findings.slice(0, MAX_FINDINGS).map((f) => [f.level, f.id, f.message, f.fix])
   const out: Record<string, unknown> = { fautes, page: r.isPage }
