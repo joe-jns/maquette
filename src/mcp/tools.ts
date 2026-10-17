@@ -9,6 +9,7 @@ import type { ApplyResult, Op } from '../core/ops'
 import { formatPath } from '../core/rules'
 import { findNode, walk } from '../core/tree'
 import type { MaquetteDocument, Node, NodeInput, Size } from '../core/types'
+import { DESIGN_TOOLS, isDesignTool, runDesignTool, type DesignHost } from './design'
 import { ALIASES, normalizeOperations, originPath } from './normalize'
 
 export interface ToolHost {
@@ -19,6 +20,8 @@ export interface ToolHost {
   capture(id: string, width: number): Promise<{ data: string; mimeType: string } | null>
   /** Contrôle taste-skill d'un cadre (rendu réel) ; null si impossible. */
   check(id: string): Promise<{ findings: { level: 'FAIL' | 'WARN'; id: string; message: string; fix: string }[]; isPage: boolean } | null>
+  /** Guides, styles et directions (outils guide, style, direction) ; absent : ces outils sont indisponibles. */
+  design?: DesignHost
 }
 
 export interface ToolResult { text: string; image?: { data: string; mimeType: string }; isError?: boolean }
@@ -101,6 +104,7 @@ export const TOOLS: ToolDef[] = [
     description: 'Contrôle taste-skill d’un cadre sur son rendu réel : [niveau, règle, message, correction] (au plus 15), "page" = cadre de la taille d’une page. À lancer après une section ou une page.',
     input: INPUTS.verifier_gout,
   },
+  ...DESIGN_TOOLS,
 ]
 
 const json = (value: unknown): string => JSON.stringify(value)
@@ -108,6 +112,7 @@ const ok = (value: unknown): ToolResult => ({ text: json(value) })
 const error = (text: string): ToolResult => ({ text, isError: true })
 
 export async function runTool(host: ToolHost, name: string, args: unknown): Promise<ToolResult> {
+  if (isDesignTool(name)) return runDesignTool(host, name, args)
   if (!Object.hasOwn(INPUTS, name)) return error(`outil inconnu : ${name}`)
   const tool = name as ToolName
   const parsed = z.strictObject(INPUTS[tool]).safeParse(args ?? {})
