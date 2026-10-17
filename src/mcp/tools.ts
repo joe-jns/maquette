@@ -313,5 +313,5 @@ function selection(host: ToolHost) {
     const node = findNode(doc, id)?.node
     return node ? [{ id: node.id, type: node.type, nom: node.name }] : []
   })
-  return { ids, elements }
+  return elements
 }

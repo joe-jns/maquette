@@ -117,6 +117,6 @@ describe('outils MCP', () => {
     expect(c.image).toEqual({ data: 'img-800', mimeType: 'image/jpeg' })
     expect(c.text).toContain('Hero')
     expect((await runTool(h, 'capture', { id: 'R1' })).isError).toBe(true)
-    expect(JSON.parse((await runTool(h, 'selection', {})).text)).toEqual({ ids: ['R1'], elements: [{ id: 'R1', type: 'shape', nom: 'Bleu' }] })
+    expect(JSON.parse((await runTool(h, 'selection', {})).text)).toEqual([{ id: 'R1', type: 'shape', nom: 'Bleu' }])
   })
 })
