@@ -15,9 +15,9 @@ export function CheckSection() {
   const { nodes } = useSelection()
   const doc = useDoc((s) => s.doc)
   const check = useTaste((s) => s.check)
-  const busy = useTaste((s) => s.busy)
+  const checking = useTaste((s) => s.checking)
   const allow = useTaste((s) => s.allow)
-  const error = useTaste((s) => s.error)
+  const error = useTaste((s) => s.checkError)
   const frame = nodes.length === 1 && nodes[0]!.type === 'frame' ? nodes[0]! : null
   if (!frame) return null
   const run = check?.frameId === frame.id ? check : null
@@ -28,12 +28,12 @@ export function CheckSection() {
     <Section
       title="Contrôle taste-skill"
       actions={
-        <button type="button" className="text-button" disabled={busy === 'check'} title="Ctrl+Alt+V" onClick={() => void runCheck(frame.id)}>
-          {busy === 'check' ? 'Vérification…' : run ? 'Revérifier' : 'Vérifier'}
+        <button type="button" className="text-button" disabled={checking} title="Ctrl+Alt+V" onClick={() => void runCheck(frame.id)}>
+          {checking ? 'Vérification…' : run ? 'Revérifier' : 'Vérifier'}
         </button>
       }
     >
-      {error && busy === null && !run && <p className="error-note" role="alert">{error}</p>}
+      {error && !checking && <p className="error-note" role="alert">{error}</p>}
       {run && (
         <>
           <div className="check-summary">

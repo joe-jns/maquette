@@ -11,8 +11,8 @@ export function DirectionPanel() {
   const input = useTaste((s) => s.input)
   const options = useTaste((s) => s.options)
   const sheet = useTaste((s) => s.sheet)
-  const busy = useTaste((s) => s.busy)
-  const error = useTaste((s) => s.error)
+  const busy = useTaste((s) => s.drawing)
+  const error = useTaste((s) => s.drawError)
   const { setInput, drawOptions, choose } = tasteStore.getState()
   const styles = useMemo(() => (sheet ? directionStyles(sheet) : null), [sheet])
   // Les polices de la fiche sont chargées dès l'aperçu (« Ag » dans la bonne police).

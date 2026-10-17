@@ -21,8 +21,12 @@ interface TasteState {
   input: TasteInput
   options: DirectionOption[] | null
   sheet: (DirectionSheet & { direction?: { id: string; name: string; idea: string }; hero?: { name: string; blueprint: string } }) | null
-  busy: 'options' | 'direction' | 'check' | null
-  error: string | null
+  /** Tirage en cours (onglet Direction). */
+  drawing: 'options' | 'direction' | null
+  drawError: string | null
+  /** Contrôle en cours (section du panneau Design). */
+  checking: boolean
+  checkError: string | null
   check: CheckRun | null
   /** Règles ignorées par l'utilisateur (en plus de celles sans objet sur une maquette fixe). */
   allow: string[]
@@ -33,49 +37,76 @@ interface TasteState {
   runCheck(frameId: string): Promise<void>
   toggleRule(id: string): void
   ignorePageRules(): void
-  clearCheck(): void
 }
+
+/** Numéro du dernier contrôle demandé : la réponse d'un contrôle dépassé est ignorée. */
+let checkSeq = 0
 
 export const tasteStore = createStore<TasteState>()((set, get) => ({
   tab: 'design',
   input: { sector: 'restaurant', brief: '', tone: undefined },
   options: null,
   sheet: null,
-  busy: null,
-  error: null,
+  drawing: null,
+  drawError: null,
+  checking: false,
+  checkError: null,
   check: null,
   allow: [],
   setTab: (tab) => set({ tab }),
   setInput: (patch) => set({ input: { ...get().input, ...patch } }),
   async drawOptions() {
-    set({ busy: 'options', error: null, options: null, sheet: null })
-    const r = await window.maquette.taste.options(get().input)
-    set(r.ok ? { busy: null, options: r.value } : { busy: null, error: r.message })
+    if (get().drawing) return
+    set({ drawing: 'options', drawError: null, options: null, sheet: null })
+    try {
+      const r = await window.maquette.taste.options(get().input)
+      set(r.ok ? { options: r.value } : { drawError: r.message })
+    } catch (e) {
+      set({ drawError: (e as Error).message })
+    } finally {
+      set({ drawing: null })
+    }
   },
   async choose(direction) {
-    set({ busy: 'direction', error: null })
-    const r = await window.maquette.taste.direction({ ...get().input, direction })
-    set(r.ok ? { busy: null, sheet: r.value } : { busy: null, error: r.message })
+    if (get().drawing) return
+    set({ drawing: 'direction', drawError: null })
+    try {
+      const r = await window.maquette.taste.direction({ ...get().input, direction })
+      set(r.ok ? { sheet: r.value } : { drawError: r.message })
+    } catch (e) {
+      set({ drawError: (e as Error).message })
+    } finally {
+      set({ drawing: null })
+    }
   },
   async runCheck(frameId) {
     const doc = docStore.getState().doc
     const node = findNode(doc, frameId)?.node
     if (!node) return
-    set({ busy: 'check', error: null })
-    const result = await window.maquette.taste.check(doc, frameId, get().allow)
-    if (!result) set({ busy: null, error: 'Contrôle impossible : élément masqué ou rendu trop long.' })
-    else set({ busy: null, check: { frameId, node, result } })
+    const seq = ++checkSeq
+    set({ checking: true, checkError: null })
+    let result: Awaited<ReturnType<typeof window.maquette.taste.check>> = null
+    try {
+      result = await window.maquette.taste.check(doc, frameId, get().allow)
+    } catch {
+      result = null
+    }
+    if (seq !== checkSeq) return
+    if (result) set({ checking: false, check: { frameId, node, result } })
+    else set({ checking: false, checkError: 'Contrôle impossible : cadre masqué, ou rendu trop long (polices encore en téléchargement ?). Réessayez.' })
   },
   toggleRule(id) {
     const allow = get().allow
     set({ allow: allow.includes(id) ? allow.filter((r) => r !== id) : [...allow, id] })
+    // Le résultat affiché suit la liste : on revérifie le cadre déjà contrôlé.
+    const run = get().check
+    if (run) void get().runCheck(run.frameId)
   },
   ignorePageRules() {
     set({ allow: [...new Set([...get().allow, ...PAGE_RULES])] })
     const run = get().check
     if (run) void get().runCheck(run.frameId)
   },
-  clearCheck: () => set({ check: null }),
 }))
 
 export const useTaste = <T,>(selector: (s: TasteState) => T): T => useStore(tasteStore, selector)
