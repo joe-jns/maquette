@@ -60,7 +60,7 @@ const host: ToolHost = {
     return image && { data: image.data, mimeType: image.mimeType }
   },
   // Mêmes règles ignorées que dans le panneau : Claude et l'utilisateur voient le même résultat.
-  check: (id) => window.maquette.taste.check(docStore.getState().doc, id, tasteStore.getState().allow),
+  check: (id, allow = []) => window.maquette.taste.check(docStore.getState().doc, id, [...tasteStore.getState().allow, ...allow]),
   images: imageHost,
   design,
 }

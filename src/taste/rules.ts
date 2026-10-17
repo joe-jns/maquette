@@ -8,6 +8,16 @@ export const STATIC_ALLOW = ['still-page', 'no-footage', 'long-pin', 'pinned-ove
 export const PAGE_RULES = ['no-hero', 'first-action', 'focal-point', 'hero-words', 'few-pictures', 'no-real-pictures', 'font-count', 'size-count']
 
 /**
+ * Règles des pages publiques sans objet sur un écran d'application (tableau de bord, mobile) : en-têtes
+ * de colonnes, filets de tableau, cartes répétées, chiffres alignés y sont des conventions, pas des tics.
+ * Restent : contraste, tailles de texte, polices, dégradés, ombres, débordements.
+ */
+export const APP_ALLOW = [
+  'eyebrow', 'micro-label', 'mono', 'numbering', 'hairline', 'outlined-box', 'dashed', 'card-rows', 'icon-cards',
+  'first-action', 'few-pictures', 'no-real-pictures', 'no-hero', 'focal-point', 'hero-words', 'headline-lines', 'all-centred',
+]
+
+/**
  * Cadres qui se lisent comme des boutons. Une maquette n'a pas de <button> : la sonde de taste-skill ne
  * voyait aucun bouton (règle first-action, toujours en alerte). Un cadre rempli ou bordé, en disposition
  * auto, qui ne contient qu'un libellé court (et au plus une icône) est marqué role="button" avant la sonde.
