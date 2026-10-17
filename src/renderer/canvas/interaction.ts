@@ -2,7 +2,6 @@ import type { Op } from '../../core/ops'
 import { containsId, findNode } from '../../core/tree'
 import type { FrameNode, MaquetteDocument, Node, Rect } from '../../core/types'
 import { chatStore } from '../chat/chatStore'
-import { runCommand } from '../state/commands'
 import { docStore } from '../state/store'
 import { tasteStore } from '../taste/tasteStore'
 import { uiStore, type Tool } from '../state/ui'
@@ -12,7 +11,8 @@ import { fitTo, selectionExists, stopCameraAnimation, zoomAroundCenter, zoomStep
 import {
   addAutoLayoutOps, deleteOps, duplicateOps, inFlow, nudgeOps, topLevel, wrapInFrameOps, zOrderOps, type CommandOps,
 } from './canvasOps'
-import { copyNodes, parseClipboard, pasteOps } from './clipboard'
+import { copyNodes, pasteOps } from './clipboard'
+import { choosePaste, droppedImageUrls, gridLayout, importSize, type ClipboardRead } from './imagePaste'
 import { domMeasure } from './measure'
 import { createClickTracker } from './clicks'
 import { distanceLines, normalizeRect, union, type Point } from './geometry'
@@ -61,6 +61,9 @@ type State =
 
 /** Un cadre (ou la page) qui reçoit un nouvel élément, avec son rectangle dans le monde. */
 interface Container { id: string; frame: FrameNode | null; rect: Rect }
+
+/** Une image à importer : fichier déposé, adresse web, ou image du presse-papiers (lue par le principal). */
+type ImageSource = { kind: 'file'; file: File } | { kind: 'url'; url: string } | { kind: 'clipboard' }
 
 interface MoveState {
   kind: 'move'
@@ -415,52 +418,82 @@ export class InteractionController {
   // ——— Dépôt d'images ———
 
   private dragOver(e: DragEvent): void {
-    if ([...(e.dataTransfer?.items ?? [])].some((i) => i.kind === 'file')) {
+    const dt = e.dataTransfer
+    if (!dt || (e.target as Element | null)?.closest?.('[data-editing]')) return
+    // Fichier, ou image glissée depuis une page web (adresse, fragment HTML).
+    const types = [...dt.types]
+    if ([...dt.items].some((i) => i.kind === 'file') || types.includes('text/uri-list') || types.includes('text/html')) {
       e.preventDefault()
-      if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy'
+      dt.dropEffect = 'copy'
     }
   }
 
   private async drop(e: DragEvent): Promise<void> {
-    const all = [...(e.dataTransfer?.files ?? [])]
-    if (!all.length) return
+    const dt = e.dataTransfer
+    if (!dt || (e.target as Element | null)?.closest?.('[data-editing]')) return
+    const all = [...dt.files]
+    const urls = all.length ? [] : droppedImageUrls(dt.getData('text/html'), dt.getData('text/uri-list'))
+    if (!all.length && !urls.length) return
     // Toujours intercepter : un fichier lâché non intercepté ferait naviguer la fenêtre vers lui.
     e.preventDefault()
     const files = all.filter((f) => f.type.startsWith('image/') || /\.(png|jpe?g|gif|webp|svg|avif)$/i.test(f.name))
-    if (!files.length) {
+    if (all.length && !files.length) {
       docStore.getState().showError('Seules les images peuvent être déposées sur le canevas')
       return
     }
-    const point = this.toWorld(e)
-    const container = this.frameUnder(e.clientX, e.clientY)
-    if (!docStore.getState().filePath) {
-      await runCommand('save-as')
-      if (!docStore.getState().filePath) return
+    const sources: ImageSource[] = files.length
+      ? files.map((file) => ({ kind: 'file', file }))
+      : urls.map((url) => ({ kind: 'url', url }))
+    await this.importImages(sources, { clientX: e.clientX, clientY: e.clientY })
+  }
+
+  /** Une image vers le dossier des images du document : `src` et nom, ou message d'échec. */
+  private async importOne(source: ImageSource): Promise<{ src: string; name: string } | { error: string }> {
+    const api = window.maquette
+    if (source.kind === 'file') {
+      const res = await api.importImage(source.file.name, new Uint8Array(await source.file.arrayBuffer()))
+      return res.ok ? { src: res.src, name: source.file.name.replace(/\.[^.]+$/, '') } : { error: `${source.file.name} : ${res.message}` }
     }
-    // Toutes les images d'un même dépôt : une seule opération groupée, donc une seule annulation.
-    const ops: Op[] = []
-    const temps: string[] = []
-    for (const [i, file] of files.entries()) {
-      const res = await window.maquette.importImage(file.name, new Uint8Array(await file.arrayBuffer()))
-      if (!res.ok) {
-        docStore.getState().showError(`${file.name} : ${res.message}`)
-        continue
-      }
-      const natural = await naturalSize(assetUrl(res.src))
-      const scale = natural.width > 800 ? 800 / natural.width : 1
-      const temp = `$img${i}`
-      const node = {
-        id: temp, type: 'image' as const, name: file.name.replace(/\.[^.]+$/, ''), src: res.src,
-        width: Math.max(1, Math.round(natural.width * scale)), height: Math.max(1, Math.round(natural.height * scale)),
-      }
-      const auto = container.frame?.layout.mode === 'auto'
-      const op: Op = auto
-        ? { op: 'create', parent: container.id, node }
-        : { op: 'create', parent: container.id, node: { ...node, x: Math.round(point.x - container.rect.x + i * 20), y: Math.round(point.y - container.rect.y + i * 20) } }
-      ops.push(op)
-      temps.push(temp)
+    const res = source.kind === 'clipboard' ? await api.pasteImage() : await api.fetchImage(source.url)
+    if (res.ok) return { src: res.src, name: res.name ?? 'Image' }
+    if (source.kind === 'clipboard') return { error: res.message }
+    return { error: `${source.url.startsWith('data:') ? 'image' : source.url} : ${res.message}` }
+  }
+
+  /**
+   * Importe des images (dépôt, collage) en une seule opération, donc une seule annulation : au
+   * point `at` (coin haut-gauche) ou, sans point, centrées dans la vue ; plusieurs : en grille.
+   * Document jamais enregistré : le principal les garde dans un dossier d'attente.
+   */
+  private async importImages(sources: ImageSource[], at: ScreenPoint | null): Promise<void> {
+    if (!sources.length) return
+    const results = await Promise.all(sources.map((source) => this.importOne(source)))
+    const errors = results.flatMap((r) => ('error' in r ? [r.error] : []))
+    const imported = results.flatMap((r) => ('src' in r ? [r] : []))
+    if (errors.length) docStore.getState().showError(errors.length > 1 ? `${errors.length} images non importées — ${errors[0]}` : errors[0]!)
+    if (!imported.length) return
+    const sizes = await Promise.all(imported.map(async (img) => importSize(await naturalSize(assetUrl(img.src)))))
+    const grid = gridLayout(sizes)
+    let container: Container
+    let origin: Point
+    if (at) {
+      container = this.frameUnder(at.clientX, at.clientY)
+      origin = this.toWorld(at)
+    } else {
+      const box = this.el.getBoundingClientRect()
+      container = { id: docStore.getState().pageId, frame: null, rect: { x: 0, y: 0, width: 0, height: 0 } }
+      const center = this.toWorld({ clientX: box.left + box.width / 2, clientY: box.top + box.height / 2 })
+      origin = { x: center.x - grid.width / 2, y: center.y - grid.height / 2 }
     }
-    if (!ops.length) return
+    const auto = container.frame?.layout.mode === 'auto'
+    const temps = imported.map((_, i) => `$img${i}`)
+    const ops: Op[] = imported.map((img, i) => {
+      const node = { id: temps[i]!, type: 'image' as const, name: img.name, src: img.src, ...sizes[i]! }
+      const p = grid.positions[i]!
+      const x = Math.round(origin.x - container.rect.x + p.x)
+      const y = Math.round(origin.y - container.rect.y + p.y)
+      return auto ? { op: 'create', parent: container.id, node } : { op: 'create', parent: container.id, node: { ...node, x, y } }
+    })
     const result = docStore.getState().dispatch(ops, ops.length > 1 ? 'Importer des images' : 'Importer une image')
     if (result.ok) ui().select(temps.map((t) => result.ids[t]).filter((id) => id !== undefined))
   }
@@ -845,18 +878,22 @@ export class InteractionController {
   }
 
   /**
-   * Coller : dans le cadre sélectionné, sinon à côté de la sélection ; au point `at` (clic droit) ou
-   * au pointeur s'il est sur le canevas.
+   * Coller : des éléments Maquette dans le cadre sélectionné, sinon à côté de la sélection ; au point
+   * `at` (clic droit) ou au pointeur s'il est sur le canevas. Une image (capture, « Copier l'image »)
+   * ou des adresses d'images deviennent des éléments image.
    */
   private async paste(at: ScreenPoint | null = this.pointer): Promise<void> {
-    let text = this.clipboard
+    let system: ClipboardRead | null = null
     try {
-      text = (await navigator.clipboard.readText()) || text
+      system = await window.maquette.readClipboard()
     } catch {
       // Presse-papiers système indisponible : on garde la copie interne.
     }
-    const payload = parseClipboard(text)
-    if (!payload) return
+    const choice = choosePaste(system, this.clipboard)
+    if (choice.kind === 'image') return this.importImages([{ kind: 'clipboard' }], at)
+    if (choice.kind === 'urls') return this.importImages(choice.urls.map((url) => ({ kind: 'url', url })), at)
+    if (choice.kind !== 'nodes') return
+    const payload = choice.payload
     const d = doc()
     const [first, ...rest] = ui().selection
     const firstNode = first ? findNode(d, first)?.node : undefined

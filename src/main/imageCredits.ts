@@ -51,6 +51,19 @@ async function recordCredit(docDir: string, entry: CreditEntry): Promise<void> {
   await rename(tmp, target)
 }
 
+/** Ajoute des crédits venus d'un autre dossier (images recopiées) ; ceux déjà notés restent tels quels. */
+export async function mergeCredits(docDir: string, entries: CreditEntry[]): Promise<void> {
+  const list = await readCredits(docDir)
+  const known = new Set(list.map((c) => c.file))
+  const added = entries.filter((e) => !known.has(e.file))
+  if (!added.length) return
+  await mkdir(join(docDir, 'assets'), { recursive: true })
+  const target = creditsPath(docDir)
+  const tmp = `${target}.${process.pid}.tmp`
+  await writeFile(tmp, JSON.stringify([...list, ...added], null, 1), 'utf8')
+  await rename(tmp, target)
+}
+
 function notes(it: FoundImage): string[] {
   const n: string[] = []
   if (it.licence.endsWith('-sa')) n.push('Partage à l’identique : une version modifiée se partage sous la même licence.')

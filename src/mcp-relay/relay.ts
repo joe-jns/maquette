@@ -85,6 +85,10 @@ async function main(): Promise<void> {
         { type: 'text', text: result.text },
       ]
       if (result.image) content.push({ type: 'image', data: result.image.data, mimeType: result.image.mimeType })
+      // Plusieurs images : chacune précédée de sa légende.
+      for (const img of result.images ?? []) {
+        content.push({ type: 'text', text: img.caption }, { type: 'image', data: img.data, mimeType: img.mimeType })
+      }
       return { content, isError: result.isError ?? false }
     })
   }

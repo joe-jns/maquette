@@ -8,7 +8,7 @@ import { docWith, frame, rect } from '../core/helpers'
 
 interface Fake extends ToolHost { current(): MaquetteDocument; labels: string[]; placed: (string | number)[] }
 
-function host(start: MaquetteDocument, opts: { saved?: boolean; images?: Partial<ImageHost> } = {}): Fake {
+function host(start: MaquetteDocument, opts: { images?: Partial<ImageHost> } = {}): Fake {
   let doc = start
   const labels: string[] = []
   const placed: (string | number)[] = []
@@ -27,7 +27,6 @@ function host(start: MaquetteDocument, opts: { saved?: boolean; images?: Partial
       { file: 'assets/pain-1234abcd.jpg', credit: '« Pain au levain »…', page: 'https://flickr/1', licenseUrl: null },
       { file: 'assets/autre.jpg', credit: 'autre', page: null, licenseUrl: null },
     ],
-    saved: () => opts.saved ?? true,
     measure: () => ({ x: 0, y: 0, width: 640, height: 360 }),
     ...opts.images,
   }
@@ -136,16 +135,11 @@ describe('outil images', () => {
     expect(findNode(h.current(), free.id)!.node).toMatchObject({ width: 640, height: 360 })
   })
 
-  it('cible vérifiée avant le téléchargement ; document non enregistré refusé', async () => {
+  it('cible vérifiée avant le téléchargement', async () => {
     const h = host(scene())
     expect((await call(h, { poser: 1, dans: 'X' })).text).toContain('introuvable')
     expect((await call(h, { poser: 1, parent: 'R1' })).isError).toBe(true)
     expect(h.placed).toEqual([])
-    const unsaved = host(scene(), { saved: false })
-    const r = await call(unsaved, { poser: 1 })
-    expect(r.isError).toBe(true)
-    expect(r.text).toContain('enregistr')
-    expect(unsaved.placed).toEqual([])
   })
 
   it('échec du téléchargement : message transmis, document intact', async () => {

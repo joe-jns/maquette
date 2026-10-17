@@ -1,7 +1,7 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 import type { ChatEvent, ChatItem } from '../shared/chat'
 import type { ImageCredit, ImagePlace, ImageSearch } from '../shared/images'
-import type { DialogRequest, ExportJob, ExportMeasure, FontInfo, ImageImport, MaquetteApi, MenuCommand, OpenedFile, RenderedImage } from '../shared/ipc'
+import type { ClipboardContent, DialogRequest, ExportJob, ExportMeasure, FontInfo, ImageImport, MaquetteApi, MenuCommand, OpenedFile, RenderedImage } from '../shared/ipc'
 
 // Questions du principal : arrivées avant que la fenêtre écoute (démarrage), elles l'attendent.
 let onAsk: ((request: DialogRequest) => Promise<number>) | null = null
@@ -22,6 +22,9 @@ const api: MaquetteApi = {
   documentLoaded: (path) => ipcRenderer.invoke('doc:loaded', path) as Promise<boolean>,
   saveFile: (path, text) => ipcRenderer.invoke('file:save', { path, text }) as Promise<string | null>,
   importImage: (name, bytes) => ipcRenderer.invoke('image:import', { name, bytes }) as Promise<ImageImport>,
+  readClipboard: () => ipcRenderer.invoke('clipboard:read') as Promise<ClipboardContent>,
+  pasteImage: () => ipcRenderer.invoke('image:paste') as Promise<ImageImport>,
+  fetchImage: (url) => ipcRenderer.invoke('image:fetch', url) as Promise<ImageImport>,
   fontCatalog: () => ipcRenderer.invoke('fonts:catalog') as Promise<FontInfo[]>,
   fontCss: (family) => ipcRenderer.invoke('fonts:css', family) as Promise<string | null>,
   renderNode: (doc, nodeId, opts) => ipcRenderer.invoke('export:node', { doc, nodeId, ...opts }) as Promise<RenderedImage | null>,

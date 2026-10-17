@@ -18,7 +18,9 @@ export interface OpenedFile { path: string | null; text: string }
 export interface DocState { dirty: boolean; name: string; path: string | null }
 /** Copie de secours plus récente que son fichier, proposée au démarrage. */
 export interface RecoveryOffer { id: string; name: string; savedAt: number }
-export type ImageImport = { ok: true; src: string } | { ok: false; message: string }
+export type ImageImport = { ok: true; src: string; name?: string } | { ok: false; message: string }
+/** Ce que contient le presse-papiers du système (l'image elle-même reste dans le principal). */
+export interface ClipboardContent { text: string; html: string; image: boolean }
 /** Une famille du catalogue des polices (Google Fonts ou catalogue de secours). */
 export interface FontInfo {
   family: string
@@ -74,8 +76,14 @@ export interface MaquetteApi {
   documentLoaded(path: string | null): Promise<boolean>
   saveFile(path: string | null, text: string): Promise<string | null>
   onMenu(cb: (cmd: MenuCommand) => void): () => void
-  /** Copie une image dans assets/ à côté du document courant (enregistré). */
+  /** Copie une image dans assets/ à côté du document (sans titre : dossier d'attente, recopié à l'enregistrement). */
   importImage(name: string, bytes: Uint8Array): Promise<ImageImport>
+  /** Presse-papiers du système : texte, HTML, présence d'une image. */
+  readClipboard(): Promise<ClipboardContent>
+  /** Importe l'image du presse-papiers (capture d'écran, « Copier l'image »). */
+  pasteImage(): Promise<ImageImport>
+  /** Télécharge et importe une image du web (http, https, data:). */
+  fetchImage(url: string): Promise<ImageImport>
   /** Catalogue des polices (cache local, réseau, ou catalogue de secours hors connexion). */
   fontCatalog(): Promise<FontInfo[]>
   /** Feuille @font-face d'une famille (fichiers servis par mfont://), ou null si indisponible. */

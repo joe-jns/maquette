@@ -16,8 +16,6 @@ export interface ImageHost {
   >
   place(ref: string | number): Promise<ImagePlace>
   credits(): Promise<ImageCredit[]>
-  /** Le document a un fichier (les photos vont dans son dossier assets/). */
-  saved(): boolean
   /** Taille affichée d'un élément (cadre en hug ou fill). */
   measure(id: string): Rect | null
 }
@@ -192,7 +190,6 @@ function operations(p: Placement, a: Args, placed: Extract<ImagePlace, { ok: tru
 async function place(host: Host, img: ImageHost, a: Args): Promise<Result> {
   const p = target(host, img, a)
   if (typeof p === 'string') return error(p)
-  if (!img.saved()) return error('document jamais enregistré : les photos vont dans son dossier assets/. Demandez à l’utilisateur de l’enregistrer (Ctrl+S), puis réessayez.')
   const placed = await img.place(a.poser!)
   if (!placed.ok) return error(placed.message)
   // Le document a pu changer pendant le téléchargement : la cible est revérifiée.

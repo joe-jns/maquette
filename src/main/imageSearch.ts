@@ -5,7 +5,7 @@ import {
   DEFAULT_APIS, download, fetchRecord, imageSize, licenceLabel, searchImages, webSized,
   type Fetch, type FoundImage, type ImageApis,
 } from './imageSources'
-import { getCurrentDir } from './state'
+import { getAssetDir } from './state'
 
 /** Une photo posée ne dépasse pas cette largeur : assez pour un écran large en 2x, sans alourdir le dossier. */
 const MAX_PLACE_WIDTH = 2400
@@ -77,8 +77,8 @@ function shrink(file: { bytes: Uint8Array; ext: string }): { bytes: Uint8Array; 
 }
 
 export async function place(ref: string | number): Promise<ImagePlace> {
-  const dir = getCurrentDir()
-  if (!dir) return { ok: false, message: 'document jamais enregistré : les photos vont dans son dossier assets/. Demandez à l’utilisateur de l’enregistrer (Ctrl+S), puis réessayez.' }
+  const dir = getAssetDir()
+  if (!dir) return { ok: false, message: 'dossier des images indisponible' }
   const wanted = typeof ref === 'number' || /^\d+$/.test(ref) ? lastRefs[Number(ref) - 1] : ref
   if (!wanted) return { ok: false, message: `pas de résultat n°${ref} dans la dernière recherche` }
   try {
@@ -94,7 +94,7 @@ export async function place(ref: string | number): Promise<ImagePlace> {
 }
 
 export async function credits(): Promise<ImageCredit[]> {
-  const dir = getCurrentDir()
+  const dir = getAssetDir()
   if (!dir) return []
   return (await readCredits(dir)).map((c) => ({ file: c.file, credit: c.credit, page: c.page, licenseUrl: c.licenseUrl }))
 }

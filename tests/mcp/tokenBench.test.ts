@@ -94,7 +94,6 @@ describe('banc d’essai tokens', () => {
       }),
       place: async () => ({ ok: true, src: 'assets/fresh-sourdough-bread-on-a-wooden-board-1a2b3c4d.jpg', width: 1600, height: 1067, title: 'Fresh sourdough bread', credit: '« Fresh sourdough bread on a wooden board » par Jane Baker, CC BY 2.0, via Flickr' }),
       credits: async () => [],
-      saved: () => true,
       measure: () => null,
     }
     let exchanged = 0

@@ -46,22 +46,52 @@ export function startChat(): () => void {
 
 const TYPE_LABEL: Record<string, string> = { frame: 'cadre', text: 'texte', shape: 'forme', image: 'image', icon: 'icône' }
 
-/** Ce que la pastille affiche : le nom d'un élément seul, sinon le nombre. */
+/** Les images de la sélection (références d'inspiration collées sur le canevas). */
+const imagesOf = (doc: MaquetteDocument, ids: string[]) =>
+  ids.flatMap((id) => {
+    const node = findNode(doc, id)?.node
+    return node?.type === 'image' ? [node] : []
+  })
+
+/** Ce que la pastille affiche : le nom d'un élément seul, sinon le nombre (d'images, s'il y en a). */
 export function selectionLabel(doc: MaquetteDocument, ids: string[]): string {
   if (ids.length === 1) {
     const node = findNode(doc, ids[0]!)?.node
     return node ? node.name || TYPE_LABEL[node.type] || node.type : '1 élément sélectionné'
   }
+  const images = imagesOf(doc, ids).length
+  if (images === ids.length) return `${images} images`
+  if (images > 0) return `${ids.length} éléments dont ${images} image${images > 1 ? 's' : ''}`
   return `${ids.length} éléments sélectionnés`
 }
 
-/** Contexte joint pour Claude : identifiants, types et noms de la sélection. */
-export function selectionContext(doc: MaquetteDocument, ids: string[]): string {
+/** Taille d'origine d'une image affichée (px), si elle est chargée. */
+export type NaturalSize = (id: string) => { width: number; height: number } | null
+
+const px = (s: number | { mode: string }) => (typeof s === 'number' ? Math.round(s) : s.mode)
+
+/**
+ * Contexte joint pour Claude : identifiants, types et noms de la sélection ; ses images sont
+ * annoncées comme références à regarder avec l'outil capture (taille d'origine si connue).
+ */
+export function selectionContext(doc: MaquetteDocument, ids: string[], natural: NaturalSize = () => null): string {
   const parts = ids.map((id) => {
     const node = findNode(doc, id)?.node
     if (!node) return id
     const kind = node.type === 'shape' ? `shape ${node.shape}` : node.type
     return `${id} (${kind}, « ${node.name} »)`
   })
-  return parts.length ? `Sélection dans Maquette : ${parts.join(', ')}` : ''
+  if (!parts.length) return ''
+  const lines = [`Sélection dans Maquette : ${parts.join(', ')}`]
+  const images = imagesOf(doc, ids)
+  if (images.length) {
+    const listed = images.map((n) => {
+      const size = natural(n.id)
+      return `${n.id} (${n.name}, ${size ? `${size.width}×${size.height}` : `${px(n.width)}×${px(n.height)}`})`
+    })
+    const n = images.length
+    const call = n === 1 ? `capture({ id: "${images[0]!.id}" })` : `capture({ ids: [${images.slice(0, 10).map((i) => `"${i.id}"`).join(', ')}] })`
+    lines.push(`${n} image${n > 1 ? 's' : ''} de référence sélectionnée${n > 1 ? 's' : ''} : ${listed.join(', ')} — regarde-les avec ${call}.`)
+  }
+  return lines.join('\n')
 }

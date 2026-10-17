@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ClipboardEvent, type DragEvent, type KeyboardEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { chatImageUrl, type ChatImageRef, type ChatItem, type PermissionDecision } from '../../shared/chat'
+import { nodeElement } from '../canvas/rects'
 import { shortcutKeys } from '../canvas/shortcuts'
 import { docStore, useDoc } from '../state/store'
 import { useUi } from '../state/ui'
@@ -9,6 +10,12 @@ import { chatApi, selectionContext, selectionLabel } from './connect'
 import { imageFiles, readImage } from './images'
 import { MessageText } from './MessageText'
 import './chat.css'
+
+/** Taille d'origine d'une image du canevas, lue sur l'élément affiché (null si pas encore chargée). */
+function naturalSize(id: string): { width: number; height: number } | null {
+  const el = nodeElement(id)
+  return el instanceof HTMLImageElement && el.naturalWidth ? { width: el.naturalWidth, height: el.naturalHeight } : null
+}
 
 const EXAMPLES = ['Ajoute une section tarifs à 3 colonnes', 'Vérifie le goût de ce cadre', 'Propose un titre plus fort']
 
@@ -369,7 +376,7 @@ function Composer() {
     const api = chatApi()
     const s = chatStore.getState()
     if (!api || !canSend) return
-    const context = showSelection ? selectionContext(docStore.getState().doc, selection) : ''
+    const context = showSelection ? selectionContext(docStore.getState().doc, selection, naturalSize) : ''
     api.send({ text: s.draft.trim(), context, images: s.images.map(({ mediaType, data }) => ({ mediaType, data })) })
     s.clearComposer()
     field.current?.focus()

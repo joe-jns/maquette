@@ -1,6 +1,5 @@
 import type { ImageHost } from '../../mcp/images'
 import { domMeasure } from '../canvas/measure'
-import { docStore } from '../state/store'
 
 /** Planche-contact : cases 4:3 de 220 px, numérotées comme la liste ; JPEG léger (~300 tokens pour 6). */
 const CELL_W = 220
@@ -71,6 +70,5 @@ export const imageHost: ImageHost = {
   },
   place: (ref) => window.maquette.images.place(ref),
   credits: () => window.maquette.images.credits(),
-  saved: () => docStore.getState().filePath !== null,
   measure: (id) => domMeasure(id) ?? null,
 }

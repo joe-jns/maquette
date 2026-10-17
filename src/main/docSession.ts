@@ -1,15 +1,25 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
-import { stat } from 'node:fs/promises'
+import { readdir, stat } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 import type { DocState, OpenedFile, RecoveryOffer } from '../shared/ipc'
 import { askWindow } from './askDialog'
 import { BackupStore } from './backup'
-import { offerPath } from './state'
+import { adoptPending, cleanPending, PENDING_ROOT } from './pendingAssets'
+import { offerPath, setPendingDir } from './state'
 
 /** Lancement en cours : les documents sans titre de cette session ont leur propre copie. */
 const session = String(Date.now())
 let store: BackupStore | null = null
 const backups = () => (store ??= new BackupStore(join(app.getPath('userData'), 'backup')))
+const pendingRoot = () => join(app.getPath('userData'), PENDING_ROOT)
+const UNTITLED = 'sans-titre-'
+
+/** Images d'attente : seules restent celles de ce lancement et des sans-titre qui ont encore une copie de secours. */
+async function cleanOldPending(): Promise<void> {
+  const names = await readdir(join(app.getPath('userData'), 'backup')).catch(() => [] as string[])
+  const kept = new Set(names.filter((n) => n.startsWith(UNTITLED) && n.endsWith('.json')).map((n) => n.slice(UNTITLED.length, -'.json'.length)))
+  await cleanPending(pendingRoot(), (s) => s === session || kept.has(s))
+}
 
 /** État « modifié » de chaque fenêtre, envoyé par elle à chaque changement. */
 const states = new WeakMap<BrowserWindow, DocState>()
@@ -35,6 +45,9 @@ function serial<T>(work: () => Promise<T>): Promise<T> {
 }
 
 export function registerSessionIpc(): void {
+  // Document jamais enregistré : ses images attendent ici leur premier enregistrement.
+  setPendingDir(join(pendingRoot(), session))
+  void serial(cleanOldPending)
   ipcMain.handle('backup:write', (_e, args: { path: string | null; text: string }) => serial(() => backups().write({ path: args.path, session }, args.text)))
   ipcMain.handle('backup:clear', (_e, path: string | null) => serial(() => backups().clear({ path, session })))
   ipcMain.handle('backup:pending', async (): Promise<RecoveryOffer[]> => {
@@ -49,6 +62,8 @@ export function registerSessionIpc(): void {
     const found = (await backups().pending(mtime)).find((b) => b.id === id)
     if (!found) return null
     if (found.path) offerPath(found.path)
+    // Sans-titre d'un lancement passé : ses images rejoignent celles de ce lancement.
+    else if (found.id.startsWith(UNTITLED)) await adoptPending(join(pendingRoot(), found.id.slice(UNTITLED.length)), join(pendingRoot(), session)).catch(() => undefined)
     return { path: found.path, text: found.text }
   })
   ipcMain.handle('backup:discard', (_e, id: string) => serial(() => backups().discard(id)))

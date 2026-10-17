@@ -1,10 +1,12 @@
 import { BrowserWindow, dialog, ipcMain } from 'electron'
+import { dirname } from 'node:path'
 import type { ImageImport, OpenedFile } from '../shared/ipc'
 import { writeFileAtomic } from './files'
 import { importImage } from './images'
+import { carryAssets } from './pendingAssets'
 import { aboutToWrite, documentShown, readForWindow } from './openFiles'
 import { updateThumb } from './thumbs'
-import { acceptPath, allowedSavePath, getCurrentDir, getCurrentPath, offerPath, savedTo } from './state'
+import { acceptPath, allowedSavePath, getAssetDir, getCurrentPath, offerPath, savedTo } from './state'
 
 const FILTERS = [{ name: 'Maquette', extensions: ['maquette'] }]
 
@@ -27,8 +29,9 @@ export function registerFileIpc(fileArg: string | undefined): void {
   })
 
   ipcMain.handle('image:import', async (_event, args: { name: string; bytes: Uint8Array }): Promise<ImageImport> => {
-    const dir = getCurrentDir()
-    if (!dir) return { ok: false, message: 'Enregistrez d’abord le document : les images vont dans son dossier assets/' }
+    // Document jamais enregistré : dossier d'attente, recopié au premier enregistrement.
+    const dir = getAssetDir()
+    if (!dir) return { ok: false, message: 'dossier des images indisponible' }
     try {
       return { ok: true, ...(await importImage(dir, args.name, args.bytes)) }
     } catch (e) {
@@ -60,6 +63,9 @@ export function registerFileIpc(fileArg: string | undefined): void {
       if (res.canceled || !res.filePath) return null
       target = res.filePath.toLowerCase().endsWith('.maquette') ? res.filePath : `${res.filePath}.maquette`
     }
+    // Nouveau dossier (premier enregistrement, « Enregistrer sous ») : les images suivent le document.
+    const assets = getAssetDir()
+    if (assets) await carryAssets(assets, dirname(target), args.text)
     aboutToWrite(args.text)
     await writeFileAtomic(target, args.text)
     savedTo(target)
