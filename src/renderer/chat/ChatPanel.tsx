@@ -153,8 +153,12 @@ function Composer() {
   useLayoutEffect(() => {
     const el = field.current
     if (!el) return
+    // Mesure sans barre de défilement : elle rétrécirait la ligne et ajouterait un retour à la ligne.
+    const max = LINE * MAX_LINES + 8
+    el.style.overflowY = 'hidden'
     el.style.height = 'auto'
-    el.style.height = `${Math.min(el.scrollHeight, LINE * MAX_LINES + 16)}px`
+    el.style.height = `${Math.min(el.scrollHeight, max)}px`
+    el.style.overflowY = el.scrollHeight > max ? 'auto' : 'hidden'
   }, [draft])
 
   useEffect(() => {
