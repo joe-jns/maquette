@@ -1,0 +1,26 @@
+/* ——— Fenêtre de question : carte encre sur fond assombri, comme l'aide ——— */
+.dialog-backdrop { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: #0006; }
+.dialog {
+  width: min(420px, calc(100% - 48px)); max-height: calc(100% - 64px); overflow: auto; box-sizing: border-box;
+  background: var(--ink); color: var(--ink-text); border-radius: 12px; padding: 20px 24px 18px; box-shadow: 0 10px 32px #0005;
+  font: var(--fs-large)/1.45 system-ui, 'Segoe UI', sans-serif;
+}
+.dialog h2 { margin: 0; font-size: 15px; font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; }
+.dialog p { margin: 8px 0 0; overflow-wrap: anywhere; white-space: pre-line; }
+.dialog .dialog-detail { color: #ffffffa6; }
+.dialog-code {
+  margin: 12px 0 0; padding: 8px 10px; max-height: 160px; overflow: auto; border-radius: var(--radius); background: #ffffff14;
+  font: var(--fs)/1.5 ui-monospace, Consolas, 'Cascadia Mono', monospace; white-space: pre-wrap; overflow-wrap: anywhere;
+  user-select: text; cursor: text;
+}
+.dialog-buttons { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+.dialog button {
+  background: var(--ink-hover); color: inherit; border: 0; border-radius: var(--radius); padding: 7px 12px;
+  font: 600 var(--fs)/1.2 system-ui, 'Segoe UI', sans-serif; cursor: pointer;
+}
+.dialog button:hover { background: #ffffff33; }
+.dialog button.is-primary { background: var(--ink-text); color: var(--ink); }
+.dialog button.is-primary:hover { background: #fff; }
+.dialog button.is-danger { background: var(--danger); color: #fff; }
+.dialog button.is-danger:hover { background: #e5483b; }
+.dialog button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
