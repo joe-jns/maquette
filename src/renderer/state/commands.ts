@@ -8,15 +8,18 @@ import { uiStore } from './ui'
 const confirmDiscard = () =>
   !docStore.getState().dirty || window.confirm('Abandonner les modifications non enregistrées ?')
 
-async function save(asNew: boolean): Promise<void> {
+async function save(asNew: boolean): Promise<boolean> {
   // Un texte en cours d'édition n'est dans le document qu'à sa fermeture : on le valide d'abord.
   if (uiStore.getState().editingTextId) (document.activeElement as HTMLElement | null)?.blur()
   const { doc, filePath } = docStore.getState()
   try {
     const path = await window.maquette.saveFile(asNew ? null : filePath, serializeDocument(doc))
-    if (path) docStore.getState().markSaved(path)
+    if (!path) return false
+    docStore.getState().markSaved(path)
+    return true
   } catch (e) {
     docStore.getState().showError(`Enregistrement impossible : ${(e as Error).message}`)
+    return false
   }
 }
 
@@ -58,9 +61,15 @@ export async function runCommand(cmd: MenuCommand): Promise<void> {
       return
     }
     case 'save':
-      return save(false)
+      await save(false)
+      return
     case 'save-as':
-      return save(true)
+      await save(true)
+      return
+    case 'save-and-close':
+      // Question de la fermeture : « Enregistrer ». Annulé ou raté, la fenêtre reste ouverte.
+      if (await save(false)) window.maquette.closeWindow()
+      return
     case 'undo':
       store.undo()
       return

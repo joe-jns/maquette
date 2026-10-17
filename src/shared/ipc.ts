@@ -9,7 +9,12 @@ export interface TasteFinding { level: 'FAIL' | 'WARN'; id: string; message: str
 export interface TasteCheck { findings: TasteFinding[]; isPage: boolean; width: number; height: number }
 export interface TasteInput { sector: string; brief: string; tone?: string }
 
-export interface OpenedFile { path: string; text: string }
+/** Un document lu : son chemin (null pour une copie de secours d'un document jamais enregistré). */
+export interface OpenedFile { path: string | null; text: string }
+/** État du document d'une fenêtre, pour la question à la fermeture. */
+export interface DocState { dirty: boolean; name: string; path: string | null }
+/** Copie de secours plus récente que son fichier, proposée au démarrage. */
+export interface RecoveryOffer { id: string; name: string; savedAt: number }
 export type ImageImport = { ok: true; src: string } | { ok: false; message: string }
 /** Une famille du catalogue des polices (Google Fonts ou catalogue de secours). */
 export interface FontInfo {
@@ -20,7 +25,7 @@ export interface FontInfo {
   variable: { min: number; max: number } | null
 }
 
-export type MenuCommand = 'new' | 'open' | 'save' | 'save-as' | 'undo' | 'redo' | 'export-png-1' | 'export-png-2' | 'export-png-3'
+export type MenuCommand = 'new' | 'open' | 'save' | 'save-as' | 'undo' | 'redo' | 'export-png-1' | 'export-png-2' | 'export-png-3' | 'save-and-close'
 
 export interface RenderOptions {
   scale: number
@@ -72,5 +77,16 @@ export interface MaquetteApi {
   }
   /** La fenêtre peut recevoir les outils (document initial chargé) ; false pendant le chargement. */
   mcpReady(ready: boolean): void
+  backup: {
+    write(path: string | null, text: string): Promise<void>
+    clear(path: string | null): Promise<void>
+    pending(): Promise<RecoveryOffer[]>
+    restore(id: string): Promise<OpenedFile | null>
+    discard(id: string): Promise<void>
+  }
+  /** Signale l'état du document (modifié ou non) au principal. */
+  docState(state: DocState): void
+  /** Ferme la fenêtre sans reposer de question (après « Enregistrer » à la fermeture). */
+  closeWindow(): void
   onMcpCall(cb: (tool: string, args: Record<string, unknown>) => Promise<ToolResult>): () => void
 }

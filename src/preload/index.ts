@@ -29,6 +29,15 @@ const api: MaquetteApi = {
     check: (doc, nodeId, allow) => ipcRenderer.invoke('taste:check', { doc, nodeId, allow }),
   },
   mcpReady: (ready) => ipcRenderer.send('mcp:ready', ready),
+  backup: {
+    write: (path, text) => ipcRenderer.invoke('backup:write', { path, text }),
+    clear: (path) => ipcRenderer.invoke('backup:clear', path),
+    pending: () => ipcRenderer.invoke('backup:pending'),
+    restore: (id) => ipcRenderer.invoke('backup:restore', id),
+    discard: (id) => ipcRenderer.invoke('backup:discard', id),
+  },
+  docState: (state) => ipcRenderer.send('doc:state', state),
+  closeWindow: () => ipcRenderer.send('window:close'),
   onMcpCall: (cb) => {
     const handler = (_e: IpcRendererEvent, id: number, tool: string, args: Record<string, unknown>) => {
       void cb(tool, args).then((result) => ipcRenderer.send('mcp:result', id, result))
