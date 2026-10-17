@@ -1,6 +1,7 @@
 import { app, BrowserWindow, protocol } from 'electron'
 import { join } from 'node:path'
 import { ASSET_SCHEME, handleAssets } from './assets'
+import { registerChatIpc } from './chat/chatIpc'
 import { closeExportWindow, isExportWindow, registerExportIpc, renderNode } from './exportPng'
 import { FONT_SCHEME, handleFonts, registerFontIpc } from './fontService'
 import { registerFileIpc } from './ipc'
@@ -66,6 +67,7 @@ registerFileIpc(fileArg)
 registerFontIpc()
 registerExportIpc()
 registerTasteIpc()
+registerChatIpc()
 registerSessionIpc()
 if (process.env.MAQUETTE_E2E === '1') {
   ;(globalThis as unknown as { __maquetteRenderNode: typeof renderNode }).__maquetteRenderNode = renderNode
