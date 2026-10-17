@@ -5,7 +5,7 @@ import { useDoc } from '../../state/store'
 import { mixed, positionOps, setOps, sizeOps, sizingChoices, type SizeChoice } from '../props'
 import { Chevron, Select } from '../../ui/Select'
 import { NumberField } from './NumberField'
-import { commit, scrubWith, Section, useMeasured, useSelection } from './shared'
+import { commit, FIELD_GLYPH, Icon, scrubWith, Section, useMeasured, useSelection } from './shared'
 
 const MODE_LABEL: Record<SizeChoice, string> = { fixed: 'fixe', hug: 'contenu', fill: 'remplir' }
 const MODE_TEXT: Record<SizeChoice, string> = { fixed: 'Fixe', hug: 'Contenu', fill: 'Remplir' }
@@ -101,7 +101,7 @@ export function PositionSection() {
       <div className="field-grid">
         <NumberField
           name="Opacité"
-          label="◐"
+          label={<Icon d={FIELD_GLYPH.opacity} />}
           suffix="%"
           min={0}
           max={100}
@@ -112,7 +112,7 @@ export function PositionSection() {
         {hasRadius.length > 0 && (
           <NumberField
             name="Arrondi"
-            label="◜"
+            label={<Icon d={FIELD_GLYPH.radius} />}
             min={0}
             value={typeof radius === 'object' && radius !== null ? 'mixed' : radius}
             onCommit={(v) => commit(setOps(hasRadius.map((n) => n.id), { radius: v }), 'Arrondi')}

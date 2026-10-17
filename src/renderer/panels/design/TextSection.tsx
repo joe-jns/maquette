@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { TextNode, TextStyle } from '../../../core/types'
 import type { FontInfo } from '../../../shared/ipc'
 import { domMeasure } from '../../canvas/measure'
@@ -9,7 +9,7 @@ import { mixed } from '../props'
 import { ColorRow } from './ColorRow'
 import { NumberField } from './NumberField'
 import { applyPhase } from './PaintSections'
-import { commit, Icon, scrubWith, Section, useSelection } from './shared'
+import { commit, FIELD_GLYPH, Icon, scrubWith, Section, useSelection } from './shared'
 
 /** Polices installées sur Windows, proposées en plus du catalogue Google. */
 export const SYSTEM_FONTS: FontInfo[] = ['Arial', 'Georgia', 'Times New Roman', 'Verdana', 'Courier New', 'Segoe UI', 'Tahoma', 'Trebuchet MS'].map(
@@ -151,7 +151,7 @@ export function TextSection() {
       const fontProps = Object.fromEntries(FONT_KEYS.map((k) => [k, f[k]]))
       return { op: 'update' as const, id: t.id, set: { ...fontProps, ...patch } }
     })
-  const num = (key: 'fontSize' | 'lineHeight' | 'letterSpacing', name: string, label: string, opts: { min?: number; step?: number } = {}) => (
+  const num = (key: 'fontSize' | 'lineHeight' | 'letterSpacing', name: string, label: ReactNode, opts: { min?: number; step?: number } = {}) => (
     <NumberField
       name={name}
       label={label}
@@ -234,9 +234,9 @@ export function TextSection() {
           options={weightOptions(weights)}
           onChange={(v) => commit(set({ fontWeight: Number(v) }), 'Graisse')}
         />
-        {num('fontSize', 'Taille du texte', 'T', { min: 1 })}
-        {num('lineHeight', 'Interligne', '↕', { min: 1 })}
-        {num('letterSpacing', 'Espacement des lettres', '↔', { step: 0.1 })}
+        {num('fontSize', 'Taille du texte', <Icon d={FIELD_GLYPH.fontSize} />, { min: 1 })}
+        {num('lineHeight', 'Interligne', <Icon d={FIELD_GLYPH.lineHeight} />, { min: 1 })}
+        {num('letterSpacing', 'Espacement des lettres', <Icon d={FIELD_GLYPH.letterSpacing} />, { step: 0.1 })}
       </div>
       <div className="text-options">
         <div className="segmented" role="group" aria-label="Alignement du texte">

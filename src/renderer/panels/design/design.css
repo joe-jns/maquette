@@ -40,7 +40,7 @@
 .number-field.is-disabled:hover { border-color: transparent; }
 .number-field.is-disabled input::placeholder { font-style: normal; }
 .number-label {
-  flex: none; width: 24px; text-align: center; color: var(--panel-muted); user-select: none;
+  flex: none; display: grid; place-items: center; width: 24px; height: 100%; color: var(--panel-muted); user-select: none;
 }
 .number-label.can-scrub { cursor: ew-resize; }
 .number-field input {

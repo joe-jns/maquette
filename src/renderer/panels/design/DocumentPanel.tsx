@@ -6,7 +6,7 @@ import type { Op } from '../../../core/ops'
 import { HexField } from './ColorRow'
 import { applyPhase } from './PaintSections'
 import { NumberField } from './NumberField'
-import { commit, Icon, IconButton, Section } from './shared'
+import { commit, FIELD_GLYPH, Icon, IconButton, Section } from './shared'
 import { Select } from '../../ui/Select'
 import { FontPicker, SYSTEM_FONTS, weightOptions, weightsOf } from './TextSection'
 
@@ -193,9 +193,9 @@ export function DocumentPanel() {
                 options={weightOptions(weightsOf(fullCatalog.find((f) => f.family === s.fontFamily)))}
                 onChange={(v) => setText(s, { fontWeight: Number(v) })}
               />
-              <NumberField name={`Taille du style ${i + 1}`} label="T" min={1} value={s.fontSize} onCommit={(fontSize) => setText(s, { fontSize })} />
-              <NumberField name={`Interligne du style ${i + 1}`} label="↕" min={1} value={s.lineHeight} onCommit={(lineHeight) => setText(s, { lineHeight })} />
-              <NumberField name={`Espacement du style ${i + 1}`} label="↔" step={0.1} value={s.letterSpacing} onCommit={(letterSpacing) => setText(s, { letterSpacing })} />
+              <NumberField name={`Taille du style ${i + 1}`} label={<Icon d={FIELD_GLYPH.fontSize} />} min={1} value={s.fontSize} onCommit={(fontSize) => setText(s, { fontSize })} />
+              <NumberField name={`Interligne du style ${i + 1}`} label={<Icon d={FIELD_GLYPH.lineHeight} />} min={1} value={s.lineHeight} onCommit={(lineHeight) => setText(s, { lineHeight })} />
+              <NumberField name={`Espacement du style ${i + 1}`} label={<Icon d={FIELD_GLYPH.letterSpacing} />} step={0.1} value={s.letterSpacing} onCommit={(letterSpacing) => setText(s, { letterSpacing })} />
             </div>
           </div>
         ))}

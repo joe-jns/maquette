@@ -5,7 +5,7 @@ import { Checkbox } from '../../ui/Checkbox'
 import { mixed, setOps } from '../props'
 import { ColorRow, type ColorPhase } from './ColorRow'
 import { NumberField } from './NumberField'
-import { commit, Icon, IconButton, scrubWith, Section, useSelection } from './shared'
+import { commit, FIELD_GLYPH, Icon, IconButton, scrubWith, Section, useSelection } from './shared'
 
 /** Couleur : aperçu en direct pendant la recherche, une seule entrée d'historique à la validation. */
 export function applyPhase(ops: Op[], phase: ColorPhase, label: string): void {
@@ -112,7 +112,7 @@ export function StrokeSection() {
           <div className="field-grid">
             <NumberField
               name="Épaisseur du contour"
-              label="▭"
+              label={<Icon d={FIELD_GLYPH.stroke} />}
               min={0.5}
               step={1}
               value={current.width}
