@@ -88,5 +88,11 @@ export interface MaquetteApi {
   docState(state: DocState): void
   /** Ferme la fenêtre sans reposer de question (après « Enregistrer » à la fermeture). */
   closeWindow(): void
+  /** Un fichier à ouvrir arrive d'ailleurs (fichiers récents, double-clic avec l'app déjà ouverte). */
+  onOpenFile(cb: (file: OpenedFile) => void): () => void
+  /** Le fichier ouvert a changé sur le disque (autre programme). */
+  onFileChanged(cb: (path: string) => void): () => void
+  /** Relit le fichier courant sur le disque. */
+  reloadFile(): Promise<OpenedFile | null>
   onMcpCall(cb: (tool: string, args: Record<string, unknown>) => Promise<ToolResult>): () => void
 }

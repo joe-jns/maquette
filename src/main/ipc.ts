@@ -1,9 +1,9 @@
 import { BrowserWindow, dialog, ipcMain } from 'electron'
-import { readFile } from 'node:fs/promises'
 import type { ImageImport, OpenedFile } from '../shared/ipc'
 import { writeFileAtomic } from './files'
 import { importImage } from './images'
-import { acceptPath, allowedSavePath, getCurrentDir, offerPath, savedTo } from './state'
+import { aboutToWrite, documentShown, readForWindow } from './openFiles'
+import { acceptPath, allowedSavePath, getCurrentDir, getCurrentPath, offerPath, savedTo } from './state'
 
 const FILTERS = [{ name: 'Maquette', extensions: ['maquette'] }]
 
@@ -12,7 +12,7 @@ export function registerFileIpc(fileArg: string | undefined): void {
 
   ipcMain.handle('doc:initial', async (): Promise<OpenedFile | null> => {
     if (!fileArg) return null
-    return { path: fileArg, text: await readFile(fileArg, 'utf8') }
+    return readForWindow(fileArg)
   })
 
   ipcMain.handle('file:open', async (event): Promise<OpenedFile | null> => {
@@ -22,8 +22,7 @@ export function registerFileIpc(fileArg: string | undefined): void {
       : await dialog.showOpenDialog({ filters: FILTERS, properties: ['openFile'] })
     const path = res.filePaths[0]
     if (res.canceled || !path) return null
-    offerPath(path)
-    return { path, text: await readFile(path, 'utf8') }
+    return readForWindow(path)
   })
 
   ipcMain.handle('image:import', async (_event, args: { name: string; bytes: Uint8Array }): Promise<ImageImport> => {
@@ -36,7 +35,17 @@ export function registerFileIpc(fileArg: string | undefined): void {
     }
   })
 
-  ipcMain.handle('doc:loaded', (_event, path: string | null): boolean => acceptPath(path))
+  ipcMain.handle('doc:loaded', (_event, path: string | null): boolean => {
+    const accepted = acceptPath(path)
+    if (accepted) documentShown(path)
+    return accepted
+  })
+
+  // « Recharger » après un changement extérieur : le fichier courant, relu.
+  ipcMain.handle('file:reload', async (): Promise<OpenedFile | null> => {
+    const dir = getCurrentPath()
+    return dir ? readForWindow(dir) : null
+  })
 
   ipcMain.handle('file:save', async (event, args: { path: string | null; text: string }): Promise<string | null> => {
     // Sans boîte de dialogue, on n'écrit que dans le document courant.
@@ -48,8 +57,10 @@ export function registerFileIpc(fileArg: string | undefined): void {
       if (res.canceled || !res.filePath) return null
       target = res.filePath.toLowerCase().endsWith('.maquette') ? res.filePath : `${res.filePath}.maquette`
     }
+    aboutToWrite(args.text)
     await writeFileAtomic(target, args.text)
     savedTo(target)
+    documentShown(target)
     return target
   })
 }

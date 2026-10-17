@@ -38,6 +38,17 @@ const api: MaquetteApi = {
   },
   docState: (state) => ipcRenderer.send('doc:state', state),
   closeWindow: () => ipcRenderer.send('window:close'),
+  onOpenFile: (cb) => {
+    const handler = (_e: IpcRendererEvent, file: OpenedFile) => cb(file)
+    ipcRenderer.on('open-file', handler)
+    return () => ipcRenderer.removeListener('open-file', handler)
+  },
+  onFileChanged: (cb) => {
+    const handler = (_e: IpcRendererEvent, path: string) => cb(path)
+    ipcRenderer.on('file:changed', handler)
+    return () => ipcRenderer.removeListener('file:changed', handler)
+  },
+  reloadFile: () => ipcRenderer.invoke('file:reload'),
   onMcpCall: (cb) => {
     const handler = (_e: IpcRendererEvent, id: number, tool: string, args: Record<string, unknown>) => {
       void cb(tool, args).then((result) => ipcRenderer.send('mcp:result', id, result))

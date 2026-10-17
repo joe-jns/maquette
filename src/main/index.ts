@@ -7,12 +7,26 @@ import { registerFileIpc } from './ipc'
 import { guardClose, registerSessionIpc } from './docSession'
 import { startMcp } from './mcpApp'
 import { registerTasteIpc } from './taste'
-import { buildMenu } from './menu'
+import { buildMenu, setRecentFiles } from './menu'
+import { initOpenFiles, openInWindow } from './openFiles'
 
 // Dossier de données imposé (tests, relais MCP de test) : jeton, copies de secours, fichiers récents.
 if (process.env.MAQUETTE_USER_DATA) app.setPath('userData', process.env.MAQUETTE_USER_DATA)
 
-const fileArg = process.argv.slice(1).find((a) => a.toLowerCase().endsWith('.maquette'))
+const maquetteArg = (argv: string[]) => argv.slice(1).find((a) => a.toLowerCase().endsWith('.maquette'))
+const fileArg = maquetteArg(process.argv)
+
+// Une seule Maquette ouverte : double-cliquer un .maquette l'ouvre dans la fenêtre existante.
+if (!app.requestSingleInstanceLock()) app.quit()
+app.on('second-instance', (_event, argv) => {
+  const path = maquetteArg(argv)
+  const win = editorWindows()[0]
+  if (path) void openInWindow(path)
+  else if (win) {
+    if (win.isMinimized()) win.restore()
+    win.focus()
+  }
+})
 
 function createWindow(): BrowserWindow {
   const win = new BrowserWindow({
@@ -63,6 +77,7 @@ app.whenReady().then(() => {
   handleFonts()
   buildMenu()
   createWindow()
+  initOpenFiles({ editorWindow: () => editorWindows()[0], onRecentChange: setRecentFiles })
   void startMcp(() => editorWindows()[0])
   app.on('activate', () => {
     if (editorWindows().length === 0) createWindow()

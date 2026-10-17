@@ -5,7 +5,7 @@ import { openDocument } from './openDocument'
 import { docStore } from './store'
 import { uiStore } from './ui'
 
-const confirmDiscard = () =>
+export const confirmDiscard = () =>
   !docStore.getState().dirty || window.confirm('Abandonner les modifications non enregistrées ?')
 
 async function save(asNew: boolean): Promise<boolean> {

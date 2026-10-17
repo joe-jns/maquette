@@ -1,8 +1,17 @@
 import { BrowserWindow, Menu } from 'electron'
 import type { MenuCommand } from '../shared/ipc'
 import { connectClaudeCode } from './claudeConnect'
+import { openInWindow } from './openFiles'
 
 const send = (cmd: MenuCommand) => () => BrowserWindow.getFocusedWindow()?.webContents.send('menu', cmd)
+
+let recentList: string[] = []
+
+/** Le sous-menu des fichiers récents suit la liste (reconstruit à chaque changement). */
+export function setRecentFiles(list: string[]): void {
+  recentList = list
+  buildMenu()
+}
 
 export function buildMenu(): void {
   Menu.setApplicationMenu(
@@ -12,6 +21,13 @@ export function buildMenu(): void {
         submenu: [
           { label: 'Nouveau', accelerator: 'CmdOrCtrl+N', click: send('new') },
           { label: 'Ouvrir…', accelerator: 'CmdOrCtrl+O', click: send('open') },
+          {
+            label: 'Ouvrir un fichier récent',
+            enabled: recentList.length > 0,
+            submenu: recentList.length
+              ? recentList.map((path) => ({ label: path.replace(/&/g, '&&'), click: () => void openInWindow(path) }))
+              : [{ label: 'Aucun', enabled: false }],
+          },
           { type: 'separator' },
           { label: 'Enregistrer', accelerator: 'CmdOrCtrl+S', click: send('save') },
           { label: 'Enregistrer sous…', accelerator: 'CmdOrCtrl+Shift+S', click: send('save-as') },

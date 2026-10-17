@@ -6,9 +6,10 @@ import './panels/panels.css'
 import { domMeasure } from './canvas/measure'
 import { watchDocumentFonts } from './fonts/fontLoader'
 import { serveMcp } from './mcp/host'
+import { FileChangedBanner } from './FileChangedBanner'
 import { RecoveryBanner } from './RecoveryBanner'
 import { startAutosave } from './state/autosave'
-import { runCommand } from './state/commands'
+import { confirmDiscard, runCommand } from './state/commands'
 import { fileName, openDocument } from './state/openDocument'
 import { docStore, useDoc } from './state/store'
 
@@ -36,6 +37,15 @@ export function App() {
   // Outils de Claude Code : exécutés ici, sur le document affiché.
   useEffect(() => serveMcp(), [])
 
+  // Fichier venu d'ailleurs (récents, double-clic sur un .maquette avec l'app ouverte).
+  useEffect(
+    () =>
+      window.maquette.onOpenFile((file) => {
+        if (confirmDiscard()) void openDocument(file)
+      }),
+    [],
+  )
+
   // Copie de secours toutes les 5 s et état « modifié » pour la question à la fermeture.
   useEffect(() => startAutosave(), [])
 
@@ -46,6 +56,7 @@ export function App() {
   return (
     <div data-testid="app-root" className="app">
       <RecoveryBanner ready={started} />
+      <FileChangedBanner />
       {notice && (
         <div role="alert" className="notice">
           {notice}

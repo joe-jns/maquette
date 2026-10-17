@@ -45,3 +45,7 @@ export function savedTo(path: string): void {
 export function getCurrentDir(): string | null {
   return currentPath ? dirname(currentPath) : null
 }
+
+export function getCurrentPath(): string | null {
+  return currentPath
+}
