@@ -17,7 +17,8 @@ const maquetteArg = (argv: string[]) => argv.slice(1).find((a) => a.toLowerCase(
 const fileArg = maquetteArg(process.argv)
 
 // Une seule Maquette ouverte : double-cliquer un .maquette l'ouvre dans la fenêtre existante.
-if (!app.requestSingleInstanceLock()) app.quit()
+const firstInstance = app.requestSingleInstanceLock()
+if (!firstInstance) app.quit()
 app.on('second-instance', (_event, argv) => {
   const path = maquetteArg(argv)
   const win = editorWindows()[0]
@@ -73,6 +74,8 @@ if (process.env.MAQUETTE_E2E === '1') {
 protocol.registerSchemesAsPrivileged([ASSET_SCHEME, FONT_SCHEME])
 
 app.whenReady().then(() => {
+  // Lancement refusé (une Maquette tourne déjà et a reçu le fichier) : rien d'autre à faire.
+  if (!firstInstance) return
   handleAssets()
   handleFonts()
   buildMenu()
