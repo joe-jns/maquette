@@ -5,6 +5,7 @@ import { closeExportWindow, isExportWindow, registerExportIpc, renderNode } from
 import { FONT_SCHEME, handleFonts, registerFontIpc } from './fontService'
 import { registerFileIpc } from './ipc'
 import { startMcp } from './mcpApp'
+import { registerTasteIpc } from './taste'
 import { buildMenu } from './menu'
 
 const fileArg = process.argv.slice(1).find((a) => a.toLowerCase().endsWith('.maquette'))
@@ -44,6 +45,7 @@ const editorWindows = () => BrowserWindow.getAllWindows().filter((w) => !isExpor
 registerFileIpc(fileArg)
 registerFontIpc()
 registerExportIpc()
+registerTasteIpc()
 if (process.env.MAQUETTE_E2E === '1') {
   ;(globalThis as unknown as { __maquetteRenderNode: typeof renderNode }).__maquetteRenderNode = renderNode
 }

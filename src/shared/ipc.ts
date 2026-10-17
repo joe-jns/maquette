@@ -1,5 +1,13 @@
 import type { MaquetteDocument } from '../core/types'
 import type { ToolResult } from '../mcp/tools'
+import type { DirectionOption, DirectionSheet } from '../taste/direction'
+
+/** Résultat d'un tirage taste-skill : valeur, ou message à afficher. */
+export type TasteDraw<T> = { ok: true; value: T } | { ok: false; message: string }
+export interface TasteFinding { level: 'FAIL' | 'WARN'; id: string; message: string; fix: string }
+/** Contrôle qualité d'un cadre par les règles de taste-skill. */
+export interface TasteCheck { findings: TasteFinding[]; isPage: boolean; width: number; height: number }
+export interface TasteInput { sector: string; brief: string; tone?: string }
 
 export interface OpenedFile { path: string; text: string }
 export type ImageImport = { ok: true; src: string } | { ok: false; message: string }
@@ -54,5 +62,13 @@ export interface MaquetteApi {
   exportPng(doc: MaquetteDocument, nodeId: string, scale: number): Promise<string | null>
   exportView: ExportViewApi
   /** Reçoit les outils appelés par Claude Code (via le relais) ; la réponse repart au relais. */
+  taste: {
+    /** Trois directions artistiques tirées de la bibliothèque de taste-skill. */
+    options(input: TasteInput): Promise<TasteDraw<DirectionOption[]>>
+    /** Fiche complète de la direction choisie (palette, typographie, hero…). */
+    direction(input: TasteInput & { direction: string }): Promise<TasteDraw<DirectionSheet>>
+    /** Contrôle qualité d'un cadre ; null si introuvable, masqué ou trop long. */
+    check(doc: MaquetteDocument, nodeId: string, allow?: string[]): Promise<TasteCheck | null>
+  }
   onMcpCall(cb: (tool: string, args: Record<string, unknown>) => Promise<ToolResult>): () => void
 }
