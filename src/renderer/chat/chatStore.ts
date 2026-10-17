@@ -26,6 +26,9 @@ interface ChatState {
   /** Réglages de la conversation ouverte (interrupteur taste-skill…). */
   options: ChatOptions
   setOptions(options: ChatOptions): void
+  /** Sélecteur de style ouvert. */
+  stylePicker: boolean
+  setStylePicker(open: boolean): void
   setOpen(open: boolean): void
   toggle(): void
   setItems(items: ChatItem[]): void
@@ -69,6 +72,8 @@ export const chatStore = createStore<ChatState>()((set, get) => ({
   preview: null,
   options: DEFAULT_CHAT_OPTIONS,
   setOptions: (options) => set({ options }),
+  stylePicker: false,
+  setStylePicker: (stylePicker) => set({ stylePicker }),
   setOpen(open) {
     writeOpen(open)
     set(open ? { open, focusRequest: get().focusRequest + 1 } : { open, preview: null })
