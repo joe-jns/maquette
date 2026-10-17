@@ -2,8 +2,9 @@ import { spawn, execFile, type ChildProcess } from 'node:child_process'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { basename, dirname, join } from 'node:path'
-import type { ChatEvent, ChatItem, ChatSend, PermissionDecision } from '../../shared/chat'
+import type { ChatEvent, ChatImage, ChatItem, ChatSend, PermissionDecision } from '../../shared/chat'
 import { createLineReader } from '../../mcp/pipe'
+import { imageHashes, type ChatImages } from './chatImages'
 import { chatKey, type ChatStore } from './chatStore'
 import { claudeArgs, claudeCommand, NOT_FOUND_CODES, NOT_FOUND_TEXT } from './command'
 import { createDecoder, interruptLine, permissionLine, userLine, type ClaudeAction } from './protocol'
@@ -16,6 +17,8 @@ const STOP_TIMEOUT_MS = 5000
 
 export interface ChatSessionDeps {
   store: ChatStore
+  /** Vignettes des images jointes et des images vues par Claude. */
+  images: ChatImages
   /** Dossier des fichiers du chat (configuration MCP, consigne). */
   userData: string
   /** Relais MCP (out/main/relay.js, dans l'archive de l'app une fois installée). */
@@ -92,6 +95,7 @@ export class ChatSession {
     if (this.busy) return
     const user: ChatItem = { kind: 'user', id: uid('u'), text: message.text, images: message.images.length }
     this.item(user, true)
+    if (message.images.length) this.attachThumbs(user, message.images, 'thumbs')
     this.setBusy(true)
     this.lastLine = userLine(message)
     void this.write(this.lastLine)
@@ -117,11 +121,28 @@ export class ChatSession {
     this.item({ ...p.item, status: allow ? 'allowed' : 'denied' }, true)
   }
 
-  /** Nouvelle conversation pour le fichier courant. */
+  /** Nouvelle conversation pour le fichier courant : ses vignettes partent avec elle (sauf celles d'une autre conversation). */
   async reset(): Promise<void> {
     this.kill()
     this.sessionId = null
-    await this.deps.store.reset(this.key)
+    const { store, images } = this.deps
+    const used = imageHashes((await store.get(this.key)).items)
+    await store.reset(this.key)
+    if (!used.length) return
+    const elsewhere = await store.images()
+    await images.remove(used.filter((h) => !elsewhere.has(h)))
+  }
+
+  /**
+   * Vignettes des images d'un élément, enregistrées à part : l'élément est renvoyé avec elles quand elles
+   * sont prêtes (sauf si la conversation a changé entre-temps).
+   */
+  private attachThumbs(item: ChatItem, raw: ChatImage[], field: 'thumbs' | 'images'): void {
+    const generation = this.generation
+    void this.deps.images.saveAll(raw).then((refs) => {
+      if (!refs.length || generation !== this.generation) return
+      this.item({ ...item, [field]: refs } as ChatItem, true)
+    })
   }
 
   /** Fenêtre fermée ou rechargée, changement de conversation, fin de l'app. */
@@ -226,6 +247,7 @@ export class ChatSession {
         const item = action.item
         if (item.kind === 'assistant') this.partial.delete(item.id)
         this.item(item, !(item.kind === 'tool' && item.status === 'running'))
+        if (action.images?.length) this.attachThumbs(item, action.images, 'images')
         return
       }
       case 'permission': {

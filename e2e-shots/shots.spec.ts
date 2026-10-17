@@ -2,7 +2,7 @@ import { test, expect, _electron as electron, type Page } from '@playwright/test
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
-import { emit, fakeChat, reopen } from '../e2e/chat'
+import { emit, engineSetup, fakeChat, reopen } from '../e2e/chat'
 
 /**
  * Captures de tous les états de l'interface, pour relire le design (phase polish).
@@ -11,10 +11,10 @@ import { emit, fakeChat, reopen } from '../e2e/chat'
 const out = process.env.SHOTS ?? join(tmpdir(), 'maquette-shots')
 const scene = resolve('e2e/fixtures/scene.maquette')
 
-async function open(args: string[] = []) {
+async function open(args: string[] = [], extraEnv: Record<string, string> = {}) {
   const app = await electron.launch({
     args: ['.', ...args],
-    env: { ...process.env, MAQUETTE_E2E: '1', MAQUETTE_USER_DATA: mkdtempSync(join(tmpdir(), 'maquette-shots-')) },
+    env: { ...process.env, MAQUETTE_E2E: '1', MAQUETTE_USER_DATA: mkdtempSync(join(tmpdir(), 'maquette-shots-')), ...extraEnv },
   })
   const page = await app.firstWindow()
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]!.setContentSize(1440, 900))
@@ -172,5 +172,71 @@ test('chat avec Claude', async () => {
   await page.getByRole('textbox', { name: 'Message à Claude' }).fill('Et réduis l’espace entre les colonnes à 24 px,\npuis aligne les boutons en bas')
   await page.waitForTimeout(300)
   await shot(page, '14-chat-saisie')
+  await app.close()
+})
+
+test('chat : outils dépliés et images', async () => {
+  // Faux claude : vraies vignettes enregistrées et servies par l'app.
+  const setup = engineSetup()
+  const { app, page } = await open([setup.file], setup.env)
+  await page.keyboard.press('Control+l')
+  const panel = page.getByTestId('chat-panel')
+  await expect(panel).toBeVisible()
+  const box = page.getByRole('textbox', { name: 'Message à Claude' })
+  const say = async (text: string, reply: string) => {
+    await box.fill(text)
+    await box.press('Enter')
+    await expect(panel.locator('.chat-assistant').last()).toHaveText(reply)
+  }
+
+  // Deux images jointes : une « capture » en dégradé et un aplat.
+  const images = await app.evaluate(({ nativeImage }) => {
+    const make = (w: number, h: number, color: (x: number, y: number) => number[]) => {
+      const px = Buffer.alloc(w * h * 4)
+      // Bitmap en BGRA.
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        const [r, g, b, a] = color(x, y)
+        px.set([b!, g!, r!, a!], (y * w + x) * 4)
+      }
+      return nativeImage.createFromBitmap(px, { width: w, height: h }).toPNG().toString('base64')
+    }
+    return [
+      make(320, 200, (x, y) => (y < 40 ? [40, 40, 40, 255] : [255 - Math.round((x / 320) * 200), 120 + Math.round((y / 200) * 80), 40 + Math.round((x / 320) * 200), 255])),
+      make(200, 200, (x, y) => ((x >> 5) + (y >> 5)) % 2 ? [242, 72, 34, 255] : [255, 205, 41, 255]),
+    ]
+  })
+  await page.evaluate((list) => {
+    const store = (window as unknown as { __chatStore: { getState(): { addImage(i: { mediaType: string; data: string }): boolean } } }).__chatStore
+    for (const data of list) store.getState().addImage({ mediaType: 'image/png', data })
+  }, images)
+  await say('Voici deux images de référence pour le hero', '2 image(s) reçue(s)')
+  await say('Bonjour, regarde le hero', 'Bonjour !')
+  await say('regarde le hero', 'Le hero est bien centré.')
+  await box.fill('lance une commande')
+  await box.press('Enter')
+  await panel.getByRole('button', { name: 'Autoriser' }).click()
+  await expect(panel.locator('.chat-assistant').last()).toHaveText('autorisé')
+  await say('dessine un rectangle', 'Fait.')
+  await page.waitForTimeout(300)
+  await shot(page, '18-chat-outils-replies')
+
+  await panel.getByRole('button', { name: /Regarde le rendu/ }).click()
+  await panel.getByRole('button', { name: /Lance une commande/ }).click()
+  await page.waitForTimeout(200)
+  await shot(page, '19-chat-outils-deplies')
+
+  await panel.getByRole('button', { name: /Modifie la maquette/ }).click()
+  await panel.getByRole('button', { name: /Regarde le rendu/ }).click()
+  await panel.getByRole('button', { name: /Lance une commande/ }).click()
+  await page.waitForTimeout(200)
+  await shot(page, '20-chat-appliquer-deplie')
+
+  await panel.locator('.chat-log').evaluate((el) => (el.scrollTop = 0))
+  await page.waitForTimeout(200)
+  await shot(page, '21-chat-images-jointes')
+
+  await panel.getByRole('button', { name: 'Agrandir l’image jointe 1' }).click()
+  await page.waitForTimeout(300)
+  await shot(page, '22-chat-apercu')
   await app.close()
 })

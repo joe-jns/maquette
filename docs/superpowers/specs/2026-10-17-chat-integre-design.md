@@ -64,8 +64,17 @@ claude -p --input-format stream-json --output-format stream-json --verbose --inc
   relance avec `--resume` si le processus est mort au message suivant, tue le processus à la
   fermeture de la fenêtre ou au changement de conversation.
 - `chatStore.ts` — `userData/chats.json` : `{ [clé]: { sessionId, items } }`, clé = chemin du fichier
-  ou `"sans-titre"`. Écritures en série, 200 éléments max par conversation, images non stockées (on
-  garde « 1 image »).
+  ou `"sans-titre"`. Écritures en série, 200 éléments max par conversation. Les images ne sont pas
+  dans chats.json : seulement des références `{ hash, width, height }` (`thumbs` du message,
+  `images` d'un outil) vers des vignettes.
+- `chatImages.ts` / `chatImageService.ts` — vignettes des images jointes et des images vues par
+  Claude (blocs image d'un tool_result) : 640 px de large au plus, JPEG 80, dans
+  `userData/chat-images/<sha256>.jpg`, servies par `maquette-chat://img/<hash>.jpg` (empreinte
+  validée, rien d'autre). « Nouvelle conversation » supprime les siennes ; au démarrage, les
+  orphelines de plus d'une minute partent.
+- Outils : l'élément garde `input` (lisible : opérations en JSON indenté, commande, chemin,
+  ancien/nouveau texte, adresse, requête, sinon JSON) et `output` (texte du résultat), tronqués à
+  20 000 caractères.
 - `chatIpc.ts` — `chat:open(path)` → historique, `chat:send`, `chat:stop`, `chat:permission`,
   `chat:new` ; événements `chat:event` vers la fenêtre.
 - `claude` introuvable (cmd 9009/127, ENOENT) → événement d'erreur avec un texte clair.
@@ -76,7 +85,9 @@ claude -p --input-format stream-json --output-format stream-json --verbose --inc
   images en attente, demandes de permission en cours.
 - `ChatPanel.tsx` — panneau 360 px à droite du panneau Design (colonne de grille ajoutée quand il est
   ouvert). En-tête (titre, Nouvelle conversation, Fermer), liste des messages (Markdown simple : gras,
-  italique, code, listes, liens), lignes d'outils repliables (« ✎ appliquer · 12 éléments »), cartes
+  italique, code, listes, liens), lignes d'outils dépliables (clic, Entrée, Espace : Entrée et Résultat, Copier, images vues ;
+  petite vignette visible ligne repliée), vignettes des images jointes sous le message, aperçu en
+  grand par-dessus l'app (Échap ou clic pour fermer), cartes
   de permission (Autoriser / Toujours pour cette conversation / Refuser), zone de saisie (Entrée envoie,
   Maj+Entrée = nouvelle ligne), vignettes d'images (coller, glisser, retirer), pastille de sélection
   retirable, bouton Envoyer qui devient Stop.

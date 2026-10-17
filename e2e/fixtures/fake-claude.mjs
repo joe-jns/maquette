@@ -3,6 +3,7 @@
 import { spawn } from 'node:child_process'
 import { appendFileSync, readFileSync } from 'node:fs'
 import { randomUUID } from 'node:crypto'
+import { deflateSync } from 'node:zlib'
 
 const argv = process.argv.slice(2)
 const flag = (name) => {
@@ -40,7 +41,47 @@ function text(msgId, index, chunks) {
 }
 const result = (body = 'ok', isError = false) => out({ type: 'result', subtype: isError ? 'error_during_execution' : 'success', is_error: isError, result: body, session_id: sessionId })
 const toolUse = (id, name, input) => out({ type: 'assistant', message: { id: `msg_${id}`, role: 'assistant', content: [{ type: 'tool_use', id, name, input }] }, parent_tool_use_id: null })
-const toolResult = (id, isError) => out({ type: 'user', message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: id, content: '', is_error: isError }] }, parent_tool_use_id: null })
+const toolResult = (id, isError, content = '') => out({ type: 'user', message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: id, content, is_error: isError }] }, parent_tool_use_id: null })
+
+/** PNG en dégradé (bleu vers orange, bande sombre en haut) : une « capture » reconnaissable dans les vignettes. */
+function gradientPng(width, height) {
+  const crcTable = Array.from({ length: 256 }, (_, n) => {
+    let c = n
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1
+    return c >>> 0
+  })
+  const crc = (buf) => {
+    let c = 0xffffffff
+    for (const b of buf) c = crcTable[(c ^ b) & 0xff] ^ (c >>> 8)
+    return (c ^ 0xffffffff) >>> 0
+  }
+  const chunk = (type, data) => {
+    const len = Buffer.alloc(4)
+    len.writeUInt32BE(data.length)
+    const body = Buffer.concat([Buffer.from(type, 'ascii'), data])
+    const sum = Buffer.alloc(4)
+    sum.writeUInt32BE(crc(body))
+    return Buffer.concat([len, body, sum])
+  }
+  const ihdr = Buffer.alloc(13)
+  ihdr.writeUInt32BE(width, 0)
+  ihdr.writeUInt32BE(height, 4)
+  ihdr[8] = 8 // 8 bits
+  ihdr[9] = 2 // RVB
+  const raw = Buffer.alloc((width * 3 + 1) * height)
+  for (let y = 0; y < height; y++) {
+    const row = y * (width * 3 + 1)
+    for (let x = 0; x < width; x++) {
+      const t = x / (width - 1)
+      const band = y < height * 0.18
+      const i = row + 1 + x * 3
+      raw[i] = band ? 30 : Math.round(13 + t * 242)
+      raw[i + 1] = band ? 30 : Math.round(153 - t * 60)
+      raw[i + 2] = band ? 30 : Math.round(255 - t * 220)
+    }
+  }
+  return Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), chunk('IHDR', ihdr), chunk('IDAT', deflateSync(raw)), chunk('IEND', Buffer.alloc(0))])
+}
 
 /** Client MCP minimal (JSON-RPC sur stdio) vers le relais déclaré dans --mcp-config. */
 async function mcp() {
@@ -92,7 +133,7 @@ async function turn(content) {
       toolUse('toolu_dessin', 'mcp__maquette__appliquer', input)
       const r = await client.tool('appliquer', input)
       log({ appliquer: r })
-      toolResult('toolu_dessin', r.isError)
+      toolResult('toolu_dessin', r.isError, r.text)
     } finally {
       client.close()
     }
@@ -105,7 +146,7 @@ async function turn(content) {
     out({ type: 'control_request', request_id: requestId, request: { subtype: 'can_use_tool', tool_name: 'Bash', input: { command: 'echo hi' } } })
     const reply = await answer
     const allowed = reply.response.response.behavior === 'allow'
-    toolResult('toolu_bash', !allowed)
+    toolResult('toolu_bash', !allowed, allowed ? 'hi' : "Refusé par l'utilisateur")
     text(m, 0, [allowed ? 'autorisé' : 'refusé'])
     result(allowed ? 'autorisé' : 'refusé')
   } else if (/long/i.test(said)) {
@@ -123,8 +164,22 @@ async function turn(content) {
     }
     result('fini')
   } else if (/image/i.test(said)) {
+    // Taille de chaque image reçue : l'app envoie bien les octets, pas seulement leur nombre.
+    const sizes = content.filter((b) => b.type === 'image').map((b) => Buffer.from(b.source.data, 'base64').length)
+    log({ images: sizes })
     text(m, 0, [`${images} image(s) reçue(s)`])
     result('images')
+  } else if (/regarde/i.test(said)) {
+    // Claude « regarde » le rendu : capture de Maquette, résultat en texte et image.
+    const input = { id: 'fHero1', largeur: 800 }
+    toolUse('toolu_capture', 'mcp__maquette__capture', input)
+    await sleep(30)
+    toolResult('toolu_capture', false, [
+      { type: 'text', text: 'capture de Hero (1440×600)' },
+      { type: 'image', source: { type: 'base64', media_type: 'image/png', data: gradientPng(240, 100).toString('base64') } },
+    ])
+    text(m, 0, ['Le hero est bien centré.'])
+    result('vu')
   } else if (/meurs/i.test(said)) {
     out({ type: 'stream_event', event: { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: 'Je pars…' } }, parent_tool_use_id: null, api_message_id: m })
     await sleep(50)

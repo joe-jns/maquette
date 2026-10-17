@@ -1,6 +1,7 @@
 import { app, BrowserWindow, protocol } from 'electron'
 import { join } from 'node:path'
 import { ASSET_SCHEME, handleAssets } from './assets'
+import { CHAT_IMAGE_SCHEME_DEF, chatImagesDir, handleChatImages } from './chat/chatImageService'
 import { registerChatIpc } from './chat/chatIpc'
 import { closeExportWindow, isExportWindow, registerExportIpc, renderNode } from './exportPng'
 import { FONT_SCHEME, handleFonts, registerFontIpc } from './fontService'
@@ -86,13 +87,14 @@ if (process.env.MAQUETTE_E2E === '1') {
   ;(globalThis as unknown as { __maquetteRenderNode: typeof renderNode }).__maquetteRenderNode = renderNode
 }
 // Un seul appel : chaque appel remplace la liste des protocoles privilégiés.
-protocol.registerSchemesAsPrivileged([ASSET_SCHEME, FONT_SCHEME])
+protocol.registerSchemesAsPrivileged([ASSET_SCHEME, FONT_SCHEME, CHAT_IMAGE_SCHEME_DEF])
 
 app.whenReady().then(() => {
   // Lancement refusé (une Maquette tourne déjà et a reçu le fichier) : rien d'autre à faire.
   if (!firstInstance) return
   handleAssets()
   handleFonts()
+  handleChatImages(chatImagesDir())
   buildMenu()
   createWindow()
   initOpenFiles({ editorWindow: () => editorWindows()[0], onRecentChange: setRecentFiles })

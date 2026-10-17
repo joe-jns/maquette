@@ -1,4 +1,7 @@
 import type { ElectronApplication, Page } from '@playwright/test'
+import { copyFileSync, mkdtempSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join, resolve } from 'node:path'
 import type { ChatEvent, ChatItem } from '../src/shared/chat'
 
 /** Outils partagés des tests du panneau de chat : un faux moteur dans le principal. */
@@ -27,6 +30,22 @@ export async function fakeChat(app: ElectronApplication, history: ChatItem[]): P
       ipcMain.on(channel, (_e, ...args: unknown[]) => g.__chatCalls.push([channel, ...args]))
     }
   }, history)
+}
+
+/** Faux `claude` (e2e/fixtures/fake-claude.mjs) : jamais le vrai. */
+export const FAKE_CLAUDE = JSON.stringify(['node', resolve('e2e/fixtures/fake-claude.mjs')])
+
+export interface EngineSetup { dir: string; file: string; userData: string; log: string; env: Record<string, string> }
+
+/** Document de test dans un dossier à lui, données et journal du faux claude à part. */
+export function engineSetup(extra: Record<string, string> = {}): EngineSetup {
+  const dir = mkdtempSync(join(tmpdir(), 'maquette-chat-doc-'))
+  const file = join(dir, 'scène chat.maquette')
+  copyFileSync(resolve('e2e/fixtures/scene.maquette'), file)
+  const userData = mkdtempSync(join(tmpdir(), 'maquette-chat-data-'))
+  const log = join(dir, 'fake-claude.log')
+  const pipe = `\\\\.\\pipe\\maquette-chat-e2e-${process.pid}-${Date.now()}`
+  return { dir, file, userData, log, env: { MAQUETTE_CLAUDE_CMD: FAKE_CLAUDE, FAKE_CLAUDE_LOG: log, MAQUETTE_USER_DATA: userData, MAQUETTE_PIPE: pipe, ...extra } }
 }
 
 /** Recharge la conversation : un nouveau chemin de fichier déclenche `chat:open`. */

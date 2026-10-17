@@ -1,8 +1,8 @@
 import { test, expect, type Page } from '@playwright/test'
-import { copyFileSync, mkdtempSync, readFileSync, writeFileSync, existsSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { readFileSync, writeFileSync, existsSync, readdirSync } from 'node:fs'
+import { join } from 'node:path'
 import type { ChatEvent, ChatItem, ChatSend } from '../src/shared/chat'
+import { engineSetup as setup, type EngineSetup as Setup } from './chat'
 import { launch } from './launch'
 
 /**
@@ -10,20 +10,7 @@ import { launch } from './launch'
  * directement, sans le panneau.
  */
 
-const FAKE = JSON.stringify(['node', resolve('e2e/fixtures/fake-claude.mjs')])
 const NOT_INSTALLED = 'Claude Code n’est pas installé sur cet ordinateur (commande « claude » introuvable). Installez-le puis réessayez.'
-
-interface Setup { dir: string; file: string; userData: string; log: string; env: Record<string, string> }
-
-function setup(extra: Record<string, string> = {}): Setup {
-  const dir = mkdtempSync(join(tmpdir(), 'maquette-chat-doc-'))
-  const file = join(dir, 'scène chat.maquette')
-  copyFileSync(resolve('e2e/fixtures/scene.maquette'), file)
-  const userData = mkdtempSync(join(tmpdir(), 'maquette-chat-data-'))
-  const log = join(dir, 'fake-claude.log')
-  const pipe = `\\\\.\\pipe\\maquette-chat-e2e-${process.pid}-${Date.now()}`
-  return { dir, file, userData, log, env: { MAQUETTE_CLAUDE_CMD: FAKE, FAKE_CLAUDE_LOG: log, MAQUETTE_USER_DATA: userData, MAQUETTE_PIPE: pipe, ...extra } }
-}
 
 async function start(s: Setup) {
   const { app, page } = await launch([s.file], s.env)
@@ -59,6 +46,14 @@ async function idle(page: Page) {
 const texts = async (page: Page, kind: ChatItem['kind']) => (await items(page)).filter((i) => i.kind === kind).map((i) => ('text' in i ? i.text : ''))
 const readLog = (s: Setup) => (existsSync(s.log) ? readFileSync(s.log, 'utf8').trim().split('\n').map((l) => JSON.parse(l)) : [])
 const launches = (s: Setup) => readLog(s).filter((e) => e.argv) as { argv: string[]; cwd: string }[]
+const thumbFiles = (s: Setup) => {
+  try {
+    return readdirSync(join(s.userData, 'chat-images'))
+  } catch {
+    return []
+  }
+}
+const reset = (page: Page) => page.evaluate(() => (window as unknown as { maquette: { chat: { reset(): Promise<void> } } }).maquette.chat.reset())
 
 test.describe('chat : moteur', () => {
   test('texte au fil de l’eau, puis remplacé par le message complet ; dossier et arguments de claude', async () => {
@@ -105,10 +100,15 @@ test.describe('chat : moteur', () => {
       await send(page, 'dessine un rectangle')
       await idle(page)
       const tool = (await events(page)).filter((e) => e.type === 'item' && e.item.kind === 'tool').map((e) => e.type === 'item' && e.item)
-      expect(tool).toEqual([
+      expect(tool).toMatchObject([
         { kind: 'tool', id: 'toolu_dessin', name: 'appliquer', summary: '1 opération', status: 'running' },
         { kind: 'tool', id: 'toolu_dessin', name: 'appliquer', summary: '1 opération', status: 'done' },
       ])
+      // Le détail : les opérations envoyées (JSON indenté) et la réponse de Maquette.
+      const done = tool[1] as Extract<ChatItem, { kind: 'tool' }>
+      expect(JSON.parse(done.input!)).toMatchObject([{ op: 'create', node: { name: 'Rectangle du chat' } }])
+      expect(done.input).toContain('\n  {')
+      expect(done.output).toBeTruthy()
       expect(await texts(page, 'assistant')).toEqual(['Fait.'])
       const names = await page.evaluate(() =>
         (window as unknown as { __maquetteStore: { getState(): { doc: { pages: { children: { name: string }[] }[] } } } }).__maquetteStore.getState().doc.pages[0]!.children.map((c) => c.name),
@@ -198,6 +198,62 @@ test.describe('chat : moteur', () => {
       expect(await texts(page, 'assistant')).toEqual(['2 image(s) reçue(s)'])
       const sent = readLog(s).find((e) => e.line?.type === 'user').line.message.content
       expect(sent.map((b: { type: string }) => b.type)).toEqual(['image', 'image', 'text'])
+      expect(readLog(s).find((e) => e.images)?.images).toEqual([70, 70])
+
+      // Vignettes : l'élément revient avec elles, enregistrées une fois (même image), gardées dans l'historique.
+      await expect.poll(async () => ((await items(page))[0] as Extract<ChatItem, { kind: 'user' }>).thumbs?.length).toBe(2)
+      const [thumb] = ((await items(page))[0] as Extract<ChatItem, { kind: 'user' }>).thumbs!
+      expect(thumb).toEqual({ hash: expect.stringMatching(/^[0-9a-f]{64}$/), width: 1, height: 1 })
+      expect(thumbFiles(s)).toEqual([`${thumb!.hash}.jpg`])
+      const saved = await open(page, s.file)
+      expect(saved[0]).toMatchObject({ kind: 'user', images: 2, thumbs: [thumb, thumb] })
+      // Servie par maquette-chat://, et rien d'autre que les vignettes.
+      const fetched = await app.evaluate(async ({ net }, h) => {
+        const get = (url: string) => net.fetch(url).then((r) => `${r.status} ${r.headers.get('content-type') ?? ''}`.trim(), (e: Error) => `erreur ${e.message}`)
+        return [
+          await get(`maquette-chat://img/${h}.jpg`),
+          await get('maquette-chat://img/..%2F..%2Fchats.json'),
+          await get('maquette-chat://img/../chats.json'),
+          await get(`maquette-chat://autre/${h}.jpg`),
+          await get(`maquette-chat://img/${'0'.repeat(64)}.jpg`),
+        ]
+      }, thumb!.hash)
+      expect(fetched).toEqual(['200 image/jpeg', '404 text/plain;charset=UTF-8', '404 text/plain;charset=UTF-8', '404 text/plain;charset=UTF-8', '404 text/plain;charset=UTF-8'])
+      // La fenêtre l'affiche (CSP img-src).
+      const size = await page.evaluate(
+        (h) =>
+          new Promise<number>((done) => {
+            const img = new Image()
+            img.onload = () => done(img.naturalWidth)
+            img.onerror = () => done(-1)
+            img.src = `maquette-chat://img/${h}.jpg`
+          }),
+        thumb!.hash,
+      )
+      expect(size).toBe(1)
+    } finally {
+      await app.close()
+    }
+  })
+
+  test('Claude regarde : capture avec entrée, texte et image du résultat ; nouvelle conversation efface les vignettes', async () => {
+    const s = setup()
+    const { app, page } = await start(s)
+    try {
+      await open(page, s.file)
+      await send(page, 'regarde le hero')
+      await idle(page)
+      expect(await texts(page, 'assistant')).toEqual(['Le hero est bien centré.'])
+      await expect.poll(async () => ((await items(page)).find((i) => i.kind === 'tool') as Extract<ChatItem, { kind: 'tool' }>).images?.length).toBe(1)
+      const tool = (await items(page)).find((i) => i.kind === 'tool') as Extract<ChatItem, { kind: 'tool' }>
+      expect(tool).toMatchObject({ name: 'capture', status: 'done', output: 'capture de Hero (1440×600)', images: [{ width: 240, height: 100 }] })
+      expect(JSON.parse(tool.input!)).toEqual({ id: 'fHero1', largeur: 800 })
+      expect(thumbFiles(s)).toEqual([`${tool.images![0]!.hash}.jpg`])
+      expect((await open(page, s.file)).find((i) => i.kind === 'tool')).toEqual(tool)
+
+      await reset(page)
+      expect(thumbFiles(s)).toEqual([])
+      expect(await open(page, s.file)).toEqual([])
     } finally {
       await app.close()
     }
