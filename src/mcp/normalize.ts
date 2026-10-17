@@ -7,7 +7,7 @@
 import { normalizeColor } from '../core/color'
 
 type Obj = Record<string, unknown>
-type NodeKind = 'frame' | 'text' | 'shape' | 'image' | undefined
+type NodeKind = 'frame' | 'text' | 'shape' | 'image' | 'icon' | undefined
 
 const isObj = (v: unknown): v is Obj => typeof v === 'object' && v !== null && !Array.isArray(v)
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
@@ -221,7 +221,7 @@ function collectTempIds(v: unknown, into: Set<string>): Set<string> {
 }
 
 const kindOf = (v: unknown): NodeKind =>
-  v === 'frame' || v === 'text' || v === 'shape' || v === 'image' ? v : undefined
+  v === 'frame' || v === 'text' || v === 'shape' || v === 'image' || v === 'icon' ? v : undefined
 
 /**
  * Normalise un lot d'opérations. `typeOf` donne le type d'un élément existant (pour adapter un

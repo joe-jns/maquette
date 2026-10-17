@@ -44,7 +44,7 @@ export function startChat(): () => void {
   }
 }
 
-const TYPE_LABEL: Record<string, string> = { frame: 'cadre', text: 'texte', shape: 'forme', image: 'image' }
+const TYPE_LABEL: Record<string, string> = { frame: 'cadre', text: 'texte', shape: 'forme', image: 'image', icon: 'icône' }
 
 /** Ce que la pastille affiche : le nom d'un élément seul, sinon le nombre. */
 export function selectionLabel(doc: MaquetteDocument, ids: string[]): string {

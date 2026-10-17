@@ -35,7 +35,7 @@ const INPUTS = {
   },
   chercher: {
     nom: z.string().optional(),
-    type: z.enum(['frame', 'text', 'shape', 'image']).optional(),
+    type: z.enum(['frame', 'text', 'shape', 'image', 'icon']).optional(),
     texte: z.string().optional(),
     limite: z.number().int().min(1).max(100).optional(),
   },
@@ -248,7 +248,7 @@ const optIndex = z.number().int().optional()
 const OpSchema = z.discriminatedUnion('op', [
   z.strictObject({
     op: z.literal('create'), parent: str, index: optIndex,
-    node: z.looseObject({ type: z.enum(['frame', 'text', 'shape', 'image']), id: str.optional() }),
+    node: z.looseObject({ type: z.enum(['frame', 'text', 'shape', 'image', 'icon']), id: str.optional() }),
   }),
   z.strictObject({ op: z.literal('update'), id: str, set: z.record(z.string(), z.unknown()) }),
   z.strictObject({ op: z.literal('move'), id: str, parent: str, index: optIndex, x: num.optional(), y: num.optional() }),

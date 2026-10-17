@@ -4,6 +4,7 @@ import type { FrameNode, ImageNode, Node, TextNode } from '../../core/types'
 import { useDoc } from '../state/store'
 import { useUi } from '../state/ui'
 import { assetUrl } from './assetUrl'
+import { IconSvg } from './IconSvg'
 import { registerNode } from './rects'
 import { TextEditor } from './TextEditor'
 
@@ -32,6 +33,12 @@ export const NodeView = memo(function NodeView({ node, parent, index }: { node: 
       return <div ref={nodeRef(node.id)} data-node-id={node.id} style={style} />
     case 'image':
       return <ImageView node={node} style={style} />
+    case 'icon':
+      return (
+        <div ref={nodeRef(node.id)} data-node-id={node.id} data-icon-name={node.icon} style={style}>
+          <IconSvg name={node.icon} strokeWidth={node.strokeWidth} />
+        </div>
+      )
   }
 })
 
