@@ -64,6 +64,16 @@ test('états de l’interface', async () => {
   await page.keyboard.press('Escape')
   await page.evaluate(() => (window as unknown as { __maquetteStore: { getState(): { showError(m: string): void } } }).__maquetteStore.getState().showError('Impossible d’ouvrir site.maquette : version future du format'))
   await shot(page, '11-bandeau')
+  // Une modification non enregistrée, puis « Nouveau » : la fenêtre de question.
+  await page.evaluate(() => {
+    type Store = { getState(): { doc: { pages: { id: string }[] }; dispatch(ops: unknown[], label: string): unknown } }
+    const store = (window as unknown as { __maquetteStore: Store }).__maquetteStore
+    store.getState().dispatch([{ op: 'create', parent: store.getState().doc.pages[0]!.id, node: { type: 'shape', shape: 'rectangle', name: 'r', x: 10, y: 10, width: 50, height: 50 } }], 'capture')
+  })
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find((w) => w.isVisible())!.webContents.send('menu', 'new'))
+  await expect(page.getByRole('dialog')).toBeVisible()
+  await page.waitForTimeout(200)
+  await shot(page, '15-dialogue')
   await app.close()
 })
 
