@@ -3,6 +3,7 @@ import { uiStore, useUi } from '../state/ui'
 import { Icon } from '../ui/icons'
 import { QuickMenu } from '../ui/QuickMenu'
 import { fitTo, selectionExists, zoomAroundCenter, zoomStep } from './camera-actions'
+import { keepButtonKeys } from './Toolbar'
 
 export const formatZoom = (zoom: number) => `${Math.round(zoom * 100)} %`
 
@@ -13,7 +14,7 @@ export function ZoomControl() {
   const [open, setOpen] = useState(false)
   const button = useRef<HTMLButtonElement>(null)
   return (
-    <div className="zoom-control" data-ui>
+    <div className="zoom-control" data-ui onKeyDown={keepButtonKeys}>
       <button type="button" className="zoom-step" aria-label="Zoom arrière" title="Zoom arrière (Ctrl+-)" onClick={() => zoomStep(-1)}>
         <Icon name="minus" size={16} />
       </button>

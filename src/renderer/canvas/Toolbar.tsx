@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { uiStore, useUi, type Tool } from '../state/ui'
 import { Icon, type IconName } from '../ui/icons'
 import { QuickMenu } from '../ui/QuickMenu'
@@ -89,11 +89,19 @@ function ShapeGroup({ current }: { current: Tool }) {
   )
 }
 
+/**
+ * Entrée et Espace sur un bouton posé sur le canevas : le bouton s'active, le canevas ne les voit pas
+ * (sinon Entrée « sélectionne les enfants » et Espace passe en mode main).
+ */
+export function keepButtonKeys(e: KeyboardEvent<HTMLElement>): void {
+  if ((e.key === 'Enter' || e.key === ' ') && (e.target as HTMLElement).closest('button')) e.stopPropagation()
+}
+
 /** Barre d'outils flottante en bas du canevas, centrée (Figma UI3). */
 export function Toolbar() {
   const current = useUi((s) => s.tool)
   return (
-    <div className="toolbar" role="toolbar" aria-label="Outils" data-ui>
+    <div className="toolbar" role="toolbar" aria-label="Outils" data-ui onKeyDown={keepButtonKeys}>
       {GROUPS.map((group, g) => (
         <Fragment key={g}>
           {g > 0 && <span className="toolbar-separator" aria-hidden />}
