@@ -11,6 +11,7 @@
     "test": "vitest run",
     "e2e": "electron-vite build && playwright test",
     "update-taste": "node scripts/update-taste-skill.mjs",
+    "update-design": "node scripts/update-design.mjs",
     "dist": "electron-vite build && electron-builder --win",
     "icons": "electron scripts/make-icons.mjs"
   },
