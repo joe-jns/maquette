@@ -49,3 +49,18 @@ export function getCurrentDir(): string | null {
 export function getCurrentPath(): string | null {
   return currentPath
 }
+
+/** Dossier des images d'un document jamais enregistré (userData/pending-assets/<lancement>). */
+let pendingDir: string | null = null
+
+export function setPendingDir(dir: string | null): void {
+  pendingDir = dir
+}
+
+/**
+ * Dossier où vivent les images du document affiché : celui du fichier, sinon le dossier temporaire
+ * du lancement (recopié dans le dossier du fichier au premier enregistrement).
+ */
+export function getAssetDir(): string | null {
+  return getCurrentDir() ?? pendingDir
+}
