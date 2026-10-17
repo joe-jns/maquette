@@ -98,10 +98,16 @@ function MenuList({ items, anchor, label, focus, onCloseAll, onBack }: {
     const size = { width: el.offsetWidth, height: el.offsetHeight }
     const viewport = { width: window.innerWidth, height: window.innerHeight }
     setPos(anchor.kind === 'point' ? placeMenu(anchor, size, viewport) : placeSubmenu(anchor.parent, anchor.rowTop, size, viewport))
-    if (focus === 'menu') el.focus({ preventScroll: true })
-    if (focus === 'first') activate(firstIndex(items))
     // L'ancre et la liste sont fixes pour la vie de ce menu : une seule fois.
   }, [])
+
+  // Focus initial, une fois le menu placé (caché pendant la mesure, il ne peut pas le recevoir).
+  const placed = pos !== null
+  useLayoutEffect(() => {
+    if (!placed) return
+    if (focus === 'menu') ref.current?.focus({ preventScroll: true })
+    if (focus === 'first') activate(firstIndex(items))
+  }, [placed])
 
   const openSub = (i: number, focusFirst: boolean) => {
     const row = rows.current[i]
