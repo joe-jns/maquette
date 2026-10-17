@@ -1,0 +1,135 @@
+import { resolveColor } from '../../../core/css'
+import type { Op } from '../../../core/ops'
+import { gradientCss } from '../../../core/paint'
+import type { Color, DocStyles, Fill, Gradient, GradientStop } from '../../../core/types'
+import { ColorRow, type ColorPhase } from './ColorRow'
+import { NumberField } from './NumberField'
+import { Icon, scrubWith } from './shared'
+
+const TYPES: { value: Gradient['type']; label: string }[] = [
+  { value: 'linear', label: 'Linéaire' },
+  { value: 'radial', label: 'Radial' },
+]
+
+const ANGLE_GLYPH = 'M3 13h10M3 13 11 5M8.5 13a5.5 5.5 0 0 0-1.6-3.9'
+const SOLID_GLYPH = 'M3.5 3.5h9v9h-9z'
+
+const hex2 = (n: number) => Math.round(n).toString(16).padStart(2, '0').toUpperCase()
+
+/** Couleur au milieu de deux arrêts (pour en ajouter un) : mélange des couleurs résolues. */
+function mix(a: string, b: string): string {
+  const ch = (h: string, i: number) => parseInt(h.slice(1 + i * 2, 3 + i * 2), 16)
+  const alpha = (h: string) => (h.length === 9 ? ch(h, 3) : 255)
+  const rgb = [0, 1, 2].map((i) => hex2((ch(a, i) + ch(b, i)) / 2)).join('')
+  const al = (alpha(a) + alpha(b)) / 2
+  return `#${rgb}${al >= 255 ? '' : hex2(al)}`
+}
+
+/** Une couleur passée en dégradé (comme Figma) : la couleur, puis la même transparente. */
+export function toGradient(color: Color, styles: DocStyles): Gradient {
+  const hex = resolveColor(color, styles).slice(0, 7)
+  return { type: 'linear', angle: 180, stops: [{ color, position: 0 }, { color: `${hex}00`, position: 1 }] }
+}
+
+/**
+ * Un remplissage en dégradé dans le panneau : aperçu, type (linéaire ou radial), angle, et les
+ * arrêts (couleur, opacité, position), au moins deux.
+ */
+export function GradientRow({ name, gradient, styles, apply, onRemove, opsFor }: {
+  name: string
+  gradient: Gradient
+  styles: DocStyles
+  apply(fill: Fill, phase: ColorPhase): void
+  onRemove(): void
+  /** Opérations qui posent ce remplissage (glisser l'étiquette d'un champ). */
+  opsFor(fill: Fill): Op[]
+}) {
+  const color = (c: Color) => resolveColor(c, styles)
+  const preview = gradientCss(gradient, color)
+  const stops = gradient.stops
+  const withStops = (next: GradientStop[]): Gradient => ({ ...gradient, stops: next })
+  const setStop = (k: number, patch: Partial<GradientStop>) => withStops(stops.map((s, i) => (i === k ? { ...s, ...patch } : s)))
+  const setType = (type: Gradient['type']): Gradient =>
+    type === 'linear' ? { type, angle: gradient.type === 'linear' ? gradient.angle : 180, stops } : { type, stops }
+  const label = gradient.type === 'linear' ? `Linéaire ${Math.round(gradient.angle)}°` : 'Radial'
+
+  const addStop = () => {
+    // Au milieu du plus grand écart entre deux arrêts.
+    let k = 0
+    for (let i = 1; i < stops.length - 1; i++) {
+      if (stops[i + 1]!.position - stops[i]!.position > stops[k + 1]!.position - stops[k]!.position) k = i
+    }
+    const a = stops[k]!
+    const b = stops[k + 1]!
+    const stop = { color: mix(color(a.color), color(b.color)), position: Math.round(((a.position + b.position) / 2) * 1000) / 1000 }
+    apply(withStops([...stops.slice(0, k + 1), stop, ...stops.slice(k + 1)]), 'commit')
+  }
+
+  return (
+    <div className="gradient-row" data-gradient={gradient.type}>
+      <div className="color-row">
+        <div className="color-box is-gradient">
+          <span className="swatch" aria-hidden><span className="swatch-fill" style={{ backgroundImage: preview }} /></span>
+          <span className="gradient-label">{label}</span>
+        </div>
+        <span className="color-row-actions">
+          <button
+            type="button"
+            className="icon-button"
+            aria-label={`Couleur unie pour le ${name.toLowerCase()}`}
+            data-tooltip="Couleur unie"
+            onClick={() => apply(stops[0]!.color, 'commit')}
+          >
+            <Icon d={SOLID_GLYPH} />
+          </button>
+          <button type="button" className="icon-button" aria-label={`Retirer : ${name.toLowerCase()}`} data-tooltip="Retirer" onClick={onRemove}>
+            <Icon d="M4 8h8" />
+          </button>
+        </span>
+      </div>
+      <div className="field-grid">
+        <div className="segmented" role="group" aria-label="Type de dégradé">
+          {TYPES.map((t) => (
+            <button key={t.value} type="button" aria-pressed={gradient.type === t.value} onClick={() => apply(setType(t.value), 'commit')}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <NumberField
+          name="Angle du dégradé"
+          label={<Icon d={ANGLE_GLYPH} />}
+          suffix="°"
+          disabled={gradient.type !== 'linear'}
+          value={gradient.type === 'linear' ? gradient.angle : null}
+          onCommit={(v) => gradient.type === 'linear' && apply({ ...gradient, angle: ((v % 360) + 360) % 360 }, 'commit')}
+          scrub={gradient.type === 'linear' ? scrubWith('Dégradé', (v) => opsFor({ ...gradient, angle: ((v % 360) + 360) % 360 })) : undefined}
+        />
+      </div>
+      {stops.map((s, k) => (
+        <div key={k} className="gradient-stop">
+          <div className="stop-position">
+            <NumberField
+              name={`Position de l’arrêt ${k + 1}`}
+              label=""
+              suffix="%"
+              min={0}
+              max={100}
+              value={Math.round(s.position * 1000) / 10}
+              onCommit={(v) => apply(setStop(k, { position: Math.min(100, Math.max(0, v)) / 100 }), 'commit')}
+            />
+          </div>
+          <ColorRow
+            name={`Arrêt ${k + 1}`}
+            color={s.color}
+            styles={styles}
+            apply={(c, phase) => apply(setStop(k, { color: c }), phase)}
+            onRemove={stops.length > 2 ? () => apply(withStops(stops.filter((_, i) => i !== k)), 'commit') : undefined}
+          />
+        </div>
+      ))}
+      <button type="button" className="text-button" onClick={addStop}>
+        Ajouter un arrêt
+      </button>
+    </div>
+  )
+}

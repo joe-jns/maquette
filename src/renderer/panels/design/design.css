@@ -197,3 +197,16 @@
 .text-style-block + .text-style-block { margin-top: 8px; padding-top: 16px; box-shadow: inset 0 1px var(--panel-border); }
 .text-style-preview { width: 24px; text-align: center; font-size: var(--fs-large); }
 .empty-note.inline { padding: 0; margin: 0; }
+
+/* Dégradé : aperçu + type, angle, puis un arrêt par rangée (position, couleur). */
+.gradient-row { display: flex; flex-direction: column; gap: 8px; }
+.gradient-row + .color-row, .color-row + .gradient-row, .gradient-row + .gradient-row { margin-top: 8px; }
+.color-box.is-gradient { padding-right: 8px; }
+.swatch-fill { position: absolute; inset: 0; }
+.gradient-label { flex: 1; min-width: 0; padding: 0 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gradient-stop { display: flex; gap: 8px; align-items: center; }
+.stop-position { flex: none; width: 52px; }
+.stop-position .number-label { width: 0; }
+.stop-position input { padding-left: 8px; }
+.gradient-stop .color-row { flex: 1; min-width: 0; }
+.gradient-row > .text-button { align-self: flex-start; }
