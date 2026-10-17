@@ -13,30 +13,56 @@ import { TOOLS, type ToolResult } from '../mcp/tools'
 const APP_CLOSED = 'Maquette n’est pas ouverte : lancez l’app puis réessayez.'
 const TOKEN_REFUSED = 'Jeton refusé : reconnectez Maquette à Claude Code (menu Fichier → Connecter à Claude Code).'
 
-type Bridge = Awaited<ReturnType<typeof connectBridge>>
-let bridge: Bridge | null = null
+const CUT = 'La connexion avec Maquette a été coupée pendant l’opération : vérifiez avec lire_document avant de recommencer.'
 
-async function getBridge(): Promise<Bridge> {
-  if (bridge) return bridge
-  const token = await readToken(userDataDir())
-  if (!token) throw Object.assign(new Error(APP_CLOSED), { code: 'APP_FERMEE' })
-  bridge = await connectBridge({ path: pipePath(), token })
+type Bridge = Awaited<ReturnType<typeof connectBridge>>
+/** Une seule connexion, partagée par les appels simultanés (promesse unique pendant la connexion). */
+let bridge: Promise<Bridge> | null = null
+
+function getBridge(): Promise<Bridge> {
+  bridge ??= (async () => {
+    const token = await readToken(userDataDir())
+    if (!token) throw Object.assign(new Error(APP_CLOSED), { code: 'APP_FERMEE' })
+    return connectBridge({ path: pipePath(), token })
+  })()
+  bridge.catch(() => (bridge = null))
   return bridge
+}
+
+function drop(client: Bridge): void {
+  client.close()
+  if (bridge) void bridge.then((b) => b === client && (bridge = null), () => undefined)
+}
+
+function failure(e: unknown, sent: boolean, tool: string): ToolResult {
+  const code = (e as { code?: string }).code
+  if (code === 'JETON_REFUSE') return { text: TOKEN_REFUSED, isError: true }
+  if (code === 'APP_FERMEE') return { text: sent && tool === 'appliquer' ? CUT : APP_CLOSED, isError: true }
+  return { text: `Erreur : ${(e as Error).message}`, isError: true }
 }
 
 async function call(tool: string, args: Record<string, unknown>): Promise<ToolResult> {
   for (let attempt = 0; attempt < 2; attempt++) {
+    let client: Bridge
     try {
-      return await (await getBridge()).call(tool, args)
+      client = await getBridge()
+    } catch (e) {
+      return failure(e, false, tool)
+    }
+    // Connexion morte (app relancée) : rien n'a été envoyé, on en ouvre une neuve.
+    if (!client.isOpen()) {
+      drop(client)
+      continue
+    }
+    try {
+      return await client.call(tool, args)
     } catch (e) {
       const code = (e as { code?: string }).code
-      bridge?.close()
-      bridge = null
-      // Une connexion morte (app relancée) : une seconde tentative avec une connexion neuve.
-      if (code === 'APP_FERMEE' && attempt === 0) continue
-      if (code === 'APP_FERMEE') return { text: APP_CLOSED, isError: true }
-      if (code === 'JETON_REFUSE') return { text: TOKEN_REFUSED, isError: true }
-      return { text: `Erreur : ${(e as Error).message}`, isError: true }
+      // Seule une connexion perdue est fermée : un délai ne concerne que cet appel.
+      if (code === 'APP_FERMEE' || code === 'PROTOCOLE') drop(client)
+      // Un lot peut avoir été appliqué avant la coupure : jamais rejoué. Une lecture, si.
+      if (code === 'APP_FERMEE' && attempt === 0 && tool !== 'appliquer') continue
+      return failure(e, true, tool)
     }
   }
   return { text: APP_CLOSED, isError: true }

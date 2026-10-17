@@ -27,6 +27,8 @@ const CLOSED_CODES = new Set(['ENOENT', 'ECONNREFUSED', 'EPIPE', 'ECONNRESET'])
 
 export interface BridgeClient {
   call(tool: string, args: Record<string, unknown>): Promise<ToolResult>
+  /** Faux dès que la connexion est coupée (app fermée ou relancée). */
+  isOpen(): boolean
   close(): void
 }
 
@@ -115,6 +117,7 @@ export function connectBridge(opts: { path: string; token: string; timeoutMs?: n
           socket.write(encodeLine({ id, tool, args }))
         })
       },
+      isOpen: () => !ended,
       close() {
         finish(bridgeError('APP_FERMEE'))
       },
