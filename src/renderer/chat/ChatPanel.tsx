@@ -6,7 +6,8 @@ import { shortcutKeys } from '../canvas/shortcuts'
 import { docStore, useDoc } from '../state/store'
 import { useUi } from '../state/ui'
 import { chatStore, MAX_IMAGES, useChat } from './chatStore'
-import { chatApi, selectionContext, selectionLabel } from './connect'
+import { Checkbox } from '../ui/Checkbox'
+import { changeOptions, chatApi, selectionContext, selectionLabel } from './connect'
 import { imageFiles, readImage } from './images'
 import { MessageText } from './MessageText'
 import './chat.css'
@@ -446,6 +447,7 @@ function Composer() {
 export function ChatPanel() {
   const items = useChat((s) => s.items)
   const busy = useChat((s) => s.busy)
+  const taste = useChat((s) => s.options.taste)
   const log = useRef<HTMLDivElement>(null)
   // Collé en bas tant que l'utilisateur n'est pas remonté lire.
   const stuck = useRef(true)
@@ -518,6 +520,13 @@ export function ChatPanel() {
     >
       <header className="chat-head">
         <h2>Claude</h2>
+        <span
+          className="chat-taste"
+          data-testid="chat-taste"
+          data-tooltip={taste ? 'Méthode taste-skill (règles maison strictes)' : 'Méthode de Pen (styles appliqués en entier) ; cocher pour taste-skill'}
+        >
+          <Checkbox checked={taste} onChange={(on) => changeOptions({ taste: on })}>taste-skill</Checkbox>
+        </span>
         <button type="button" className="chat-head-button" onClick={() => void reset()} disabled={items.length === 0 && !busy} data-tooltip="Nouvelle conversation">
           <Icon d={NEW} size={14} width={2} />
           <span>Nouvelle conversation</span>

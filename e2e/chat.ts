@@ -25,6 +25,15 @@ export async function fakeChat(app: ElectronApplication, history: ChatItem[]): P
     ipcMain.handle('chat:reset', () => {
       g.__chatCalls.push(['chat:reset'])
     })
+    let options: Record<string, unknown> = { taste: false }
+    ipcMain.removeHandler('chat:options')
+    ipcMain.handle('chat:options', () => options)
+    ipcMain.removeHandler('chat:set-options')
+    ipcMain.handle('chat:set-options', (_e, patch: Record<string, unknown>) => {
+      g.__chatCalls.push(['chat:set-options', patch])
+      options = { ...options, ...patch }
+      return options
+    })
     for (const channel of ['chat:send', 'chat:stop', 'chat:permission']) {
       ipcMain.removeAllListeners(channel)
       ipcMain.on(channel, (_e, ...args: unknown[]) => g.__chatCalls.push([channel, ...args]))

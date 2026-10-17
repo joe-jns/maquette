@@ -58,4 +58,22 @@ describe('historique des conversations', () => {
     await store.setSession('k', 's')
     expect(JSON.parse(readFileSync(file, 'utf8'))).toEqual({ k: { sessionId: 's', items: [] } })
   })
+
+  it('réglages par conversation : taste éteint par défaut, gardés par « nouvelle conversation », pas au démarrage', async () => {
+    const file = fresh()
+    const store = new ChatStore(file)
+    expect(await store.options('a')).toEqual({ taste: false })
+    expect(await store.setOptions('a', { taste: true })).toEqual({ taste: true })
+    expect(await store.options('b')).toEqual({ taste: false })
+    await store.appendOrReplace('a', { kind: 'user', id: 'u1', text: 'Salut', images: 0 })
+    expect(await new ChatStore(file).options('a')).toEqual({ taste: true })
+    await store.reset('a', true)
+    expect(await store.get('a')).toEqual({ sessionId: null, items: [] })
+    expect(await store.options('a')).toEqual({ taste: true })
+    await store.reset('a')
+    expect(await store.options('a')).toEqual({ taste: false })
+    // Valeur abîmée dans le fichier : valeur par défaut.
+    writeFileSync(file, JSON.stringify({ c: { sessionId: null, items: [], options: { taste: 'oui' } } }))
+    expect(await new ChatStore(file).options('c')).toEqual({ taste: false })
+  })
 })

@@ -61,6 +61,11 @@ export function registerChatIpc(): void {
     if (decision === 'allow' || decision === 'always' || decision === 'deny') session(event.sender).permission(String(requestId), decision)
   })
   ipcMain.handle('chat:reset', (event) => session(event.sender).reset())
+  ipcMain.handle('chat:options', (event) => session(event.sender).options())
+  ipcMain.handle('chat:set-options', (event, patch: unknown) => {
+    const p = patch && typeof patch === 'object' ? (patch as Record<string, unknown>) : {}
+    return session(event.sender).setOptions(typeof p.taste === 'boolean' ? { taste: p.taste } : {})
+  })
 
   app.on('will-quit', () => {
     for (const session of sessions.values()) session.kill()

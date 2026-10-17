@@ -2,7 +2,7 @@ import { spawn, execFile, type ChildProcess } from 'node:child_process'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { basename, dirname, join } from 'node:path'
-import type { ChatEvent, ChatImage, ChatItem, ChatSend, PermissionDecision } from '../../shared/chat'
+import { DEFAULT_CHAT_OPTIONS, type ChatEvent, type ChatImage, type ChatItem, type ChatOptions, type ChatSend, type PermissionDecision } from '../../shared/chat'
 import { createLineReader } from '../../mcp/pipe'
 import { imageHashes, type ChatImages } from './chatImages'
 import { chatKey, type ChatStore } from './chatStore'
@@ -34,6 +34,8 @@ interface Running {
   /** Réponse « conversation introuvable » à notre --resume. */
   resumeFailed: boolean
   stderr: string
+  /** Méthode de la consigne passée au lancement : un changement de l'interrupteur demande une relance. */
+  taste: boolean
 }
 
 interface Pending { item: Extract<ChatItem, { kind: 'permission' }>; input: unknown }
@@ -62,6 +64,7 @@ export class ChatSession {
   private key = chatKey(null)
   private path: string | null = null
   private sessionId: string | null = null
+  private settings: ChatOptions = DEFAULT_CHAT_OPTIONS
   private run: Running | null = null
   private busy = false
   private stopping: ReturnType<typeof setTimeout> | null = null
@@ -85,6 +88,7 @@ export class ChatSession {
     this.path = path
     const conv = await this.deps.store.get(key)
     this.sessionId = conv.sessionId
+    this.settings = await this.deps.store.options(key)
     return conv.items
   }
 
@@ -96,6 +100,23 @@ export class ChatSession {
     this.setBusy(true)
     this.lastLine = userLine(message)
     void this.write(this.lastLine)
+  }
+
+  /** Réglages de la conversation ouverte. */
+  async options(): Promise<ChatOptions> {
+    this.settings = await this.deps.store.options(this.key)
+    return this.settings
+  }
+
+  /**
+   * Change des réglages. La consigne est passée au lancement de claude : un claude déjà lancé avec
+   * l'autre méthode est relancé (--resume) au prochain message, pas pendant un tour.
+   */
+  async setOptions(patch: Partial<ChatOptions>): Promise<ChatOptions> {
+    const key = this.key
+    const next = await this.deps.store.setOptions(key, patch)
+    if (key === this.key) this.settings = next
+    return next
   }
 
   stop(): void {
@@ -124,7 +145,7 @@ export class ChatSession {
     this.sessionId = null
     const { store, images } = this.deps
     const used = imageHashes((await store.get(this.key)).items)
-    await store.reset(this.key)
+    await store.reset(this.key, true)
     if (!used.length) return
     const elsewhere = await store.images()
     await images.remove(used.filter((h) => !elsewhere.has(h)))
@@ -159,8 +180,20 @@ export class ChatSession {
 
   private async write(line: string): Promise<void> {
     const generation = this.generation
+    // Interrupteur taste-skill changé depuis le lancement : nouveau claude, même conversation (--resume).
+    if (this.run && this.run.taste !== this.settings.taste) this.retire()
     if (!this.run) await this.start(generation)
     if (generation === this.generation) this.writeNow(line)
+  }
+
+  /** Arrête le claude en cours sans toucher à la conversation (pas de message, pas de fin de tour). */
+  private retire(): void {
+    const run = this.run
+    if (!run) return
+    this.run = null
+    run.killed = true
+    run.proc.stdin?.end()
+    killTree(run.proc)
   }
 
   private writeNow(line: string): void {
@@ -176,7 +209,8 @@ export class ChatSession {
     if (process.env.MAQUETTE_PIPE) env.MAQUETTE_PIPE = process.env.MAQUETTE_PIPE
     await writeFile(mcpConfig, JSON.stringify({ mcpServers: { maquette: { command: process.execPath, args: [relayPath], env } } }, null, 2), 'utf8')
     const promptFile = join(userData, `chat-consigne-${this.id}.txt`)
-    await writeFile(promptFile, systemPrompt(this.path ? basename(this.path) : 'Sans titre'), 'utf8')
+    const taste = this.settings.taste
+    await writeFile(promptFile, systemPrompt(this.path ? basename(this.path) : 'Sans titre', taste), 'utf8')
     if (generation !== this.generation || this.run) return
 
     const cmd = claudeCommand(claudeArgs({ mcpConfig, promptFile, resume: this.sessionId }), process.platform, process.env.MAQUETTE_CLAUDE_CMD)
@@ -191,7 +225,7 @@ export class ChatSession {
       windowsHide: true,
       windowsVerbatimArguments: cmd.verbatim,
     })
-    const run: Running = { proc, killed: false, resumeFailed: false, stderr: '' }
+    const run: Running = { proc, killed: false, resumeFailed: false, stderr: '', taste }
     this.run = run
     const decode = createDecoder()
     proc.stdin.on('error', () => undefined)

@@ -22,6 +22,8 @@
 }
 .chat-head-button:hover:not(:disabled) { background: var(--panel-hover); color: var(--panel-text); }
 .chat-head-button:disabled { opacity: 0.45; cursor: default; }
+.chat-taste { display: flex; padding: 0 4px; color: var(--panel-muted); }
+.chat-taste .checkbox { gap: 6px; }
 .chat-head .icon-button { color: var(--icon-muted); }
 .chat-head .icon-button:hover { color: var(--icon); }
 

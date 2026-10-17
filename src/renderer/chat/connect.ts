@@ -1,6 +1,6 @@
 import { findNode } from '../../core/tree'
 import type { MaquetteDocument } from '../../core/types'
-import type { ChatApi } from '../../shared/chat'
+import { DEFAULT_CHAT_OPTIONS, type ChatApi, type ChatOptions } from '../../shared/chat'
 import { docStore } from '../state/store'
 import { uiStore } from '../state/ui'
 import { chatStore } from './chatStore'
@@ -26,6 +26,13 @@ export function startChat(): () => void {
       () => {
         if (n === seq) chatStore.getState().setItems([])
       },
+    ).then(() => (n === seq ? api.options() : null)).then(
+      (options) => {
+        if (options && n === seq) chatStore.getState().setOptions({ ...DEFAULT_CHAT_OPTIONS, ...options })
+      },
+      () => {
+        if (n === seq) chatStore.getState().setOptions(DEFAULT_CHAT_OPTIONS)
+      },
     )
   }
   load(docStore.getState().filePath)
@@ -42,6 +49,16 @@ export function startChat(): () => void {
     offSel()
     offEvents()
   }
+}
+
+/** Change des réglages de la conversation : affiché tout de suite, enregistré par le principal. */
+export function changeOptions(patch: Partial<ChatOptions>): void {
+  const store = chatStore.getState()
+  store.setOptions({ ...store.options, ...patch })
+  chatApi()?.setOptions(patch).then(
+    (options) => chatStore.getState().setOptions({ ...DEFAULT_CHAT_OPTIONS, ...options }),
+    () => undefined,
+  )
 }
 
 const TYPE_LABEL: Record<string, string> = { frame: 'cadre', text: 'texte', shape: 'forme', image: 'image', icon: 'icône' }

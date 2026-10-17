@@ -36,13 +36,24 @@ export interface ChatImage { mediaType: string; data: string }
 export interface ChatSend { text: string; context: string; images: ChatImage[] }
 export type PermissionDecision = 'allow' | 'always' | 'deny'
 
+/**
+ * Réglages d'une conversation, mémorisés avec elle (chats.json) : taste = méthode taste-skill
+ * (sinon méthode de Pen). Un changement relance claude (avec --resume) au message suivant.
+ */
+export interface ChatOptions { taste: boolean }
+export const DEFAULT_CHAT_OPTIONS: ChatOptions = { taste: false }
+
 export interface ChatApi {
   /** Conversation du fichier (null = sans titre) : arrête l'ancienne, renvoie l'historique de celle-ci. */
   open(path: string | null): Promise<ChatItem[]>
   send(message: ChatSend): void
   stop(): void
   permission(requestId: string, decision: PermissionDecision): void
-  /** Nouvelle conversation pour le fichier courant (oublie l'ancienne). */
+  /** Nouvelle conversation pour le fichier courant (oublie l'ancienne, garde ses réglages). */
   reset(): Promise<void>
+  /** Réglages de la conversation ouverte. */
+  options(): Promise<ChatOptions>
+  /** Change des réglages de la conversation ouverte ; renvoie les réglages à jour. */
+  setOptions(patch: Partial<ChatOptions>): Promise<ChatOptions>
   onEvent(cb: (event: ChatEvent) => void): () => void
 }
