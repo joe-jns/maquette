@@ -1,7 +1,8 @@
-import { app, BrowserWindow, dialog, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain } from 'electron'
 import { readFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 import type { OpenedFile } from '../shared/ipc'
+import { askWindow } from './askDialog'
 import { RecentStore } from './recent'
 import { offerPath } from './state'
 import { FileWatcher } from './watch'
@@ -34,6 +35,9 @@ export function initOpenFiles(opts: { editorWindow: () => BrowserWindow | undefi
     }
   })
 }
+
+/** La fenêtre de l'éditeur (pas celle, cachée, de l'export), s'il y en a une. */
+export const currentEditorWindow = (): BrowserWindow | undefined => editorWindow()
 
 /** Lit un fichier pour la fenêtre : il lui est proposé, et son contenu devient la référence de la surveillance. */
 export async function readForWindow(path: string): Promise<OpenedFile> {
@@ -74,7 +78,14 @@ export async function openInWindow(path: string): Promise<void> {
   try {
     win.webContents.send('open-file', await readForWindow(path))
   } catch {
-    await dialog.showMessageBox(win, { type: 'warning', message: `${basename(path)} est introuvable.`, detail: `${path}\nIl est retiré des fichiers récents.` })
+    // Retiré des récents sans attendre la réponse : la question n'a qu'un bouton.
     onRecentChange(await recents().remove(path))
+    await askWindow(win, {
+      message: `${basename(path)} est introuvable.`,
+      detail: `${path}\nIl est retiré des fichiers récents.`,
+      buttons: [{ label: 'OK', kind: 'primary' }],
+      cancelIndex: 0,
+      defaultIndex: 0,
+    })
   }
 }

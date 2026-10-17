@@ -26,6 +26,22 @@ export interface FontInfo {
   variable: { min: number; max: number } | null
 }
 
+/** Bouton d'une fenêtre de question : primaire (clair), danger (rouge) ou ordinaire. */
+export interface DialogButton { label: string; kind?: 'primary' | 'danger' | 'default' }
+/** Question posée dans la fenêtre, dessinée par l'app ; la réponse est l'indice du bouton choisi. */
+export interface DialogRequest {
+  title?: string
+  message: string
+  detail?: string
+  /** Texte montré tel quel, en police à chasse fixe et sélectionnable (une commande, une sortie). */
+  code?: string
+  buttons: DialogButton[]
+  /** Réponse pour Échap, un clic sur le fond ou une fenêtre fermée. */
+  cancelIndex: number
+  /** Bouton qui a le focus à l'ouverture (Entrée). */
+  defaultIndex: number
+}
+
 export type MenuCommand = 'new' | 'open' | 'save' | 'save-as' | 'undo' | 'redo' | 'export-png-1' | 'export-png-2' | 'export-png-3' | 'save-and-close'
 
 export interface RenderOptions {
@@ -98,4 +114,6 @@ export interface MaquetteApi {
   onMcpCall(cb: (tool: string, args: Record<string, unknown>) => Promise<ToolResult>): () => void
   /** Chat avec Claude (panneau de droite). */
   chat: ChatApi
+  /** Questions posées par le principal (fermeture, fichier introuvable…) ; la réponse repart au principal. */
+  onDialogAsk(cb: (request: DialogRequest) => Promise<number>): () => void
 }

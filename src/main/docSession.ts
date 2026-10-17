@@ -1,7 +1,8 @@
-import { app, BrowserWindow, dialog, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain } from 'electron'
 import { stat } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 import type { DocState, OpenedFile, RecoveryOffer } from '../shared/ipc'
+import { askWindow } from './askDialog'
 import { BackupStore } from './backup'
 import { offerPath } from './state'
 
@@ -74,27 +75,23 @@ export function guardClose(win: BrowserWindow): void {
     event.preventDefault()
     if (asking.has(win)) return
     asking.add(win)
-    void dialog
-      .showMessageBox(win, {
-        type: 'question',
-        title: 'Maquette',
-        message: `Enregistrer les modifications de ${state.name} ?`,
-        detail: 'Sinon, elles seront perdues.',
-        buttons: ['Enregistrer', 'Ne pas enregistrer', 'Annuler'],
-        defaultId: 0,
-        cancelId: 2,
-        noLink: true,
-      })
-      .then(async ({ response }) => {
-        asking.delete(win)
-        if (win.isDestroyed()) return
-        if (response === 0) win.webContents.send('menu', 'save-and-close')
-        else if (response === 1) {
-          const now = states.get(win) ?? state
-          await serial(() => backups().clear({ path: now.path, session }))
-          confirmed.add(win)
-          win.close()
-        }
-      })
+    // Posée dans la fenêtre qui ferme ; fermée ou rechargée entre-temps : « Annuler ».
+    void askWindow(win, {
+      message: `Enregistrer les modifications de ${state.name} ?`,
+      detail: 'Sinon, elles seront perdues.',
+      buttons: [{ label: 'Enregistrer', kind: 'primary' }, { label: 'Ne pas enregistrer', kind: 'danger' }, { label: 'Annuler' }],
+      defaultIndex: 0,
+      cancelIndex: 2,
+    }).then(async (response) => {
+      asking.delete(win)
+      if (win.isDestroyed()) return
+      if (response === 0) win.webContents.send('menu', 'save-and-close')
+      else if (response === 1) {
+        const now = states.get(win) ?? state
+        await serial(() => backups().clear({ path: now.path, session }))
+        confirmed.add(win)
+        win.close()
+      }
+    })
   })
 }

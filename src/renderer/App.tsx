@@ -6,6 +6,7 @@ import './panels/panels.css'
 import { domMeasure } from './canvas/measure'
 import { watchDocumentFonts } from './fonts/fontLoader'
 import { serveMcp } from './mcp/host'
+import { Dialog } from './dialog/Dialog'
 import { FileChangedBanner } from './FileChangedBanner'
 import { RecoveryBanner } from './RecoveryBanner'
 import { startAutosave } from './state/autosave'
@@ -41,7 +42,7 @@ export function App() {
   useEffect(
     () =>
       window.maquette.onOpenFile((file) => {
-        if (confirmDiscard()) void openDocument(file)
+        void confirmDiscard().then((ok) => ok && openDocument(file))
       }),
     [],
   )
@@ -70,6 +71,7 @@ export function App() {
         <Canvas />
         <RightPanel />
       </div>
+      <Dialog />
     </div>
   )
 }

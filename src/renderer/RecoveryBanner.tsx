@@ -25,7 +25,7 @@ export function RecoveryBanner({ ready }: { ready: boolean }) {
 
   const restore = async () => {
     // Le document affiché a des changements : on demande avant de le remplacer.
-    if (!confirmDiscard()) return
+    if (!(await confirmDiscard())) return
     const file = await window.maquette.backup.restore(offer.id)
     next()
     if (!file || !(await openDocument(file))) return

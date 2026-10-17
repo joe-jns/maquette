@@ -14,17 +14,16 @@ const addRect = (page: Page, name: string) =>
 const names = (page: Page) =>
   page.evaluate(() => (window as unknown as { __maquetteStore: { getState(): { doc: { pages: { children: { name: string }[] }[] } } } }).__maquetteStore.getState().doc.pages[0]!.children.map((c) => c.name))
 
-/** Remplace la boîte de dialogue native par une réponse fixe, et note les messages posés. */
-const answerDialog = (app: ElectronApplication, response: number) =>
-  app.evaluate(({ dialog }, r) => {
-    const asked: string[] = []
-    ;(globalThis as unknown as { __asked: string[] }).__asked = asked
-    dialog.showMessageBox = (async (...args: unknown[]) => {
-      const opts = (args.length > 1 ? args[1] : args[0]) as { message: string }
-      asked.push(opts.message)
-      return { response: r, checkboxChecked: false }
-    }) as typeof dialog.showMessageBox
-  }, response)
+/** Demande la fermeture de la fenêtre de l'éditeur (comme la croix). */
+const closeWindow = (app: ElectronApplication) =>
+  app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find((w) => w.isVisible())?.close())
+
+/** La question posée dans la fenêtre : on vérifie son texte, puis on clique sur un de ses boutons. */
+async function answerDialog(page: Page, message: string, button: string): Promise<void> {
+  const dialog = page.getByRole('dialog', { name: message })
+  await expect(dialog).toBeVisible()
+  await dialog.getByRole('button', { name: button, exact: true }).click()
+}
 
 test('copie de secours : l’app plante, au lancement suivant le travail est restauré', async () => {
   const userData = mkdtempSync(join(tmpdir(), 'maquette-session-'))
@@ -79,15 +78,15 @@ test('fermeture avec changements : question ; Annuler garde la fenêtre, Ne pas 
   await addRect(page, 'Modifié')
   await expect(page).toHaveTitle(/•/)
 
-  await answerDialog(app, 2)
-  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find((w) => w.isVisible())?.close())
+  await closeWindow(app)
+  await answerDialog(page, 'Enregistrer les modifications de Sans titre ?', 'Annuler')
+  await expect(page.getByRole('dialog')).toHaveCount(0)
   await page.waitForTimeout(300)
   expect(page.isClosed()).toBe(false)
-  expect(await app.evaluate(() => (globalThis as unknown as { __asked: string[] }).__asked)).toEqual(['Enregistrer les modifications de Sans titre ?'])
 
-  await answerDialog(app, 1)
+  await closeWindow(app)
   const closed = app.waitForEvent('close')
-  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find((w) => w.isVisible())?.close())
+  await answerDialog(page, 'Enregistrer les modifications de Sans titre ?', 'Ne pas enregistrer')
   await closed
 })
 
@@ -99,12 +98,11 @@ test('fermeture pendant la saisie d’un texte : la question est posée', async 
   await page.locator('[data-node-id="tTitre"]').dblclick()
   await page.keyboard.type(' !')
   await expect.poll(() => page.evaluate(() => (window as unknown as { __maquetteUi: { getState(): { editingTextId: string | null } } }).__maquetteUi.getState().editingTextId)).toBe('tTitre')
-  await answerDialog(app, 2)
-  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find((w) => w.isVisible())?.close())
-  await page.waitForTimeout(300)
-  expect(await app.evaluate(() => (globalThis as unknown as { __asked: string[] }).__asked)).toEqual(['Enregistrer les modifications de scene.maquette ?'])
-  await answerDialog(app, 1)
+  await closeWindow(app)
+  await answerDialog(page, 'Enregistrer les modifications de scene.maquette ?', 'Annuler')
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await closeWindow(app)
   const closed = app.waitForEvent('close')
-  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find((w) => w.isVisible())?.close())
+  await answerDialog(page, 'Enregistrer les modifications de scene.maquette ?', 'Ne pas enregistrer')
   await closed
 })

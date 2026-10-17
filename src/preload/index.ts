@@ -1,6 +1,19 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 import type { ChatEvent, ChatItem } from '../shared/chat'
-import type { ExportJob, ExportMeasure, FontInfo, ImageImport, MaquetteApi, MenuCommand, OpenedFile, RenderedImage } from '../shared/ipc'
+import type { DialogRequest, ExportJob, ExportMeasure, FontInfo, ImageImport, MaquetteApi, MenuCommand, OpenedFile, RenderedImage } from '../shared/ipc'
+
+// Questions du principal : arrivées avant que la fenêtre écoute (démarrage), elles l'attendent.
+let onAsk: ((request: DialogRequest) => Promise<number>) | null = null
+const early: [number, DialogRequest][] = []
+const reply = (ask: (request: DialogRequest) => Promise<number>, id: number, request: DialogRequest) =>
+  void ask(request).then(
+    (index) => ipcRenderer.send('dialog:answer', id, index),
+    () => ipcRenderer.send('dialog:answer', id, request.cancelIndex),
+  )
+ipcRenderer.on('dialog:ask', (_e, id: number, request: DialogRequest) => {
+  if (onAsk) reply(onAsk, id, request)
+  else early.push([id, request])
+})
 
 const api: MaquetteApi = {
   getInitialDocument: () => ipcRenderer.invoke('doc:initial') as Promise<OpenedFile | null>,
@@ -68,6 +81,13 @@ const api: MaquetteApi = {
       ipcRenderer.on('chat:event', handler)
       return () => ipcRenderer.removeListener('chat:event', handler)
     },
+  },
+  onDialogAsk: (cb) => {
+    onAsk = cb
+    for (const [id, request] of early.splice(0)) reply(cb, id, request)
+    return () => {
+      if (onAsk === cb) onAsk = null
+    }
   },
   onMenu: (cb) => {
     const handler = (_e: IpcRendererEvent, cmd: MenuCommand) => cb(cmd)

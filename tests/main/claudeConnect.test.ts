@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 
-vi.mock('electron', () => ({ BrowserWindow: class {}, dialog: {} }))
+vi.mock('electron', () => ({ app: {}, BrowserWindow: class {}, ipcMain: {} }))
 const { addArgs, displayCommand } = await import('../../src/main/claudeConnect')
 
 describe('connexion à Claude Code', () => {
