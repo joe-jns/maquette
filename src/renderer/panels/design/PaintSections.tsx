@@ -1,7 +1,9 @@
+import type { ReactNode } from 'react'
 import type { Op } from '../../../core/ops'
 import type { Color, Shadow, Stroke } from '../../../core/types'
 import { docStore, useDoc } from '../../state/store'
 import { Checkbox } from '../../ui/Checkbox'
+import { Select } from '../../ui/Select'
 import { mixed, setOps } from '../props'
 import { ColorRow, type ColorPhase } from './ColorRow'
 import { NumberField } from './NumberField'
@@ -72,9 +74,9 @@ export function FillSection() {
 }
 
 const ALIGNS: { value: Stroke['align']; label: string }[] = [
-  { value: 'inside', label: 'intérieur' },
-  { value: 'center', label: 'centre' },
-  { value: 'outside', label: 'extérieur' },
+  { value: 'inside', label: 'Intérieur' },
+  { value: 'center', label: 'Centre' },
+  { value: 'outside', label: 'Extérieur' },
 ]
 
 /** Contour : couleur, épaisseur, position. Les contours ne prennent jamais de place dans la mise en page. */
@@ -119,20 +121,12 @@ export function StrokeSection() {
               onCommit={(v) => commit(set({ ...current, width: v }), 'Contour')}
               scrub={scrubWith('Contour', (v) => set({ ...current, width: Math.max(0.5, v) }))}
             />
-            <div className="segmented" role="group" aria-label="Position du contour">
-              {ALIGNS.map((a) => (
-                <button
-                  key={a.value}
-                  type="button"
-                  aria-label={`Contour : ${a.label}`}
-                  aria-pressed={current.align === a.value}
-                  title={`Contour ${a.label}`}
-                  onClick={() => commit(set({ ...current, align: a.value }), 'Contour')}
-                >
-                  {a.label.charAt(0).toUpperCase()}
-                </button>
-              ))}
-            </div>
+            <Select
+              label="Position du contour"
+              value={current.align}
+              options={ALIGNS}
+              onChange={(align) => commit(set({ ...current, align }), 'Contour')}
+            />
           </div>
         </>
       )}
@@ -166,7 +160,7 @@ export function ShadowSection() {
       {shadows === 'mixed' && <p className="empty-note">Ombres différentes.</p>}
       {list.map((s, i) => {
         const n = i + 1
-        const num = (key: 'x' | 'y' | 'blur' | 'spread', name: string, label: string, min?: number) => (
+        const num = (key: 'x' | 'y' | 'blur' | 'spread', name: string, label: ReactNode, min?: number) => (
           <NumberField
             name={`${name} de l’ombre ${n}`}
             label={label}
@@ -181,8 +175,8 @@ export function ShadowSection() {
             <div className="field-grid">
               {num('x', 'X', 'X')}
               {num('y', 'Y', 'Y')}
-              {num('blur', 'Flou', 'F', 0)}
-              {num('spread', 'Étendue', 'É')}
+              {num('blur', 'Flou', <Icon d={FIELD_GLYPH.blur} />, 0)}
+              {num('spread', 'Étendue', <Icon d={FIELD_GLYPH.spread} />)}
             </div>
             <ColorRow
               name={`Ombre ${n}`}

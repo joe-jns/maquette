@@ -83,6 +83,8 @@ export const FIELD_GLYPH = {
   fontSize: 'M4 5V3.5h8V5M8 3.5v9M6.5 12.5h3',
   lineHeight: 'M3 2.5h10M3 13.5h10M8 5.5v5M6.5 7 8 5.5 9.5 7M6.5 9 8 10.5 9.5 9',
   letterSpacing: 'M2.5 3v10M13.5 3v10M5.5 11.5 8 4.5l2.5 7M6.5 9h3',
+  blur: 'M8 2.5c2 2.6 4 4.8 4 7a4 4 0 0 1-8 0c0-2.2 2-4.4 4-7z',
+  spread: 'M2.5 2.5h11v11h-11zM5.5 5.5h5v5h-5z',
 } as const
 
 /** Glyphe de 16 px (dans une boîte de 24), trait de 1,25 px, bouts ronds. */
