@@ -69,7 +69,7 @@ export function DirectionPanel() {
               <li key={o.id} className="direction-card">
                 <h4>{o.name}</h4>
                 <p>{o.idea}</p>
-                <p className="muted">{o.composition}</p>
+                <p className="muted composition" title={o.composition}>{o.composition}</p>
                 {o.needs && <p className="needs">Demande beaucoup d’images.</p>}
                 <button type="button" className="secondary-button" disabled={busy !== null} aria-label={`Choisir ${o.name}`} onClick={() => void choose(o.id)}>
                   {busy === 'direction' ? 'Tirage…' : 'Choisir'}
