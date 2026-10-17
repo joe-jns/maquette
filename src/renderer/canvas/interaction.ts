@@ -3,6 +3,7 @@ import { containsId, findNode } from '../../core/tree'
 import type { FrameNode, MaquetteDocument, Rect } from '../../core/types'
 import { runCommand } from '../state/commands'
 import { docStore } from '../state/store'
+import { tasteStore } from '../taste/tasteStore'
 import { uiStore, type Tool } from '../state/ui'
 import { assetUrl } from './assetUrl'
 import { screenToWorld } from './camera'
@@ -879,6 +880,14 @@ export class InteractionController {
       case 'help':
         ui().setHelp(!ui().helpOpen)
         return true
+      case 'tasteCheck': {
+        const node = selection.length === 1 ? findNode(d, selection[0]!)?.node : undefined
+        if (first && node?.type === 'frame') {
+          tasteStore.getState().setTab('design')
+          void tasteStore.getState().runCheck(node.id)
+        }
+        return true
+      }
       case 'delete':
         if (first) this.apply(deleteOps(d, selection), 'Supprimer')
         return true

@@ -8,6 +8,7 @@ import { InteractionController } from './interaction'
 import { NodeView } from './NodeView'
 import { Overlay } from './Overlay'
 import { HelpOverlay } from './HelpOverlay'
+import { TastePins } from './TastePins'
 import { Toolbar } from './Toolbar'
 
 export function Canvas() {
@@ -86,6 +87,7 @@ export function Canvas() {
         ))}
       </div>
       <Overlay />
+      <TastePins />
       <Toolbar />
       <HelpOverlay />
       <div className="zoom-badge" data-testid="zoom">{formatZoom(camera.zoom)}</div>

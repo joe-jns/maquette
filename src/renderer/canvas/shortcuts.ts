@@ -13,7 +13,7 @@ export type CommandId =
   | 'zoomIn' | 'zoomOut' | 'zoom100' | 'zoomFit' | 'zoomSelection'
   | 'nudgeLeft' | 'nudgeRight' | 'nudgeUp' | 'nudgeDown'
   | 'nudgeLeft10' | 'nudgeRight10' | 'nudgeUp10' | 'nudgeDown10'
-  | 'help'
+  | 'help' | 'tasteCheck'
 
 export interface Shortcut {
   id: CommandId
@@ -75,6 +75,7 @@ const TABLE: Record<CommandId, Omit<Shortcut, 'id'>> = {
   zoomFit: { keys: 'Maj+1', label: 'Tout voir', group: 'Affichage' },
   zoomSelection: { keys: 'Maj+2', label: 'Zoomer sur la sélection', group: 'Affichage' },
   help: { keys: '?', label: 'Afficher les raccourcis', group: 'Affichage' },
+  tasteCheck: { keys: 'Ctrl+Alt+V', label: 'Vérifier le cadre avec taste-skill', group: 'Affichage' },
 }
 
 export const SHORTCUTS: Shortcut[] = (Object.keys(TABLE) as CommandId[]).map((id) => ({ id, ...TABLE[id] }))
@@ -119,6 +120,7 @@ const BINDINGS: Binding[] = [
   { id: 'prevSibling', key: ['tab'], shift: true },
 
   letter('wrapInFrame', 'g', { ctrl: true, alt: true }),
+  letter('tasteCheck', 'v', { ctrl: true, alt: true }),
   letter('addAutoLayout', 'a', { shift: true }),
   code('forward', ['BracketRight'], { ctrl: true }),
   code('backward', ['BracketLeft'], { ctrl: true }),
