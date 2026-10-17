@@ -42,11 +42,11 @@ let nextId = 1
 const uid = (prefix: string) => `${prefix}-${Date.now().toString(36)}-${nextId++}`
 
 /**
- * Consigne ajoutée à celle de Claude Code : méthode obligatoire pour toute nouvelle page (sujet,
- * direction, guide, section par section, contrôle), règles de goût de Pen et de taste-skill (consigne.ts).
+ * Consigne ajoutée à celle de Claude Code (consigne.ts) : méthode de Pen par défaut, méthode
+ * taste-skill si l'interrupteur du chat est allumé.
  */
-export function systemPrompt(docName: string): string {
-  return consigne(docName)
+export function systemPrompt(docName: string, taste = false): string {
+  return consigne(docName, { taste })
 }
 
 /** Termine le processus et ses enfants (sous Windows, cmd lance claude : tuer cmd seul ne suffit pas). */
