@@ -4,6 +4,7 @@ import type { FrameNode, ImageNode, Node, TextNode } from '../../core/types'
 import { useDoc } from '../state/store'
 import { useUi } from '../state/ui'
 import { assetUrl } from './assetUrl'
+import { registerNode } from './rects'
 import { TextEditor } from './TextEditor'
 
 /**
@@ -17,7 +18,7 @@ export const NodeView = memo(function NodeView({ node, parent, index }: { node: 
     case 'frame': {
       const stroke = frameStrokeCss(node, styles)
       return (
-        <div data-node-id={node.id} style={style}>
+        <div ref={nodeRef(node.id)} data-node-id={node.id} style={style}>
           {node.children.map((child, i) => (
             <NodeView key={child.id} node={child} parent={node} index={i} />
           ))}
@@ -28,29 +29,33 @@ export const NodeView = memo(function NodeView({ node, parent, index }: { node: 
     case 'text':
       return <TextView node={node} style={style} />
     case 'shape':
-      return <div data-node-id={node.id} style={style} />
+      return <div ref={nodeRef(node.id)} data-node-id={node.id} style={style} />
     case 'image':
       return <ImageView node={node} style={style} />
   }
 })
 
+/** Ref qui inscrit la balise dans le registre du canevas (mesures sans `querySelector`). */
+const nodeRef = (id: string) => (el: HTMLElement | null) => (el ? registerNode(id, el) : undefined)
+
 function TextView({ node, style }: { node: TextNode; style: CSSProperties }) {
   const editing = useUi((s) => s.editingTextId === node.id)
   if (editing) return <TextEditor node={node} style={style} />
-  return <div data-node-id={node.id} style={style}>{node.content}</div>
+  return <div ref={nodeRef(node.id)} data-node-id={node.id} style={style}>{node.content}</div>
 }
 
 function ImageView({ node, style }: { node: ImageNode; style: CSSProperties }) {
   const [failedSrc, setFailedSrc] = useState<string | null>(null)
   if (!node.src || failedSrc === node.src) {
     return (
-      <div data-node-id={node.id} style={style} className="missing-image" role="img" aria-label="Image introuvable">
+      <div ref={nodeRef(node.id)} data-node-id={node.id} style={style} className="missing-image" role="img" aria-label="Image introuvable">
         Image introuvable
       </div>
     )
   }
   return (
     <img
+      ref={nodeRef(node.id)}
       data-node-id={node.id}
       style={style}
       src={assetUrl(node.src)}

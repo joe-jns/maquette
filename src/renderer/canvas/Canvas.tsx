@@ -10,6 +10,7 @@ import { Overlay } from './Overlay'
 import { HelpOverlay } from './HelpOverlay'
 import { TastePins } from './TastePins'
 import { Toolbar } from './Toolbar'
+import { registerWorld } from './rects'
 
 export function Canvas() {
   const page = useDoc((s) => s.doc.pages.find((p) => p.id === s.pageId) ?? s.doc.pages[0]!)
@@ -54,6 +55,7 @@ export function Canvas() {
   // de nouveau rastérisé net à l'échelle courante.
   useEffect(() => {
     const world = worldRef.current!
+    registerWorld(world)
     let timer = 0
     const unsubscribe = uiStore.subscribe((state, prev) => {
       if (state.camera === prev.camera) return
@@ -64,6 +66,7 @@ export function Canvas() {
     return () => {
       unsubscribe()
       window.clearTimeout(timer)
+      registerWorld(null)
     }
   }, [])
 
