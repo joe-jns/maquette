@@ -42,7 +42,16 @@ export const DEFAULT_APIS: ImageApis = { openverse: 'https://api.openverse.org',
 
 export type Fetch = (url: string, init?: { headers?: Record<string, string>; signal?: AbortSignal }) => Promise<Response>
 
-const UA = 'Maquette/0.1 (editeur de maquettes ; recherche de photos libres)'
+/** Wikimedia demande un moyen de contact dans l'agent (sinon il limite plus vite : HTTP 429). */
+const UA = 'Maquette/0.1 (editeur de maquettes ; recherche de photos libres ; https://github.com/joe-jns)'
+/** HTTP 429 au téléchargement : on réessaie après Retry-After (borné), deux fois au plus. */
+const RETRIES_429 = 2
+const MAX_RETRY_WAIT_MS = 8000
+export const retryDelay = (header: string | null, attempt: number): number => {
+  const seconds = Number(header)
+  const wanted = Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : 1500 * 2 ** attempt
+  return Math.min(wanted, MAX_RETRY_WAIT_MS)
+}
 /** Largeur demandée aux sources qui savent redimensionner (Commons sert des paliers : 1920 en est un). */
 export const PLACE_WIDTH = 1920
 const THUMB_WIDTH = 330
@@ -342,14 +351,21 @@ export async function webSized(it: FoundImage, opts: { fetch: Fetch; apis?: Imag
 }
 
 /** Télécharge une image web (au plus `maxBytes`). */
-export async function download(f: Fetch, url: string, maxBytes: number, ms = 20_000): Promise<{ bytes: Uint8Array; ext: string }> {
+export async function download(f: Fetch, url: string, maxBytes: number, ms = 20_000, wait = (ms: number) => new Promise((r) => setTimeout(r, ms))): Promise<{ bytes: Uint8Array; ext: string }> {
   let r: Response
-  try {
-    r = await f(url, { headers: { 'User-Agent': UA, Accept: 'image/*,*/*;q=0.8' }, signal: AbortSignal.timeout(ms) })
-  } catch (e) {
-    const err = e as Error & { cause?: { code?: string } }
-    throw new ImageSearchError(err.name === 'TimeoutError' || err.name === 'AbortError' ? 'téléchargement trop long' : `téléchargement impossible (${err.cause?.code ?? err.message})`)
+  for (let attempt = 0; ; attempt++) {
+    try {
+      r = await f(url, { headers: { 'User-Agent': UA, Accept: 'image/*,*/*;q=0.8' }, signal: AbortSignal.timeout(ms) })
+    } catch (e) {
+      const err = e as Error & { cause?: { code?: string } }
+      throw new ImageSearchError(err.name === 'TimeoutError' || err.name === 'AbortError' ? 'téléchargement trop long' : `téléchargement impossible (${err.cause?.code ?? err.message})`)
+    }
+    // Plusieurs photos posées d'affilée : Wikimedia répond 429 ; attendre un peu suffit le plus souvent.
+    if (r.status !== 429 || attempt >= RETRIES_429) break
+    await r.body?.cancel().catch(() => undefined)
+    await wait(retryDelay(r.headers.get('retry-after'), attempt))
   }
+  if (r.status === 429) throw new ImageSearchError('l’image ne se télécharge pas (HTTP 429 : trop de téléchargements, posez les photos une à une)')
   if (!r.ok) throw new ImageSearchError(`l’image ne se télécharge pas (HTTP ${r.status})`)
   const type = (r.headers.get('content-type') ?? '').split(';')[0]!.trim().toLowerCase()
   const ext = WEB_TYPES[type]
