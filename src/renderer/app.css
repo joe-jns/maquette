@@ -101,6 +101,8 @@ body { font: var(--panel-font); letter-spacing: var(--ls); background: var(--can
 .tool-split { display: flex; }
 .toolbar .tool-chevron { width: 16px; color: var(--icon-muted); }
 .toolbar .tool-chevron:hover, .toolbar .tool-chevron[aria-expanded='true'] { color: var(--icon); }
+/* Sélecteur d'icône ouvert depuis la barre (Maj+I) : au-dessus d'elle, centré. */
+.toolbar .icon-picker.is-floating { top: auto; bottom: calc(100% + 8px); left: 50%; right: auto; width: 212px; margin: 0; transform: translateX(-50%); }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* Aide « ? » : même carte que les dialogues, voile sur toute la fenêtre. */

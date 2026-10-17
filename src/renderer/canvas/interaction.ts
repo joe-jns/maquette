@@ -944,6 +944,9 @@ export class InteractionController {
       case 'toggleChat':
         chatStore.getState().toggle()
         return true
+      case 'insertIcon':
+        ui().setIconPicker(!ui().iconPicker)
+        return true
       case 'tasteCheck': {
         const node = selection.length === 1 ? findNode(d, selection[0]!)?.node : undefined
         if (first && node?.type === 'frame') {

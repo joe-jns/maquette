@@ -5,6 +5,7 @@ import { tasteStore, useTaste, type PanelTab } from '../taste/tasteStore'
 import { AutoLayoutSection } from './design/AutoLayoutSection'
 import { CheckSection } from './design/CheckSection'
 import { DocumentPanel } from './design/DocumentPanel'
+import { IconSection } from './design/IconSection'
 import { FillSection, ShadowSection, StrokeSection } from './design/PaintSections'
 import { PositionSection } from './design/PositionSection'
 import { SelectionHeader } from './design/SelectionHeader'
@@ -54,6 +55,7 @@ export function RightPanel() {
           <PositionSection />
           <AutoLayoutSection />
           <TextSection />
+          <IconSection />
           <FillSection />
           <StrokeSection />
           <ShadowSection />

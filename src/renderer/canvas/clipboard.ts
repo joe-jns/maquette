@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type { Measure, Op } from '../../core/ops'
+import { mapFillColors } from '../../core/paint'
 import { HEX_COLOR, NodeSchema } from '../../core/schema'
 import { findNode } from '../../core/tree'
 import type { Color, ColorStyle, MaquetteDocument, Node, Rect, TextStyle } from '../../core/types'
@@ -39,10 +40,10 @@ const ClipboardSchema = z.object({
 
 /** Applique `fn` à chaque couleur d'un élément (remplissages, contour, ombres, couleur du texte). */
 function eachColor(node: Node, fn: (c: Color) => Color): void {
-  if ('fills' in node) node.fills = node.fills.map(fn)
+  if ('fills' in node) node.fills = node.fills.map((f) => mapFillColors(f, fn))
   if ('stroke' in node && node.stroke) node.stroke.color = fn(node.stroke.color)
   if ('shadows' in node) node.shadows.forEach((sh) => { sh.color = fn(sh.color) })
-  if (node.type === 'text') node.color = fn(node.color)
+  if (node.type === 'text' || node.type === 'icon') node.color = fn(node.color)
 }
 
 function eachNode(node: Node, fn: (n: Node) => void): void {

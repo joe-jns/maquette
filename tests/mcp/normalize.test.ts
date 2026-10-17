@@ -243,3 +243,70 @@ describe('normalizeOperations (pur)', () => {
     expect(paint({ type: 'linear', color: '#fff' })).toEqual({ type: 'linear', color: '#fff' })
   })
 })
+
+describe('appliquer : icônes et dégradés', () => {
+  const create = (node: object) => [{ op: 'create', parent: 'P1', node }]
+
+  it('icône : nom dans name, en PascalCase, préfixé ; couleur en fill (Pen, Figma) ; ancien nom ; size', async () => {
+    const canonical = create({ type: 'icon', name: 'check', icon: 'check', color: '#C2410C' })
+    await sameAs(create({ type: 'icon', name: 'check', fill: '#C2410C' }), canonical)
+    await sameAs(create({ type: 'icon', name: 'check', icon: 'Check', fills: [{ type: 'solid', color: '#C2410C' }] }), canonical)
+    await sameAs(create({ type: 'icon', name: 'check', icon: 'lucide:check', color: '#C2410C' }), canonical)
+    const a = await build(create({ type: 'icon', icon: 'home', size: 32 }))
+    expect(a.r.isError, a.r.text).toBeFalsy()
+    expect(added(a.doc)).toMatchObject({ type: 'icon', icon: 'house', width: 32, height: 32 })
+  })
+
+  it('icône à la Pen (icon_font) et sans type', async () => {
+    const a = await build(create({ type: 'icon_font', iconFontName: 'arrow-right', iconFontFamily: 'lucide', fill: '#111111' }))
+    expect(a.r.isError, a.r.text).toBeFalsy()
+    expect(added(a.doc)).toMatchObject({ type: 'icon', icon: 'arrow-right', color: '#111111' })
+    expect(a.data.adapte).toEqual(expect.arrayContaining(['type icon_font→icon', 'iconFontName→icon']))
+    const b = await build(create({ icon: 'star' }))
+    expect(b.r.isError, b.r.text).toBeFalsy()
+    expect(added(b.doc)).toMatchObject({ type: 'icon', icon: 'star' })
+  })
+
+  it('icône inconnue : remplacée, signalée, jamais refusée', async () => {
+    const a = await build(create({ type: 'icon', icon: 'licorne-volante' }))
+    expect(a.r.isError, a.r.text).toBeFalsy()
+    expect(added(a.doc)).toMatchObject({ icon: 'circle-question-mark' })
+    expect(JSON.stringify(a.data.corrections)).toContain('icones')
+  })
+
+  it('renommer le calque d’une icône ne change pas l’icône', async () => {
+    const a = await build([
+      { op: 'create', parent: 'P1', node: { id: '$i', type: 'icon', icon: 'star' } },
+      { op: 'update', id: '$i', set: { name: 'check' } },
+    ])
+    expect(a.r.isError, a.r.text).toBeFalsy()
+    expect(added(a.doc)).toMatchObject({ icon: 'star', name: 'check' })
+  })
+
+  it('dégradés : CSS en chaîne, Pen, Figma, alias background', async () => {
+    const canonical = create({ type: 'frame', fills: [{ type: 'linear', angle: 90, stops: [{ color: '#000000', position: 0 }, { color: '#FFFFFF', position: 1 }] }] })
+    await sameAs(create({ type: 'frame', background: 'linear-gradient(to right, #000, #fff)' }), canonical)
+    await sameAs(create({ type: 'frame', fill: { type: 'gradient', gradientType: 'linear', rotation: 90, colors: [{ color: '#000', position: 0 }, { color: '#fff', position: 1 }] } }), canonical)
+    await sameAs(
+      create({ type: 'frame', fills: [{ type: 'GRADIENT_LINEAR', angle: 90, gradientStops: [{ color: { r: 0, g: 0, b: 0, a: 1 }, position: 0 }, { color: { r: 1, g: 1, b: 1, a: 1 }, position: 1 }] }] }),
+      canonical,
+    )
+  })
+
+  it('outil icones : noms compacts, recherche en français', async () => {
+    const r = await runTool(host(scene()), 'icones', { cherche: 'flèche', limite: 5 })
+    expect(r.isError, r.text).toBeFalsy()
+    const data = JSON.parse(r.text) as { noms: string[]; plus?: boolean }
+    expect(data.noms).toHaveLength(5)
+    expect(data.noms.every((n) => n.includes('arrow') || n.includes('chevron'))).toBe(true)
+    expect(data.plus).toBe(true)
+    expect(r.text.length).toBeLessThan(200)
+  })
+
+  it('lire_elements montre toujours le nom de l’icône', async () => {
+    const a = await build(create({ id: '$i', type: 'icon', icon: 'star' }))
+    const id = (a.data.ids as Record<string, string>).$i!
+    const r = JSON.parse((await runTool(host(a.doc), 'lire_elements', { ids: [id] })).text) as { elements: Record<string, unknown>[] }
+    expect(r.elements[0]).toMatchObject({ type: 'icon', icon: 'star', name: 'star' })
+  })
+})

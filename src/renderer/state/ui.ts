@@ -26,6 +26,8 @@ export interface UiState {
   hoverId: string | null
   editingTextId: string | null
   helpOpen: boolean
+  /** Sélecteur d'icône de la barre d'outils (insertion à la main). */
+  iconPicker: boolean
   /** Incrémenté pour demander un cadrage « tout voir » au prochain rendu. */
   fitRequest: number
   extras: OverlayExtras
@@ -36,6 +38,7 @@ export interface UiState {
   setHover(id: string | null): void
   setEditing(id: string | null): void
   setHelp(open: boolean): void
+  setIconPicker(open: boolean): void
   requestFit(): void
   setExtras(extras: Partial<OverlayExtras>): void
   clearExtras(): void
@@ -51,6 +54,7 @@ export const uiStore = createStore<UiState>()((set) => ({
   hoverId: null,
   editingTextId: null,
   helpOpen: false,
+  iconPicker: false,
   fitRequest: 0,
   extras: NO_EXTRAS,
   setCamera: (camera) => set({ camera }),
@@ -60,6 +64,7 @@ export const uiStore = createStore<UiState>()((set) => ({
   setHover: (hoverId) => set({ hoverId }),
   setEditing: (editingTextId) => set({ editingTextId }),
   setHelp: (helpOpen) => set({ helpOpen }),
+  setIconPicker: (iconPicker) => set({ iconPicker }),
   requestFit: () => set((s) => ({ fitRequest: s.fitRequest + 1 })),
   setExtras: (extras) => set((s) => ({ extras: { ...s.extras, ...extras } })),
   clearExtras: () => set({ extras: NO_EXTRAS }),

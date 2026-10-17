@@ -5,9 +5,10 @@
  * validation le refusera avec un indice. Code pur : l'entrée n'est jamais modifiée.
  */
 import { normalizeColor } from '../core/color'
+import { resolveIcon } from '../core/icons/lucide'
 
 type Obj = Record<string, unknown>
-type NodeKind = 'frame' | 'text' | 'shape' | 'image' | undefined
+type NodeKind = 'frame' | 'text' | 'shape' | 'image' | 'icon' | undefined
 
 const isObj = (v: unknown): v is Obj => typeof v === 'object' && v !== null && !Array.isArray(v)
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
@@ -128,15 +129,56 @@ export const ALIASES: Record<string, string> = Object.fromEntries(Object.entries
 
 const LAYOUT_KEYS = new Set(['mode', 'direction', 'gap', 'padding', 'justify', 'align', 'wrap', 'rowGap', 'reverseZ'])
 
+// ——— Icônes ———
+
+/** Types d'élément devinés pour une icône (Pen : icon_font). */
+const ICON_TYPES = new Set(['icon', 'icon_font', 'iconfont', 'lucide'])
+const ICON_NAME_KEYS = ['iconName', 'iconFontName', 'glyph']
+
+/**
+ * Icône : nom sous un autre nom de clé (Pen iconFontName…) ou dans `name` quand c'est un nom
+ * d'icône connu, `size` pour la largeur et la hauteur, jeu de Pen retiré. Le nom lui-même
+ * (« lucide:ArrowRight », ancien nom) est ramené au jeu par le noyau.
+ */
+function normalizeIcon(bag: Obj, creating: boolean): string[] {
+  const notes: string[] = []
+  for (const key of ICON_NAME_KEYS) {
+    if (typeof bag[key] !== 'string') continue
+    if (bag.icon === undefined) {
+      bag.icon = bag[key]
+      notes.push(`${key}→icon`)
+    }
+    if (bag.icon === bag[key]) delete bag[key]
+  }
+  if (creating && bag.icon === undefined && typeof bag.name === 'string' && resolveIcon(bag.name)) {
+    bag.icon = bag.name
+    notes.push('name→icon')
+  }
+  if (typeof bag.iconFontFamily === 'string') {
+    delete bag.iconFontFamily
+    notes.push('iconFontFamily retiré')
+  }
+  if (isPx(bag.size) && bag.size > 0) {
+    bag.width ??= bag.size
+    bag.height ??= bag.size
+    delete bag.size
+    notes.push('size→width/height')
+  }
+  if (typeof bag.set === 'string' && bag.set.toLowerCase() !== 'lucide') delete bag.set
+  return notes
+}
+
 /**
  * Normalise une saisie d'élément (node d'un create, set d'un update) en place. `kind` est le type
  * de l'élément quand il est connu. Renvoie les formes adaptées (« fill→fills »…).
  */
-function normalizeBag(bag: Obj, kind: NodeKind): string[] {
+function normalizeBag(bag: Obj, kind: NodeKind, creating = false): string[] {
   const notes: string[] = []
 
-  // Texte : chez Figma, la couleur d'un texte est sa peinture.
-  if (kind === 'text') {
+  if (kind === 'icon') notes.push(...normalizeIcon(bag, creating))
+
+  // Texte et icône : chez Figma et Pen, leur couleur est leur peinture.
+  if (kind === 'text' || kind === 'icon') {
     for (const key of ['fill', 'fills']) {
       const v = bag[key]
       const list = asList(v)
@@ -221,7 +263,7 @@ function collectTempIds(v: unknown, into: Set<string>): Set<string> {
 }
 
 const kindOf = (v: unknown): NodeKind =>
-  v === 'frame' || v === 'text' || v === 'shape' || v === 'image' ? v : undefined
+  v === 'frame' || v === 'text' || v === 'shape' || v === 'image' || v === 'icon' ? v : undefined
 
 /**
  * Normalise un lot d'opérations. `typeOf` donne le type d'un élément existant (pour adapter un
@@ -251,8 +293,14 @@ export function normalizeOperations(operations: unknown[], typeOf: (id: string) 
       return
     }
     const node = { ...op.node }
+    // Une icône écrite autrement : {type:"icon_font"}, ou sans type avec un nom d'icône.
+    const rawType = typeof node.type === 'string' ? node.type.toLowerCase() : undefined
+    if ((rawType !== undefined && rawType !== 'icon' && ICON_TYPES.has(rawType)) || (node.type === undefined && typeof node.icon === 'string')) {
+      notes.add(`type ${rawType ?? '(absent)'}→icon`)
+      node.type = 'icon'
+    }
     const kind = kindOf(node.type)
-    for (const n of normalizeBag(node, kind)) notes.add(n)
+    for (const n of normalizeBag(node, kind, true)) notes.add(n)
     const children = node.children
     const nested = Array.isArray(children)
     if (nested) {

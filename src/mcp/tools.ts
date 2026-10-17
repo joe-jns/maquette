@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { createNode } from '../core/defaults'
 import type { ApplyResult, Op } from '../core/ops'
 import { formatPath } from '../core/rules'
+import { searchIcons } from '../core/icons/lucide'
 import { findNode, walk } from '../core/tree'
 import type { MaquetteDocument, Node, NodeInput, Size } from '../core/types'
 import { IMAGES_DESCRIPTION, IMAGES_INPUT, runImages, type ImageHost } from './images'
@@ -38,7 +39,7 @@ const INPUTS = {
   },
   chercher: {
     nom: z.string().optional(),
-    type: z.enum(['frame', 'text', 'shape', 'image']).optional(),
+    type: z.enum(['frame', 'text', 'shape', 'image', 'icon']).optional(),
     texte: z.string().optional(),
     limite: z.number().int().min(1).max(100).optional(),
   },
@@ -53,6 +54,10 @@ const INPUTS = {
   selection: {},
   verifier_gout: { id: z.string() },
   images: IMAGES_INPUT,
+  icones: {
+    cherche: z.string().min(1),
+    limite: z.number().int().min(1).max(100).optional(),
+  },
 } satisfies Record<string, z.ZodRawShape>
 
 type ToolName = keyof typeof INPUTS
@@ -86,8 +91,7 @@ export const TOOLS: ToolDef[] = [
       'delete {id}',
       'page.create {name,index?}, page.update {id,name}, page.delete {id}, page.move {id,index}',
       'style.color.set {id?,name,value}, style.text.set, style.delete {id}',
-      'id "$nom" = identifiant temporaire. Tailles : nombre|{mode:"hug"}|{mode:"fill"}. Tout en px.',
-    ].join('\n'),
+      'id "$nom" = identifiant temporaire. Tailles : nombre|{mode:"hug"}|{mode:"fill"}. Tout en px.',    ].join('\n'),
     input: INPUTS.appliquer,
   },
   {
@@ -106,6 +110,15 @@ export const TOOLS: ToolDef[] = [
     input: INPUTS.verifier_gout,
   },
   { name: 'images', description: IMAGES_DESCRIPTION, input: INPUTS.images },
+  {
+    name: 'icones',
+    description: [
+      'Noms d’icônes Lucide pour une recherche (fr ou en : « flèche droite », « panier »), meilleurs d’abord.',
+      'Icône : node {type:"icon",icon:nom,color,strokeWidth?} (24 px par défaut).',
+      'Dégradé en remplissage : fills:[{type:"linear",angle,stops:[{color,position:0..1}]}], "radial" sans angle, ou "linear-gradient(…)".',
+    ].join('\n'),
+    input: INPUTS.icones,
+  },
 ]
 
 const json = (value: unknown): string => JSON.stringify(value)
@@ -138,6 +151,8 @@ export async function runTool(host: ToolHost, name: string, args: unknown): Prom
       return checkTaste(host, a.id as string)
     case 'images':
       return runImages(host, parsed.data as Parameters<typeof runImages>[1])
+    case 'icones':
+      return ok(icons(a.cherche as string, (a.limite as number | undefined) ?? 30))
   }
 }
 
@@ -198,7 +213,8 @@ function defaultsFor(node: Node): Record<string, unknown> {
   const input: NodeInput =
     node.type === 'shape' ? { type: 'shape', shape: node.shape }
       : node.type === 'text' ? { type: 'text', fontSize: node.fontSize }
-        : { type: node.type }
+        : node.type === 'icon' ? { type: 'icon', icon: node.icon }
+          : { type: node.type }
   const base = createNode(input, node.id) as unknown as Record<string, unknown>
   if (node.type === 'text') base.fontSize = (createNode({ type: 'text' }, node.id) as Extract<Node, { type: 'text' }>).fontSize
   return base
@@ -206,6 +222,7 @@ function defaultsFor(node: Node): Record<string, unknown> {
 
 function compact(node: Node, depth: number): Record<string, unknown> {
   const out: Record<string, unknown> = { id: node.id, type: node.type, name: node.name }
+  if (node.type === 'icon') out.icon = node.icon
   const base = defaultsFor(node)
   for (const [key, value] of Object.entries(node)) {
     if (key in out || key === 'children') continue
@@ -255,7 +272,7 @@ const optIndex = z.number().int().optional()
 const OpSchema = z.discriminatedUnion('op', [
   z.strictObject({
     op: z.literal('create'), parent: str, index: optIndex,
-    node: z.looseObject({ type: z.enum(['frame', 'text', 'shape', 'image']), id: str.optional() }),
+    node: z.looseObject({ type: z.enum(['frame', 'text', 'shape', 'image', 'icon']), id: str.optional() }),
   }),
   z.strictObject({ op: z.literal('update'), id: str, set: z.record(z.string(), z.unknown()) }),
   z.strictObject({ op: z.literal('move'), id: str, parent: str, index: optIndex, x: num.optional(), y: num.optional() }),
@@ -330,6 +347,13 @@ function selection(host: ToolHost) {
     return node ? [{ id: node.id, type: node.type, nom: node.name }] : []
   })
   return elements
+}
+
+// ——— icones ———
+
+function icons(query: string, limit: number) {
+  const all = searchIcons(query, limit + 1)
+  return all.length > limit ? { noms: all.slice(0, limit), plus: true } : { noms: all }
 }
 
 // ——— verifier_gout ———

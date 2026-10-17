@@ -17,6 +17,9 @@ export function newDocument(): MaquetteDocument {
   }
 }
 
+/** Icône d'un élément `icon` créé sans nom d'icône. */
+export const DEFAULT_ICON = 'star'
+
 const common = { visible: true, locked: false, opacity: 1, position: 'flow' as const }
 
 /** Crée un élément complet à partir d'une saisie partielle. `id` est imposé. */
@@ -54,5 +57,13 @@ export function createNode(input: NodeInput, id: string): Node {
         src: '', fit: 'cover', radius: 0, shadows: [],
         ...input, id, type: 'image',
       }
+    case 'icon': {
+      const icon = input.icon ?? DEFAULT_ICON
+      return {
+        ...common, name: icon, width: 24, height: 24,
+        icon, set: 'lucide', color: '#111111', strokeWidth: 2,
+        ...input, id, type: 'icon',
+      }
+    }
   }
 }

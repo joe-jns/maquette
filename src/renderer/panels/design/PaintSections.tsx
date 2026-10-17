@@ -1,11 +1,13 @@
 import type { ReactNode } from 'react'
 import type { Op } from '../../../core/ops'
-import type { Color, Shadow, Stroke } from '../../../core/types'
+import { isGradient } from '../../../core/paint'
+import type { Color, Fill, Shadow, Stroke } from '../../../core/types'
 import { docStore, useDoc } from '../../state/store'
 import { Checkbox } from '../../ui/Checkbox'
 import { Select } from '../../ui/Select'
 import { mixed, setOps } from '../props'
 import { ColorRow, type ColorPhase } from './ColorRow'
+import { GradientRow, toGradient } from './GradientRow'
 import { NumberField } from './NumberField'
 import { commit, FIELD_GLYPH, Icon, IconButton, scrubWith, Section, useSelection } from './shared'
 
@@ -25,7 +27,20 @@ export function applyPhase(ops: Op[], phase: ColorPhase, label: string): void {
 
 const PLUS = 'M8 3v10M3 8h10'
 
-/** Remplissages d'un cadre ou d'une forme. */
+/** Glyphe « dégradé » : un carré qui s'efface en diagonale. */
+const GradientGlyph = () => (
+  <svg viewBox="0 0 16 16" width={16} height={16} aria-hidden>
+    <defs>
+      <linearGradient id="glyph-gradient" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stopColor="currentColor" />
+        <stop offset="1" stopColor="currentColor" stopOpacity="0" />
+      </linearGradient>
+    </defs>
+    <rect x="3.5" y="3.5" width="9" height="9" rx="1.5" fill="url(#glyph-gradient)" stroke="currentColor" strokeWidth="1.25" />
+  </svg>
+)
+
+/** Remplissages d'un cadre ou d'une forme : couleurs et dégradés. */
 export function FillSection() {
   const styles = useDoc((s) => s.doc.styles)
   const { nodes } = useSelection()
@@ -33,41 +48,70 @@ export function FillSection() {
   if (painted.length === 0 || painted.length !== nodes.length) return null
   const ids = painted.map((n) => n.id)
   const fills = mixed(painted.map((n) => ('fills' in n ? n.fills : [])))
-  const set = (next: Color[]) => setOps(ids, { fills: next })
+  const list = Array.isArray(fills) ? fills : []
+  const set = (next: Fill[]) => setOps(ids, { fills: next })
+  const replace = (i: number, fill: Fill) => set(list.map((f, k) => (k === i ? fill : f)))
+  const remove = (i: number) => commit(set(list.filter((_, k) => k !== i)), 'Retirer un remplissage')
+  // Le remplissage uni du dessus passe en dégradé ; sans remplissage uni, un dégradé est ajouté.
+  const solid = list.findLastIndex((f) => !isGradient(f))
+  const toGradientFill = () =>
+    commit(
+      solid >= 0 ? replace(solid, toGradient(list[solid] as Color, styles)) : set([...list, toGradient('#D9D9D9', styles)]),
+      'Dégradé',
+    )
 
   return (
     <Section
       title="Remplissage"
       actions={
-        <IconButton label="Ajouter un remplissage" onClick={() => commit(set([...(Array.isArray(fills) ? fills : []), '#D9D9D9']), 'Ajouter un remplissage')}>
-          <Icon d={PLUS} />
-        </IconButton>
+        <>
+          {fills !== 'mixed' && (
+            <IconButton label="Passer en dégradé" tooltip="Dégradé" onClick={toGradientFill}>
+              <GradientGlyph />
+            </IconButton>
+          )}
+          <IconButton label="Ajouter un remplissage" onClick={() => commit(set([...list, '#D9D9D9']), 'Ajouter un remplissage')}>
+            <Icon d={PLUS} />
+          </IconButton>
+        </>
       }
     >
       {fills === 'mixed' ? (
-        <button type="button" className="text-button" onClick={() => commit(set((painted[0] as { fills: Color[] }).fills), 'Remplissage')}>
+        <button type="button" className="text-button" onClick={() => commit(set((painted[0] as { fills: Fill[] }).fills), 'Remplissage')}>
           Remplissages différents — tout aligner sur le premier
         </button>
       ) : (
-        (fills ?? []).map((c, i) => (
-          <ColorRow
-            key={i}
-            name={`Remplissage ${i + 1}`}
-            color={c}
-            styles={styles}
-            apply={(color, phase) => applyPhase(set((fills ?? []).map((f, k) => (k === i ? color : f))), phase, 'Remplissage')}
-            onRemove={() => commit(set((fills ?? []).filter((_, k) => k !== i)), 'Retirer un remplissage')}
-            onCreateStyle={(value) =>
-              commit(
-                [
-                  { op: 'style.color.set', id: '$style', name: `Couleur ${styles.colors.length + 1}`, value },
-                  ...set((fills ?? []).map((f, k) => (k === i ? { style: '$style' } : f))),
-                ],
-                'Créer une couleur nommée',
-              )
-            }
-          />
-        ))
+        list.map((f, i) =>
+          isGradient(f) ? (
+            <GradientRow
+              key={i}
+              name={`Remplissage ${i + 1}`}
+              gradient={f}
+              styles={styles}
+              apply={(fill, phase) => applyPhase(replace(i, fill), phase, 'Dégradé')}
+              opsFor={(fill) => replace(i, fill)}
+              onRemove={() => remove(i)}
+            />
+          ) : (
+            <ColorRow
+              key={i}
+              name={`Remplissage ${i + 1}`}
+              color={f}
+              styles={styles}
+              apply={(color, phase) => applyPhase(replace(i, color), phase, 'Remplissage')}
+              onRemove={() => remove(i)}
+              onCreateStyle={(value) =>
+                commit(
+                  [
+                    { op: 'style.color.set', id: '$style', name: `Couleur ${styles.colors.length + 1}`, value },
+                    ...replace(i, { style: '$style' }),
+                  ],
+                  'Créer une couleur nommée',
+                )
+              }
+            />
+          ),
+        )
       )}
     </Section>
   )
@@ -83,7 +127,7 @@ const ALIGNS: { value: Stroke['align']; label: string }[] = [
 export function StrokeSection() {
   const styles = useDoc((s) => s.doc.styles)
   const { nodes } = useSelection()
-  if (nodes.some((n) => n.type === 'text')) return null
+  if (nodes.some((n) => n.type === 'text' || n.type === 'icon')) return null
   const ids = nodes.map((n) => n.id)
   const stroke = mixed(nodes.map((n) => ('stroke' in n ? (n.stroke ?? null) : null)))
   const set = (next: Stroke | null) => setOps(ids, { stroke: next })
@@ -138,7 +182,7 @@ export function StrokeSection() {
 export function ShadowSection() {
   const styles = useDoc((s) => s.doc.styles)
   const { nodes } = useSelection()
-  if (nodes.some((n) => n.type === 'text')) return null
+  if (nodes.some((n) => n.type === 'text' || n.type === 'icon')) return null
   const ids = nodes.map((n) => n.id)
   const shadows = mixed(nodes.map((n) => ('shadows' in n ? n.shadows : [])))
   const list = Array.isArray(shadows) ? shadows : []

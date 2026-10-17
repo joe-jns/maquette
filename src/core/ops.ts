@@ -2,7 +2,9 @@ import { current, enablePatches, isDraft, produceWithPatches, type Patch } from 
 import { normalizeColor, normalizeColorValue } from './color'
 import { autoLayoutDefaults, createNode } from './defaults'
 import { alignTextSizing } from './fixes'
+import { FALLBACK_ICON, resolveIcon } from './icons/lucide'
 import { newId } from './ids'
+import { isGradient, normalizeFill } from './paint'
 import { validateDocument, validateNodes, type Issue } from './rules'
 import { containsId, findNodeIn, isFill, isHug, takenIds, walk, type NodeLocation } from './tree'
 import type { AutoLayout, Axis, Color, FrameNode, MaquetteDocument, Node, NodeInput, Page, Rect, TextNode, TextStyle } from './types'
@@ -185,6 +187,7 @@ function applyOne(ctx: Ctx, op: Op, i: number): void {
       const { id: requested, ...rawInput } = op.node
       const input = resolveRefs(ctx, rawInput, i, 'node') as Record<string, unknown>
       normalizeColorFields(input, i, 'node')
+      normalizeIconField(ctx, input)
       const node = createNode(input as NodeInput, allocate(ctx, requested, i, 'node.id'))
       if (isAutoContainer(c) && node.position === 'flow') ignoreFlowXY(ctx, node)
       else {
@@ -208,6 +211,9 @@ function applyOne(ctx: Ctx, op: Op, i: number): void {
       // resolveRefs reconstruit objets et tableaux : `set` est une copie, jamais partagée avec l'appelant.
       const set = resolveRefs(ctx, op.set, i, 'set')
       normalizeColorFields(set, i, 'set')
+      normalizeIconField(ctx, set)
+      // Le calque nommé d'après son icône suit l'icône.
+      if (node.type === 'icon' && typeof set.icon === 'string' && !('name' in set) && node.name === node.icon) set.name = set.icon
       for (const [key, value] of Object.entries(set)) {
         if (key === 'layout') {
           setLayout(ctx, node, value, i)
@@ -447,7 +453,9 @@ function normalizeColorFields(bag: Record<string, unknown>, i: number, prefix: s
   const norm = (c: unknown, path: string): Color =>
     normalizeColorValue(c) ?? fail(i, path, `couleur illisible : ${JSON.stringify(c)}`)
   const isObj = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === 'object' && !Array.isArray(v)
-  if (Array.isArray(bag.fills)) bag.fills = bag.fills.map((c, k) => norm(c, `${prefix}.fills[${k}]`))
+  if (Array.isArray(bag.fills)) {
+    bag.fills = bag.fills.map((f, k) => normalizeFill(f) ?? fail(i, `${prefix}.fills[${k}]`, `remplissage illisible : ${JSON.stringify(f)}`))
+  }
   if (isObj(bag.stroke) && 'color' in bag.stroke) bag.stroke.color = norm(bag.stroke.color, `${prefix}.stroke.color`)
   if (Array.isArray(bag.shadows)) {
     bag.shadows.forEach((sh, k) => {
@@ -455,6 +463,19 @@ function normalizeColorFields(bag: Record<string, unknown>, i: number, prefix: s
     })
   }
   if (bag.color !== undefined && bag.color !== null) bag.color = norm(bag.color, `${prefix}.color`)
+}
+
+/** Nom d'icône écrit autrement ou ancien nom → nom du jeu ; inconnu → icône de repli (jamais de refus). */
+function normalizeIconField(ctx: Ctx, bag: Record<string, unknown>): void {
+  if (typeof bag.icon !== 'string') return
+  const resolved = resolveIcon(bag.icon)
+  if (resolved === bag.icon) return
+  if (resolved) {
+    bag.icon = resolved
+    return
+  }
+  ctx.fixes.push(`icône inconnue « ${bag.icon} » : remplacée par ${FALLBACK_ICON} (chercher le bon nom avec l’outil icones)`)
+  bag.icon = FALLBACK_ICON
 }
 
 /** §6.1 : un enfant en flux d'un cadre automatique n'a pas de x/y ; ils sont retirés, pas refusés. */
@@ -485,10 +506,15 @@ function detachColorStyle(ctx: Ctx, id: string, value: string): number {
       return value
     }
     // Affectations élément par élément : une valeur inchangée ne produit aucun patch.
-    if ('fills' in node) node.fills.forEach((c, k) => { node.fills[k] = fix(c) })
+    if ('fills' in node) {
+      node.fills.forEach((f, k) => {
+        if (isGradient(f)) f.stops.forEach((st) => { st.color = fix(st.color) })
+        else node.fills[k] = fix(f)
+      })
+    }
     if ('stroke' in node && node.stroke) node.stroke.color = fix(node.stroke.color)
     if ('shadows' in node) node.shadows.forEach((sh) => { sh.color = fix(sh.color) })
-    if (node.type === 'text') node.color = fix(node.color)
+    if (node.type === 'text' || node.type === 'icon') node.color = fix(node.color)
     if (touched) count++
   })
   return count

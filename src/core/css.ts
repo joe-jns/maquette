@@ -1,4 +1,5 @@
-import type { Axis, Color, DocStyles, FrameNode, Node, Radius, Shadow, Stroke } from './types'
+import { gradientCss, isGradient } from './paint'
+import type { Axis, Color, DocStyles, Fill, FrameNode, Node, Radius, Shadow, Stroke } from './types'
 
 export type CSS = Record<string, string | number>
 
@@ -97,6 +98,11 @@ export function nodeCss(node: Node, parent: FrameNode | null, styles: DocStyles,
       css.objectFit = node.fit
       css.display = 'block'
       break
+    case 'icon':
+      // Le tracé (SVG en currentColor) prend la couleur de sa boîte.
+      css.color = resolveColor(node.color, styles)
+      css.display = 'block'
+      break
     case 'text': {
       const ts = node.textStyle ? styles.text.find((s) => s.id === node.textStyle) : undefined
       const f = ts ?? node
@@ -141,10 +147,17 @@ export function frameStrokeCss(node: FrameNode, styles: DocStyles): CSS | null {
   return css
 }
 
-function paint(css: CSS, fills: Color[], stroke: Stroke | undefined, shadows: Shadow[], styles: DocStyles): void {
-  const colors = fills.map((c) => resolveColor(c, styles))
-  if (colors.length === 1) css.backgroundColor = colors[0]!
-  else if (colors.length > 1) css.backgroundImage = [...colors].reverse().map((c) => `linear-gradient(${c}, ${c})`).join(', ')
+/** Fond CSS d'une pile de remplissages (le dernier est au-dessus, comme dans Figma). */
+export function fillsCss(fills: Fill[], styles: DocStyles): CSS {
+  const color = (c: Color) => resolveColor(c, styles)
+  if (fills.length === 1 && !isGradient(fills[0]!)) return { backgroundColor: color(fills[0] as Color) }
+  if (fills.length === 0) return {}
+  const layers = [...fills].reverse().map((f) => (isGradient(f) ? gradientCss(f, color) : `linear-gradient(${color(f)}, ${color(f)})`))
+  return { backgroundImage: layers.join(', ') }
+}
+
+function paint(css: CSS, fills: Fill[], stroke: Stroke | undefined, shadows: Shadow[], styles: DocStyles): void {
+  Object.assign(css, fillsCss(fills, styles))
 
   const layers: string[] = []
   if (stroke) {

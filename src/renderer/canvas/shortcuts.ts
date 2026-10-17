@@ -13,7 +13,7 @@ export type CommandId =
   | 'zoomIn' | 'zoomOut' | 'zoom100' | 'zoomFit' | 'zoomSelection'
   | 'nudgeLeft' | 'nudgeRight' | 'nudgeUp' | 'nudgeDown'
   | 'nudgeLeft10' | 'nudgeRight10' | 'nudgeUp10' | 'nudgeDown10'
-  | 'help' | 'tasteCheck' | 'toggleChat'
+  | 'help' | 'tasteCheck' | 'toggleChat' | 'insertIcon'
 
 export interface Shortcut {
   id: CommandId
@@ -38,6 +38,7 @@ const TABLE: Record<CommandId, Omit<Shortcut, 'id'>> = {
   'tool.rect': { keys: 'R', label: 'Rectangle', group: 'Outils' },
   'tool.ellipse': { keys: 'O', label: 'Ellipse', group: 'Outils' },
   'tool.text': { keys: 'T', label: 'Texte', group: 'Outils' },
+  insertIcon: { keys: 'Maj+I', label: 'Insérer une icône', group: 'Outils' },
 
   undo: { keys: 'Ctrl+Z', label: 'Annuler', group: 'Édition' },
   redo: { keys: 'Ctrl+Maj+Z', label: 'Rétablir (aussi Ctrl+Y)', group: 'Édition' },
@@ -106,6 +107,7 @@ const BINDINGS: Binding[] = [
   letter('tool.rect', 'r'),
   letter('tool.ellipse', 'o'),
   letter('tool.text', 't'),
+  letter('insertIcon', 'i', { shift: true }),
 
   letter('undo', 'z', { ctrl: true }),
   letter('redo', 'z', { ctrl: true, shift: true }),
