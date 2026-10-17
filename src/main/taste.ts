@@ -19,7 +19,7 @@ export function tasteRoot(): string {
   return join(app.isPackaged ? process.resourcesPath : app.getAppPath(), 'vendor', 'taste-skill')
 }
 
-export interface DrawInput { sector: string; brief: string; tone?: string }
+export interface DrawInput { sector: string; brief: string; tone?: string; sections?: string[] }
 
 /** Lance draw.mjs avec l'exécutable d'Electron en mode Node : aucun Node installé n'est requis. */
 function draw(args: string[]): Promise<string> {
@@ -46,7 +46,13 @@ function draw(args: string[]): Promise<string> {
   })
 }
 
-const baseArgs = (input: DrawInput) => ['--sector', input.sector, '--brief', input.brief.trim() || 'site', ...(input.tone ? ['--tone', input.tone] : [])]
+const baseArgs = (input: DrawInput) => [
+  '--sector', input.sector,
+  '--brief', input.brief.trim() || 'site',
+  ...(input.tone ? ['--tone', input.tone] : []),
+  // Rôles des sections dans l'ordre de l'argumentaire (outil MCP `direction`) ; sinon ceux du secteur.
+  ...(input.sections?.length ? ['--sections', input.sections.join(',')] : []),
+]
 
 export async function drawOptions(input: DrawInput): Promise<DirectionOption[]> {
   const out = await mkdtemp(join(tmpdir(), 'maquette-taste-'))
