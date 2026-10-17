@@ -5,6 +5,8 @@ body { font: var(--panel-font); letter-spacing: var(--ls); background: var(--can
 .app { height: 100%; position: relative; overflow: hidden; }
 .canvas { position: relative; overflow: hidden; min-width: 0; min-height: 0; }
 .world { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-origin: 0 0; }
+/* Pendant un déplacement ou un zoom de la vue seulement (Canvas.tsx) : couche composée, décalée sans repeindre. */
+.world[data-moving] { will-change: transform; }
 
 /* Focus clavier : un seul style dans toute l'interface (anneau bleu de 2 px, décalé de 1 px).
    Les champs de saisie n'en ont pas : leur contour passe en bleu (voir chaque champ). */
