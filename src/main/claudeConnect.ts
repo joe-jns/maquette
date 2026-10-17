@@ -33,7 +33,8 @@ export async function connectClaudeCode(win: BrowserWindow | undefined): Promise
   const args = addArgs(process.execPath, join(__dirname, 'relay.js'))
 
   const existing = await claude(['mcp', 'get', NAME])
-  if (existing.code !== 0 && /not recognized|introuvable|ENOENT|command not found/i.test(existing.out)) {
+  // 9009 : code de cmd pour « commande introuvable » (message traduit selon la langue de Windows).
+  if (existing.code === 9009 || existing.code === 127 || /ENOENT/.test(existing.out)) {
     await box({ type: 'error', title: 'Claude Code introuvable', message: 'Claude Code n’est pas installé sur cet ordinateur (commande « claude » introuvable).', detail: 'Installez Claude Code, puis recommencez.' })
     return
   }
@@ -56,6 +57,11 @@ export async function connectClaudeCode(win: BrowserWindow | undefined): Promise
   await box(
     result.code === 0
       ? { type: 'info', title: 'Connecté', message: 'Maquette est connectée à Claude Code.', detail: 'Ouvrez une nouvelle session Claude Code : les outils de Maquette y seront disponibles tant que l’app est ouverte.' }
-      : { type: 'error', title: 'Connexion impossible', message: 'Claude Code a refusé la connexion.', detail: result.out || `Code de sortie ${result.code}` },
+      : {
+          type: 'error',
+          title: 'Connexion impossible',
+          message: already ? 'Claude Code a refusé la nouvelle connexion (l’ancienne a été retirée).' : 'Claude Code a refusé la connexion.',
+          detail: result.out || `Code de sortie ${result.code}`,
+        },
   )
 }
