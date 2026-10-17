@@ -86,6 +86,12 @@ export function Canvas() {
           <NodeView key={node.id} node={node} parent={null} index={i} />
         ))}
       </div>
+      {page.children.length === 0 && (
+        <div className="canvas-hint" data-testid="canvas-hint">
+          <strong>Page vide</strong>
+          Dessinez un cadre avec <kbd>F</kbd>, un rectangle avec <kbd>R</kbd>, un texte avec <kbd>T</kbd> — ou demandez à Claude Code de la dessiner.
+        </div>
+      )}
       <Overlay />
       <TastePins />
       <Toolbar />
