@@ -52,6 +52,7 @@ describe('outils MCP', () => {
       { id: 'R1', type: 'shape', nom: 'Bleu', l: 100, h: 100, x: 700, y: 40 },
     ])
     expect(data.couleurs).toEqual({ accent: '#C2410C' })
+    expect(data.ids_styles).toEqual({ accent: 'C1' })
     expect(r.text.length).toBeLessThan(1200)
   })
 

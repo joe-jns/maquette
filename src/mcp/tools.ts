@@ -60,7 +60,7 @@ export const TOOLS: ToolDef[] = [
   {
     name: 'lire_document',
     description:
-      'Résumé du document : pages et leurs éléments de premier niveau (l/h = largeur/hauteur en px, "hug" ou "fill" ; enfants = nombre), couleurs et styles de texte nommés. Point de départ avant toute modification.',
+      'Résumé du document : pages et leurs éléments de premier niveau (l/h = largeur/hauteur en px, "hug" ou "fill" ; enfants = nombre), couleurs et styles de texte nommés (ids_styles : leurs identifiants, pour {"style":id} et textStyle). Point de départ avant toute modification.',
     input: INPUTS.lire_document,
   },
   {
@@ -173,6 +173,9 @@ function readDocument(host: ToolHost) {
       `${s.fontFamily} ${s.fontWeight}${s.fontStyle === 'italic' ? ' italique' : ''} ${s.fontSize}/${s.lineHeight}`,
     ]))
   }
+  // Identifiants des styles par nom : {"style":id} pour une couleur, textStyle:id pour un texte.
+  const styles = [...doc.styles.colors, ...doc.styles.text]
+  if (styles.length) out.ids_styles = Object.fromEntries(styles.map((s) => [s.name, s.id]))
   return out
 }
 
