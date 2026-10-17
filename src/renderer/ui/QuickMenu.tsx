@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type RefObject } from 'react'
+import { useEffect, useLayoutEffect, useRef, type KeyboardEvent as ReactKeyboardEvent, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
 import { Icon, type IconName } from './icons'
 import './quick-menu.css'
@@ -35,10 +35,10 @@ const GAP = 8
  */
 export function QuickMenu({ anchor, entries, label, placement, align = 'start', onClose }: Props) {
   const ref = useRef<HTMLDivElement>(null)
-  const [pos, setPos] = useState<{ left: number; top: number } | null>(null)
   const items = entries.filter((e) => e !== 'separator')
 
-  // Place le menu contre l'ancre, sans sortir de la fenêtre.
+  // Place le menu contre l'ancre, sans sortir de la fenêtre, puis met le focus sur le choix courant
+  // (ou la première entrée) : les flèches marchent tout de suite. Fait avant l'affichage, sans état.
   useLayoutEffect(() => {
     const a = anchor.current?.getBoundingClientRect()
     const menu = ref.current
@@ -49,14 +49,12 @@ export function QuickMenu({ anchor, entries, label, placement, align = 'start', 
     let top = placement === 'above' ? a.top - GAP - h : a.bottom + 4
     left = Math.max(GAP, Math.min(left, window.innerWidth - w - GAP))
     top = Math.max(GAP, Math.min(top, window.innerHeight - h - GAP))
-    setPos({ left, top })
-  }, [anchor, placement, align])
-
-  // Focus sur le choix courant (ou la première entrée) : les flèches marchent tout de suite.
-  useEffect(() => {
-    const buttons = [...(ref.current?.querySelectorAll<HTMLButtonElement>('[role^="menuitem"]:not(:disabled)') ?? [])]
+    menu.style.left = `${left}px`
+    menu.style.top = `${top}px`
+    menu.style.visibility = 'visible'
+    const buttons = [...menu.querySelectorAll<HTMLButtonElement>('[role^="menuitem"]:not(:disabled)')]
     ;(buttons.find((b) => b.getAttribute('aria-checked') === 'true') ?? buttons[0])?.focus()
-  }, [])
+  }, [anchor, placement, align])
 
   // Un clic ailleurs ferme (le clic sur l'ancre est laissé à son propre bouton, qui bascule).
   useEffect(() => {
@@ -123,7 +121,7 @@ export function QuickMenu({ anchor, entries, label, placement, align = 'start', 
       role="menu"
       aria-label={label}
       data-ui
-      style={pos ? { left: pos.left, top: pos.top } : { left: 0, top: 0, visibility: 'hidden' }}
+      style={{ left: 0, top: 0, visibility: 'hidden' }}
       onKeyDown={onKeyDown}
       onContextMenu={(e) => e.preventDefault()}
     >
