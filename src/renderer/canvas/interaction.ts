@@ -1,6 +1,7 @@
 import type { Op } from '../../core/ops'
 import { containsId, findNode } from '../../core/tree'
 import type { FrameNode, MaquetteDocument, Rect } from '../../core/types'
+import { chatStore } from '../chat/chatStore'
 import { runCommand } from '../state/commands'
 import { docStore } from '../state/store'
 import { tasteStore } from '../taste/tasteStore'
@@ -728,6 +729,12 @@ export class InteractionController {
   // ——— Clavier ———
 
   private keyDown(e: KeyboardEvent): void {
+    // Le chat s'ouvre et se ferme de partout, même depuis sa propre saisie.
+    if (matchShortcut(e) === 'toggleChat') {
+      e.preventDefault()
+      chatStore.getState().toggle()
+      return
+    }
     if (typingInField(e.target)) return
     // Focus dans un panneau latéral : Tab, Entrée, Espace et Échap gardent leur rôle clavier normal.
     if ((e.target as Element | null)?.closest?.('.panel') && ['Tab', 'Enter', ' ', 'Escape'].includes(e.key)) return
@@ -879,6 +886,9 @@ export class InteractionController {
         return true
       case 'help':
         ui().setHelp(!ui().helpOpen)
+        return true
+      case 'toggleChat':
+        chatStore.getState().toggle()
         return true
       case 'tasteCheck': {
         const node = selection.length === 1 ? findNode(d, selection[0]!)?.node : undefined
