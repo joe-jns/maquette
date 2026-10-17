@@ -23,6 +23,13 @@ const api: MaquetteApi = {
       return () => ipcRenderer.removeListener('export:job', handler)
     },
   },
+  onMcpCall: (cb) => {
+    const handler = (_e: IpcRendererEvent, id: number, tool: string, args: Record<string, unknown>) => {
+      void cb(tool, args).then((result) => ipcRenderer.send('mcp:result', id, result))
+    }
+    ipcRenderer.on('mcp:call', handler)
+    return () => ipcRenderer.removeListener('mcp:call', handler)
+  },
   onMenu: (cb) => {
     const handler = (_e: IpcRendererEvent, cmd: MenuCommand) => cb(cmd)
     ipcRenderer.on('menu', handler)

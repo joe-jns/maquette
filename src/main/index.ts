@@ -4,6 +4,7 @@ import { ASSET_SCHEME, handleAssets } from './assets'
 import { closeExportWindow, isExportWindow, registerExportIpc, renderNode } from './exportPng'
 import { FONT_SCHEME, handleFonts, registerFontIpc } from './fontService'
 import { registerFileIpc } from './ipc'
+import { startMcp } from './mcpApp'
 import { buildMenu } from './menu'
 
 const fileArg = process.argv.slice(1).find((a) => a.toLowerCase().endsWith('.maquette'))
@@ -54,6 +55,7 @@ app.whenReady().then(() => {
   handleFonts()
   buildMenu()
   createWindow()
+  void startMcp(() => editorWindows()[0])
   app.on('activate', () => {
     if (editorWindows().length === 0) createWindow()
   })

@@ -5,6 +5,7 @@ import { RightPanel } from './panels/RightPanel'
 import './panels/panels.css'
 import { domMeasure } from './canvas/measure'
 import { watchDocumentFonts } from './fonts/fontLoader'
+import { serveMcp } from './mcp/host'
 import { runCommand } from './state/commands'
 import { fileName, openDocument } from './state/openDocument'
 import { docStore, useDoc } from './state/store'
@@ -24,6 +25,9 @@ export function App() {
 
   // Polices du document : chargées à chaque nouvelle famille, introuvables signalées une fois.
   useEffect(() => watchDocumentFonts(), [])
+
+  // Outils de Claude Code : exécutés ici, sur le document affiché.
+  useEffect(() => serveMcp(), [])
 
   useEffect(() => {
     document.title = `${fileName(filePath)}${dirty ? ' •' : ''} — Maquette`

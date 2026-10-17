@@ -50,3 +50,14 @@ body { font-family: system-ui, sans-serif; background: #e5e5e5; color: #111; }
 .help dl div { display: flex; justify-content: space-between; gap: 12px; padding: 3px 0; }
 .help dd { margin: 0; }
 .help kbd { font: 12px/1 system-ui, sans-serif; background: #333; border-radius: 4px; padding: 3px 6px; white-space: nowrap; }
+
+/* Éléments que Claude vient de toucher (outil « appliquer »). */
+[data-claude-flash] {
+  outline: 2px solid #f97316;
+  outline-offset: 2px;
+  animation: claude-flash 1.2s ease-out forwards;
+}
+@keyframes claude-flash {
+  0%, 60% { outline-color: #f97316; }
+  100% { outline-color: transparent; }
+}

@@ -1,4 +1,5 @@
 import type { MaquetteDocument } from '../core/types'
+import type { ToolResult } from '../mcp/tools'
 
 export interface OpenedFile { path: string; text: string }
 export type ImageImport = { ok: true; src: string } | { ok: false; message: string }
@@ -52,4 +53,6 @@ export interface MaquetteApi {
   /** Exporte un élément en PNG : boîte d'enregistrement, puis écriture ; chemin écrit ou null (annulé). */
   exportPng(doc: MaquetteDocument, nodeId: string, scale: number): Promise<string | null>
   exportView: ExportViewApi
+  /** Reçoit les outils appelés par Claude Code (via le relais) ; la réponse repart au relais. */
+  onMcpCall(cb: (tool: string, args: Record<string, unknown>) => Promise<ToolResult>): () => void
 }
