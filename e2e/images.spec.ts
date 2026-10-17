@@ -162,20 +162,32 @@ test('images : chercher (planche), poser dans un rectangle, créditer, annuler e
   }
 })
 
-test('images : document jamais enregistré, message clair et rien de posé', async () => {
+test('images : document jamais enregistré, la photo est posée puis suit le fichier à son premier enregistrement', async () => {
   const fake = await fakeSources()
   const pipe = process.platform === 'win32' ? `\\\\.\\pipe\\maquette-e2e-img2-${process.pid}` : join(tmpdir(), `maquette-e2e-img2-${process.pid}.sock`)
   const env = { MAQUETTE_PIPE: pipe, MAQUETTE_USER_DATA: mkdtempSync(join(tmpdir(), 'maquette-img-')), MAQUETTE_IMAGES_API: fake.base }
-  const { app } = await launch([], env)
+  const { app, page } = await launch([], env)
   const exe = await app.evaluate(() => process.execPath)
   const transport = new StdioClientTransport({ command: exe, args: [resolve('out/main/relay.js')], env: { ...(process.env as Record<string, string>), ...env, ELECTRON_RUN_AS_NODE: '1' } })
   const c = new Client({ name: 'e2e', version: '1.0.0' })
   await c.connect(transport)
+  const dir = mkdtempSync(join(tmpdir(), 'maquette-img-doc-'))
   try {
     const r = await c.callTool({ name: 'images', arguments: { poser: 'openverse:ov-1' } })
-    expect(r.isError).toBe(true)
-    expect((r.content as { text: string }[])[0]!.text).toContain('jamais enregistré')
-    expect(fake.hits.filter((h) => h.startsWith('/files/'))).toEqual([])
+    const text = (r.content as { text: string }[])[0]!.text
+    expect(r.isError, text).toBeFalsy()
+    const out = JSON.parse(text)
+    const img = page.locator(`img[data-node-id="${out.id}"]`)
+    await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBe(2400)
+
+    // Enregistrer sous : la photo et son crédit rejoignent le dossier du fichier.
+    await app.evaluate(({ dialog, BrowserWindow }, target) => {
+      dialog.showSaveDialog = (async () => ({ canceled: false, filePath: target })) as typeof dialog.showSaveDialog
+      BrowserWindow.getAllWindows().find((w) => !w.webContents.getURL().includes('export=1'))!.webContents.send('menu', 'save-as')
+    }, join(dir, 'boulangerie.maquette'))
+    await expect.poll(() => readdir(join(dir, 'assets')).then((f) => f.sort(), () => [])).toEqual(['credits.json', out.src.slice('assets/'.length)])
+    const credits = JSON.parse(await readFile(join(dir, 'assets', 'credits.json'), 'utf8'))
+    expect(credits).toMatchObject([{ file: out.src, ref: 'openverse:ov-1' }])
   } finally {
     await c.close()
     await app.close()
