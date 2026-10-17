@@ -162,7 +162,7 @@ export function AutoLayoutSection() {
         <Section title="Dans la mise en page">
           <div className="child-layout">
             <label className="select-field">
-              <span>Alignement propre</span>
+              <span>Alignement</span>
               <select
                 aria-label="Alignement propre"
                 value={mixed(children.map((l) => l.node.alignSelf ?? 'auto')) === 'mixed' ? '' : (children[0]!.node.alignSelf ?? 'auto')}
