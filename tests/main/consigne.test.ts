@@ -39,6 +39,9 @@ describe('consigne du chat', () => {
       expect(text).toContain('Keep the source style')
       expect(text).toContain('keep its palette and its typefaces with their weights')
       expect(text).toContain('The layout may be reworked freely')
+      expect(text).toContain('First identify each typeface (headings, subheadings, body, buttons)')
+      expect(text).toContain('closest Google family, weight, case, italic, letter-spacing')
+      expect(text).toContain('capitals stay capitals')
       expect(text).toContain('never dropped just because a taste rule forbids them')
       expect(text).toContain('never turn a structured block of the source into a wall of text')
       expect(text).toContain("The user's explicit request overrides every house rule")
@@ -80,6 +83,7 @@ describe('consigne du chat', () => {
     for (const k of ['typefaces at their stated weights', 'palette', 'radii', 'elevation', 'imagery', 'composition rules']) expect(pen, k).toContain(k)
     expect(pen).toContain('guide("qualite")')
     expect(pen).toContain('Use the following style')
+    expect(pen).toContain('Main headline 88–120 px on 1440 unless the source is bigger')
     // Références, images, icônes gardées ; verifier_gout facultatif.
     expect(pen).toContain('capture({ids:[…]})')
     expect(pen).toContain('never move or delete them')
