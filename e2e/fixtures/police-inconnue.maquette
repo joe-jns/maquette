@@ -1,0 +1,20 @@
+{
+  "format": "maquette",
+  "version": 1,
+  "styles": { "colors": [], "text": [] },
+  "pages": [
+    {
+      "id": "pPolic",
+      "name": "Accueil",
+      "children": [
+        {
+          "id": "tInco1", "type": "text", "name": "Inconnue", "visible": true, "locked": false, "opacity": 1,
+          "width": { "mode": "hug" }, "height": { "mode": "hug" }, "x": 40, "y": 40, "position": "flow",
+          "content": "Police qui n’existe pas", "fontFamily": "Police Inexistante Zz", "fontWeight": 400, "fontStyle": "normal",
+          "fontSize": 24, "lineHeight": 30, "letterSpacing": 0, "textAlign": "left",
+          "color": "#111111", "textSizing": "auto"
+        }
+      ]
+    }
+  ]
+}

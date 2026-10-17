@@ -4,6 +4,7 @@ import { LeftPanel } from './panels/LeftPanel'
 import { RightPanel } from './panels/RightPanel'
 import './panels/panels.css'
 import { domMeasure } from './canvas/measure'
+import { watchDocumentFonts } from './fonts/fontLoader'
 import { runCommand } from './state/commands'
 import { fileName, openDocument } from './state/openDocument'
 import { docStore, useDoc } from './state/store'
@@ -20,6 +21,9 @@ export function App() {
     })
     return window.maquette.onMenu((cmd) => void runCommand(cmd))
   }, [])
+
+  // Polices du document : chargées à chaque nouvelle famille, introuvables signalées une fois.
+  useEffect(() => watchDocumentFonts(), [])
 
   useEffect(() => {
     document.title = `${fileName(filePath)}${dirty ? ' •' : ''} — Maquette`

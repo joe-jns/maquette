@@ -1,6 +1,7 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, protocol } from 'electron'
 import { join } from 'node:path'
-import { handleAssets, registerAssetScheme } from './assets'
+import { ASSET_SCHEME, handleAssets } from './assets'
+import { FONT_SCHEME, handleFonts, registerFontIpc } from './fontService'
 import { registerFileIpc } from './ipc'
 import { buildMenu } from './menu'
 
@@ -33,10 +34,13 @@ function createWindow(): BrowserWindow {
 }
 
 registerFileIpc(fileArg)
-registerAssetScheme()
+registerFontIpc()
+// Un seul appel : chaque appel remplace la liste des protocoles privilégiés.
+protocol.registerSchemesAsPrivileged([ASSET_SCHEME, FONT_SCHEME])
 
 app.whenReady().then(() => {
   handleAssets()
+  handleFonts()
   buildMenu()
   createWindow()
   app.on('activate', () => {

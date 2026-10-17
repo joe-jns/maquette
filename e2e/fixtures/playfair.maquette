@@ -1,0 +1,20 @@
+{
+  "format": "maquette",
+  "version": 1,
+  "styles": { "colors": [], "text": [] },
+  "pages": [
+    {
+      "id": "pPlayf",
+      "name": "Accueil",
+      "children": [
+        {
+          "id": "tPlayf", "type": "text", "name": "Titre", "visible": true, "locked": false, "opacity": 1,
+          "width": { "mode": "hug" }, "height": { "mode": "hug" }, "x": 40, "y": 40, "position": "flow",
+          "content": "Playfair Display", "fontFamily": "Playfair Display", "fontWeight": 700, "fontStyle": "normal",
+          "fontSize": 40, "lineHeight": 48, "letterSpacing": 0, "textAlign": "left",
+          "color": "#111111", "textSizing": "auto"
+        }
+      ]
+    }
+  ]
+}
