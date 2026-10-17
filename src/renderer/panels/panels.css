@@ -92,9 +92,13 @@
 .icon-button:active { background: var(--pressed); }
 
 .page-list { list-style: none; margin: 0; padding: 0 8px; }
-.page-list li { display: flex; align-items: center; height: 28px; padding: 0 8px; border-radius: var(--radius); cursor: default; }
-.page-list li:hover { background: var(--panel-hover); }
-.page-list li.is-current { font-weight: var(--fw-strong); background: var(--field-bg); }
+/* Pas de 32 px, surbrillance de 24 px arrondie (Figma UI3). Page courante : gris + texte fort, jamais de bleu. */
+.page-list li {
+  position: relative; isolation: isolate; display: flex; align-items: center; height: var(--row-h); padding: 0 8px; cursor: default;
+}
+.page-list li::before { content: ''; position: absolute; z-index: -1; inset: 4px 0; border-radius: var(--radius); }
+.page-list li:hover::before, .page-list li.is-current::before { background: var(--panel-hover); }
+.page-list li.is-current { font-weight: var(--fw-strong); }
 .page-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .inline-name {
   width: 100%; height: 20px; font: inherit; letter-spacing: inherit; padding: 0 4px; border: 1px solid var(--accent);
