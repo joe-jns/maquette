@@ -71,16 +71,60 @@ export function css2Url(info: FontInfo, opts: { italic?: boolean } = {}): string
   return `${CSS2_URL}?family=${family}:${spec}&display=swap`
 }
 
-const GSTATIC_URL = /url\((['"]?)(https:\/\/fonts\.gstatic\.com\/[^)'"\s]+)\1\)/g
+const FONT_URL =
+  /url\((['"]?)((?:https:)?\/\/(?:fonts\.gstatic\.com|cdn\.fontshare\.com)\/[^)'"\s]+)\1\)/g
+/** Sources de repli (woff, ttf, otf) qui suivent le woff2 dans une même règle src. */
+const FALLBACK_SRC =
+  /,\s*url\((['"]?)(?:https:)?\/\/(?:fonts\.gstatic\.com|cdn\.fontshare\.com)\/[^)'"\s]+\1\)\s*format\((['"]?)(?:woff|truetype|opentype)\2\)/g
 
-/** Remplace chaque url(https://fonts.gstatic.com/…) par url(mfont://<nom>) ; renvoie les adresses d'origine. */
+/**
+ * Remplace chaque url(https://fonts.gstatic.com/…) ou url(//cdn.fontshare.com/…) par url(mfont://<nom>) ;
+ * les sources de repli non woff2 (Fontshare en ajoute) sont retirées. Renvoie les adresses d'origine, en https.
+ */
 export function rewriteCss(css: string, name: (url: string) => string): { css: string; urls: string[] } {
   const urls: string[] = []
-  const out = css.replace(GSTATIC_URL, (_m, _q, url: string) => {
+  const out = css.replace(FALLBACK_SRC, '').replace(FONT_URL, (_m, _q, raw: string) => {
+    const url = raw.startsWith('//') ? `https:${raw}` : raw
     if (!urls.includes(url)) urls.push(url)
     return `url(mfont://${name(url)})`
   })
   return { css: out, urls }
+}
+
+/** Police Fontshare connue (tirée de la bibliothèque de taste-skill). */
+export interface FontshareFamily {
+  family: string
+  slug: string
+  weights: number[]
+}
+
+const FONTSHARE_CSS_URL = 'https://api.fontshare.com/v2/css'
+
+/** Adresse de la feuille Fontshare couvrant les graisses de la famille. */
+export function fontshareUrl(font: FontshareFamily): string {
+  return `${FONTSHARE_CSS_URL}?f[]=${encodeURIComponent(font.slug)}@${font.weights.join(',')}&display=swap`
+}
+
+/** Familles Fontshare de library/type.json (display et text), dédoublonnées, graisses fusionnées. */
+export function fontshareFromTaste(typeJsonText: string): FontshareFamily[] {
+  const data = JSON.parse(typeJsonText) as unknown
+  const byFamily = new Map<string, FontshareFamily>()
+  for (const system of Array.isArray(data) ? data : []) {
+    for (const key of ['display', 'text']) {
+      const face = (system as Record<string, unknown> | null)?.[key] as
+        | { family?: unknown; source?: unknown; slug?: unknown; weights?: unknown }
+        | undefined
+      if (!face || face.source !== 'fontshare') continue
+      if (typeof face.family !== 'string' || !face.family || typeof face.slug !== 'string' || !face.slug) continue
+      const weights = Array.isArray(face.weights)
+        ? face.weights.filter((w): w is number => typeof w === 'number' && Number.isFinite(w))
+        : []
+      const entry = byFamily.get(face.family) ?? { family: face.family, slug: face.slug, weights: [] }
+      entry.weights = [...new Set([...entry.weights, ...weights])].sort((a, b) => a - b)
+      byFamily.set(face.family, entry)
+    }
+  }
+  return [...byFamily.values()].filter((f) => f.weights.length > 0)
 }
 
 const sha16 = (s: string) => createHash('sha256').update(s).digest('hex').slice(0, 16)
@@ -122,9 +166,11 @@ interface CatalogFile {
 /**
  * Cache local des polices Google : catalogue dans dir/catalog.json, feuilles dans dir/css/,
  * fichiers woff2 dans dir/files/ (servis par mfont://). Hors connexion, le cache suffit.
+ * Les familles Fontshare passées en option complètent le catalogue quand Google ne les a pas.
  */
 export class FontCache {
   private catalogPromise: Promise<FontInfo[]> | null = null
+  private googlePromise: Promise<FontInfo[]> | null = null
   private readonly cssPromises = new Map<string, Promise<string | null>>()
 
   constructor(
@@ -132,11 +178,24 @@ export class FontCache {
     private readonly fetchText: FetchText,
     private readonly fetchBytes: FetchBytes,
     private readonly now: () => number = Date.now,
+    private readonly fontshare: FontshareFamily[] = [],
   ) {}
 
+  /** Catalogue Google (ou de secours), complété des familles Fontshare absentes de celui-ci. */
   catalog(): Promise<FontInfo[]> {
-    this.catalogPromise ??= this.loadCatalog()
+    this.catalogPromise ??= this.googleCatalog().then((google) => {
+      const known = new Set(google.map((f) => f.family))
+      const extra: FontInfo[] = this.fontshare
+        .filter((f) => !known.has(f.family))
+        .map((f) => ({ family: f.family, category: 'Fontshare', weights: [...f.weights], italic: false, variable: null }))
+      return extra.length ? [...google, ...extra] : google
+    })
     return this.catalogPromise
+  }
+
+  private googleCatalog(): Promise<FontInfo[]> {
+    this.googlePromise ??= this.loadCatalog()
+    return this.googlePromise
   }
 
   css(family: string): Promise<string | null> {
@@ -179,16 +238,23 @@ export class FontCache {
     } catch {
       // Pas encore en cache : on télécharge.
     }
-    const info = (await this.catalog()).find((f) => f.family === family)
-    if (!info) return null
+    const info = (await this.googleCatalog()).find((f) => f.family === family)
+    const shared = info ? undefined : this.fontshare.find((f) => f.family === family)
+    if (!info && !shared) return null
     try {
       let sheet: string
-      try {
-        sheet = await this.fetchText(css2Url(info))
-      } catch (e) {
-        // Statique : toutes les graisses n'existent pas forcément en italique ; on retente sans.
-        if (!info.italic || info.variable) throw e
-        sheet = await this.fetchText(css2Url(info, { italic: false }))
+      if (shared) {
+        sheet = await this.fetchText(fontshareUrl(shared))
+      } else if (info) {
+        try {
+          sheet = await this.fetchText(css2Url(info))
+        } catch (e) {
+          // Statique : toutes les graisses n'existent pas forcément en italique ; on retente sans.
+          if (!info.italic || info.variable) throw e
+          sheet = await this.fetchText(css2Url(info, { italic: false }))
+        }
+      } else {
+        return null
       }
       const { css, urls } = rewriteCss(sheet, (url) => `${sha16(url)}.woff2`)
       const filesDir = join(this.dir, 'files')

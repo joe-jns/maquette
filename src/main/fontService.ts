@@ -1,9 +1,18 @@
 import { app, ipcMain, protocol, type CustomScheme } from 'electron'
+import { existsSync, readFileSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { FontInfo } from '../shared/ipc'
 import { resolveFontFile } from './fontPath'
-import { FontCache, fetchBytes, fetchText, type FetchBytes, type FetchText } from './fonts'
+import {
+  FontCache,
+  fetchBytes,
+  fetchText,
+  fontshareFromTaste,
+  type FetchBytes,
+  type FetchText,
+  type FontshareFamily,
+} from './fonts'
 
 /** mfont://<empreinte>.woff2 : chargé par les @font-face injectées, donc en requête CORS. */
 export const FONT_SCHEME: CustomScheme = {
@@ -20,6 +29,21 @@ function fontsDir(): string {
   return dir
 }
 
+/**
+ * Familles Fontshare de la bibliothèque taste-skill (vendor/taste-skill/library/type.json,
+ * à la racine du projet en dev, dans les ressources en production) ; absente ou illisible : aucune.
+ */
+function tasteFontshare(): FontshareFamily[] {
+  const root = app.isPackaged ? process.resourcesPath : app.getAppPath()
+  const file = join(root, 'vendor', 'taste-skill', 'library', 'type.json')
+  if (!existsSync(file)) return []
+  try {
+    return fontshareFromTaste(readFileSync(file, 'utf8'))
+  } catch {
+    return []
+  }
+}
+
 /** Le cache unique de l'application. */
 function fontCache(): FontCache {
   if (!cache) {
@@ -30,7 +54,7 @@ function fontCache(): FontCache {
     }
     const text: FetchText = offline ? noNetwork : fetchText
     const bytes: FetchBytes = offline ? noNetwork : fetchBytes
-    cache = new FontCache(fontsDir(), text, bytes)
+    cache = new FontCache(fontsDir(), text, bytes, Date.now, tasteFontshare())
   }
   return cache
 }
