@@ -4,9 +4,13 @@ import { ASSET_SCHEME, handleAssets } from './assets'
 import { closeExportWindow, isExportWindow, registerExportIpc, renderNode } from './exportPng'
 import { FONT_SCHEME, handleFonts, registerFontIpc } from './fontService'
 import { registerFileIpc } from './ipc'
+import { guardClose, registerSessionIpc } from './docSession'
 import { startMcp } from './mcpApp'
 import { registerTasteIpc } from './taste'
 import { buildMenu } from './menu'
+
+// Dossier de données imposé (tests, relais MCP de test) : jeton, copies de secours, fichiers récents.
+if (process.env.MAQUETTE_USER_DATA) app.setPath('userData', process.env.MAQUETTE_USER_DATA)
 
 const fileArg = process.argv.slice(1).find((a) => a.toLowerCase().endsWith('.maquette'))
 
@@ -24,6 +28,7 @@ function createWindow(): BrowserWindow {
     },
   })
   win.once('ready-to-show', () => win.show())
+  guardClose(win)
   // La fenêtre cachée de l'export ne doit pas garder l'app ouverte une fois l'éditeur fermé.
   win.on('closed', () => {
     if (editorWindows().length === 0) closeExportWindow()
@@ -46,6 +51,7 @@ registerFileIpc(fileArg)
 registerFontIpc()
 registerExportIpc()
 registerTasteIpc()
+registerSessionIpc()
 if (process.env.MAQUETTE_E2E === '1') {
   ;(globalThis as unknown as { __maquetteRenderNode: typeof renderNode }).__maquetteRenderNode = renderNode
 }
