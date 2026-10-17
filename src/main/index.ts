@@ -10,6 +10,7 @@ import { registerHomeIpc } from './home'
 import { guardClose, registerSessionIpc } from './docSession'
 import { startMcp } from './mcpApp'
 import { registerTasteIpc } from './taste'
+import { registerDesignIpc } from './design'
 import { buildMenu, setRecentFiles } from './menu'
 import { initOpenFiles, openInWindow } from './openFiles'
 
@@ -76,6 +77,7 @@ registerHomeIpc()
 registerFontIpc()
 registerExportIpc()
 registerTasteIpc()
+registerDesignIpc()
 registerChatIpc()
 registerSessionIpc()
 // Tests : la fenêtre reste derrière les autres ; Chromium ne doit pas la ralentir pour autant.

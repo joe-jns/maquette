@@ -9,7 +9,7 @@ export type TasteDraw<T> = { ok: true; value: T } | { ok: false; message: string
 export interface TasteFinding { level: 'FAIL' | 'WARN'; id: string; message: string; fix: string }
 /** Contrôle qualité d'un cadre par les règles de taste-skill. */
 export interface TasteCheck { findings: TasteFinding[]; isPage: boolean; width: number; height: number }
-export interface TasteInput { sector: string; brief: string; tone?: string }
+export interface TasteInput { sector: string; brief: string; tone?: string; sections?: string[] }
 
 /** Un document lu : son chemin (null pour une copie de secours d'un document jamais enregistré). */
 export interface OpenedFile { path: string | null; text: string }
@@ -92,6 +92,10 @@ export interface MaquetteApi {
     direction(input: TasteInput & { direction: string }): Promise<TasteDraw<DirectionSheet>>
     /** Contrôle qualité d'un cadre ; null si introuvable, masqué ou trop long. */
     check(doc: MaquetteDocument, nodeId: string, allow?: string[]): Promise<TasteCheck | null>
+  }
+  design: {
+    /** Texte d'un fichier de vendor/design (guides, styles) ; null si refusé ou absent. */
+    read(path: string): Promise<string | null>
   }
   /** La fenêtre peut recevoir les outils (document initial chargé) ; false pendant le chargement. */
   mcpReady(ready: boolean): void

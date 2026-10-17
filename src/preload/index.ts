@@ -42,6 +42,9 @@ const api: MaquetteApi = {
     direction: (input) => ipcRenderer.invoke('taste:direction', input),
     check: (doc, nodeId, allow) => ipcRenderer.invoke('taste:check', { doc, nodeId, allow }),
   },
+  design: {
+    read: (path) => ipcRenderer.invoke('design:read', path) as Promise<string | null>,
+  },
   mcpReady: (ready) => ipcRenderer.send('mcp:ready', ready),
   backup: {
     write: (path, text) => ipcRenderer.invoke('backup:write', { path, text }),
