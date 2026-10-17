@@ -247,6 +247,9 @@ test('chat : outils dépliés et images', async () => {
   await panel.getByRole('button', { name: 'Agrandir l’image jointe 1' }).click()
   await page.waitForTimeout(300)
   await shot(page, '22-chat-apercu')
+  await app.close()
+})
+
 /** Une page de site plausible (1440 × 900) : barre, titre, texte, bouton, visuel. */
 function siteDoc(accent: string, title: string, width = 1440, height = 900): string {
   const base = { visible: true, locked: false, opacity: 1, position: 'flow' }
