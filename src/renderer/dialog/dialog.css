@@ -1,26 +1,32 @@
-/* ——— Fenêtre de question : carte encre sur fond assombri, comme l'aide ——— */
-.dialog-backdrop { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: #0006; }
-.dialog {
-  width: min(420px, calc(100% - 48px)); max-height: calc(100% - 64px); overflow: auto; box-sizing: border-box;
-  background: var(--ink); color: var(--ink-text); border-radius: 12px; padding: 20px 24px 18px; box-shadow: 0 10px 32px #0005;
-  font: var(--fs-large)/1.45 system-ui, 'Segoe UI', sans-serif;
+/* ——— Fenêtre de question : carte blanche sur voile sombre, sur toute la fenêtre ——— */
+.dialog-backdrop {
+  position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; background: rgba(0, 0, 0, 0.5);
 }
-.dialog h2 { margin: 0; font-size: 15px; font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; }
+.dialog {
+  width: min(400px, calc(100% - 48px)); max-height: calc(100% - 64px); overflow: auto; box-sizing: border-box;
+  background: var(--panel-bg); color: var(--panel-text); border-radius: var(--radius-lg); padding: 16px; box-shadow: var(--elevation-500);
+  font: var(--panel-font); letter-spacing: var(--ls);
+}
+.dialog h2 {
+  margin: 0; font-size: var(--fs-large); line-height: var(--lh-large); font-weight: var(--fw-strong); letter-spacing: -0.0025em;
+  overflow-wrap: anywhere;
+}
 .dialog p { margin: 8px 0 0; overflow-wrap: anywhere; white-space: pre-line; }
-.dialog .dialog-detail { color: #ffffffa6; }
+.dialog .dialog-detail { color: var(--panel-muted); }
 .dialog-code {
-  margin: 12px 0 0; padding: 8px 10px; max-height: 160px; overflow: auto; border-radius: var(--radius); background: #ffffff14;
-  font: var(--fs)/1.5 ui-monospace, Consolas, 'Cascadia Mono', monospace; white-space: pre-wrap; overflow-wrap: anywhere;
+  margin: 12px 0 0; padding: 8px; max-height: 160px; overflow: auto; border-radius: var(--radius); background: var(--field-bg);
+  font: var(--fs) / var(--lh) var(--font-mono); white-space: pre-wrap; overflow-wrap: anywhere;
   user-select: text; cursor: text;
 }
-.dialog-buttons { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+.dialog-buttons { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+/* Boutons de 32 px (taille « grande » de Figma) : secondaire cerné, principal bleu, danger rouge. */
 .dialog button {
-  background: var(--ink-hover); color: inherit; border: 0; border-radius: var(--radius); padding: 7px 12px;
-  font: 600 var(--fs)/1.2 system-ui, 'Segoe UI', sans-serif; cursor: pointer;
+  height: var(--row-h); padding: 0 12px; border: 1px solid var(--control-border); border-radius: var(--radius);
+  background: var(--panel-bg); color: var(--panel-text); font: var(--fw-strong) var(--fs) / var(--lh) var(--font-ui);
+  letter-spacing: var(--ls); cursor: pointer; box-sizing: border-box;
 }
-.dialog button:hover { background: #ffffff33; }
-.dialog button.is-primary { background: var(--ink-text); color: var(--ink); }
-.dialog button.is-primary:hover { background: #fff; }
-.dialog button.is-danger { background: var(--danger); color: #fff; }
-.dialog button.is-danger:hover { background: #e5483b; }
-.dialog button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.dialog button:hover { background: var(--panel-hover); }
+.dialog button.is-primary { border-color: transparent; background: var(--accent); color: #fff; }
+.dialog button.is-primary:hover { background: var(--accent-hover); }
+.dialog button.is-danger { border-color: transparent; background: var(--danger); color: #fff; }
+.dialog button.is-danger:hover { background: var(--danger-text); }
