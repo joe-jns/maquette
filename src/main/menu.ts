@@ -19,6 +19,8 @@ export function buildMenu(): void {
       {
         label: 'Fichier',
         submenu: [
+          { label: 'Accueil', accelerator: 'CmdOrCtrl+Shift+H', click: send('home') },
+          { type: 'separator' },
           { label: 'Nouveau', accelerator: 'CmdOrCtrl+N', click: send('new') },
           { label: 'Ouvrir…', accelerator: 'CmdOrCtrl+O', click: send('open') },
           {

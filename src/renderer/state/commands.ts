@@ -2,6 +2,7 @@ import { newDocument } from '../../core/defaults'
 import { serializeDocument } from '../../core/format'
 import type { MenuCommand } from '../../shared/ipc'
 import { chatStore } from '../chat/chatStore'
+import { homeStore } from '../home/homeStore'
 import { ask } from '../dialog/dialogStore'
 import { openDocument } from './openDocument'
 import { docStore } from './store'
@@ -62,7 +63,11 @@ export async function runCommand(cmd: MenuCommand): Promise<void> {
         uiStore.getState().select([])
         uiStore.getState().setEditing(null)
         uiStore.getState().setCamera({ x: 0, y: 0, zoom: 1 })
+        homeStore.getState().documentShown()
       }
+      return
+    case 'home':
+      homeStore.getState().show()
       return
     case 'open': {
       if (!(await confirmDiscard())) return

@@ -11,6 +11,8 @@ import { watchDocumentFonts } from './fonts/fontLoader'
 import { serveMcp } from './mcp/host'
 import { Dialog } from './dialog/Dialog'
 import { FileChangedBanner } from './FileChangedBanner'
+import { Home } from './home/Home'
+import { homeStore, useHome } from './home/homeStore'
 import { RecoveryBanner } from './RecoveryBanner'
 import { startAutosave } from './state/autosave'
 import { confirmDiscard, runCommand } from './state/commands'
@@ -23,13 +25,16 @@ export function App() {
   const filePath = useDoc((s) => s.filePath)
   const dirty = useDoc((s) => s.dirty)
   const chatOpen = useChat((s) => s.open)
+  const homeOpen = useHome((s) => s.open)
   const [started, setStarted] = useState(false)
 
   useEffect(() => {
     docStore.getState().setMeasure(domMeasure)
     void window.maquette
       .getInitialDocument()
-      .then((file) => (file ? openDocument(file) : undefined))
+      .then((file) => (file ? openDocument(file) : false))
+      // Lancé sans fichier (ou fichier illisible) : l'accueil plutôt qu'un document vide.
+      .then((opened) => opened || homeStore.getState().show(), () => homeStore.getState().show())
       .finally(() => {
         window.maquette.mcpReady(true)
         setStarted(true)
@@ -74,12 +79,16 @@ export function App() {
           </div>
         )}
       </div>
-      <div className={chatOpen ? 'layout has-chat' : 'layout'}>
+      <div
+        className={['layout', chatOpen && 'has-chat', (homeOpen || !started) && 'is-hidden'].filter(Boolean).join(' ')}
+        inert={homeOpen || !started}
+      >
         <LeftPanel />
         <Canvas />
         <RightPanel />
         {chatOpen && <ChatPanel />}
       </div>
+      {homeOpen && <Home />}
       <Dialog />
       <TooltipLayer />
     </div>

@@ -1,5 +1,6 @@
 import { parseDocument } from '../../core/format'
 import type { OpenedFile } from '../../shared/ipc'
+import { homeStore } from '../home/homeStore'
 import { docStore } from './store'
 import { uiStore } from './ui'
 
@@ -19,6 +20,7 @@ export async function openDocument(file: OpenedFile): Promise<boolean> {
   uiStore.getState().select([])
   uiStore.getState().setEditing(null)
   uiStore.getState().requestFit()
+  homeStore.getState().documentShown()
   const n = parsed.warnings.length
   if (n > 0) {
     // Le document réparé diffère du fichier : il reste à enregistrer.
