@@ -263,7 +263,7 @@ export function TextSection() {
           <Icon d="M7 3h5M4 13h5M10 3 6 13" />
         </button>
       </div>
-      <div className="segmented" role="group" aria-label="Taille du bloc de texte">
+      <div className="segmented is-fit" role="group" aria-label="Taille du bloc de texte">
         {SIZINGS.map((s) => (
           <button
             key={s.value}
