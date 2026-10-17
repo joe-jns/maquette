@@ -2,10 +2,34 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { TextStyle } from '../../../core/types'
 import { ensureFont, useFontCatalog } from '../../fonts/fontLoader'
 import { useDoc } from '../../state/store'
+import type { Op } from '../../../core/ops'
 import { HexField } from './ColorRow'
+import { applyPhase } from './PaintSections'
 import { NumberField } from './NumberField'
 import { commit, Icon, IconButton, Section } from './shared'
 import { FontPicker, SYSTEM_FONTS, WEIGHT_NAMES, weightsOf } from './TextSection'
+
+/** Sélecteur natif d'une couleur nommée : aperçu en direct, une seule entrée d'historique à la fermeture. */
+function StyleColorInput({ label, value, opsFor }: { label: string; value: string; opsFor(value: string): Op[] }) {
+  const ref = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const onChange = () => applyPhase(opsFor(el.value), 'commit', 'Couleur nommée')
+    el.addEventListener('change', onChange)
+    return () => el.removeEventListener('change', onChange)
+  }, [opsFor])
+  return (
+    <input
+      ref={ref}
+      type="color"
+      aria-label={label}
+      value={value.slice(0, 7).toLowerCase()}
+      onInput={(e) => applyPhase(opsFor(e.currentTarget.value), 'preview', 'Couleur nommée')}
+      onChange={() => undefined}
+    />
+  )
+}
 
 /** Champ texte qui ne valide que ce qui a été tapé (vide = ancienne valeur). */
 function NameField({ name, value, onCommit }: { name: string; value: string; onCommit(v: string): void }) {
@@ -79,11 +103,10 @@ export function DocumentPanel() {
         {styles.colors.map((c, i) => (
           <div key={c.id} className="style-row">
             <span className="swatch" style={{ background: c.value }}>
-              <input
-                type="color"
-                aria-label={`Sélecteur de la couleur ${i + 1}`}
-                value={c.value.slice(0, 7).toLowerCase()}
-                onChange={(e) => commit([{ op: 'style.color.set', id: c.id, name: c.name, value: e.target.value }], 'Couleur nommée')}
+              <StyleColorInput
+                label={`Sélecteur de la couleur ${i + 1}`}
+                value={c.value}
+                opsFor={(value) => [{ op: 'style.color.set', id: c.id, name: c.name, value }]}
               />
             </span>
             <NameField
@@ -142,7 +165,7 @@ export function DocumentPanel() {
               </button>
             </div>
             <div className="font-row">
-              <button type="button" className="font-button" aria-label={`Police du style ${i + 1}`} onClick={() => setPicking(picking === s.id ? null : s.id)}>
+              <button type="button" className="font-button" data-font-trigger aria-label={`Police du style ${i + 1}`} onClick={() => setPicking(picking === s.id ? null : s.id)}>
                 <span style={{ fontFamily: `"${s.fontFamily}", system-ui` }}>{s.fontFamily}</span>
                 <Icon d="M5 6.5 8 9.5l3-3" />
               </button>
@@ -154,7 +177,10 @@ export function DocumentPanel() {
                   onPick={(fontFamily) => {
                     setPicking(null)
                     void ensureFont(fontFamily)
-                    setText(s, { fontFamily })
+                    // Garder la graisse disponible la plus proche dans la nouvelle police.
+                    const available = weightsOf(fullCatalog.find((f) => f.family === fontFamily))
+                    const fontWeight = available.reduce((best, w) => (Math.abs(w - s.fontWeight) < Math.abs(best - s.fontWeight) ? w : best), available[0] ?? 400)
+                    setText(s, { fontFamily, fontWeight })
                   }}
                 />
               )}

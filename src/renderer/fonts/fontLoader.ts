@@ -86,6 +86,10 @@ export function ensureFont(family: string): Promise<boolean> {
   if (!pending) {
     pending = loadFont(family)
     loads.set(family, pending)
+    // Un échec n'est pas retenu : la police sera retentée (réseau revenu, cache rempli entre-temps).
+    void pending.then((ok) => {
+      if (!ok) loads.delete(family)
+    })
   }
   return pending
 }

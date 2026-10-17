@@ -42,6 +42,9 @@ interface Gesture { base: MaquetteDocument; last: Applied | null }
 const IMPLICIT_LABEL = 'Modification'
 
 const history = new History()
+
+/** La page affichée, ou la première si elle n'existe plus (page annulée ou supprimée). */
+const livePage = (doc: MaquetteDocument, pageId: string) => (doc.pages.some((p) => p.id === pageId) ? pageId : doc.pages[0]!.id)
 let measure: Measure | undefined
 let gesture: Gesture | null = null
 
@@ -80,13 +83,13 @@ export const docStore = createStore<DocState>()((set, get) => ({
   undo() {
     if (gesture) get().commitGesture(IMPLICIT_LABEL)
     const r = history.undo(get().doc)
-    if (r) set({ doc: r.doc, dirty: true, canUndo: history.canUndo(), canRedo: history.canRedo() })
+    if (r) set({ doc: r.doc, pageId: livePage(r.doc, get().pageId), dirty: true, canUndo: history.canUndo(), canRedo: history.canRedo() })
   },
 
   redo() {
     if (gesture) get().commitGesture(IMPLICIT_LABEL)
     const r = history.redo(get().doc)
-    if (r) set({ doc: r.doc, dirty: true, canUndo: history.canUndo(), canRedo: history.canRedo() })
+    if (r) set({ doc: r.doc, pageId: livePage(r.doc, get().pageId), dirty: true, canUndo: history.canUndo(), canRedo: history.canRedo() })
   },
 
   markSaved(path) {

@@ -4,7 +4,7 @@ import type { FontInfo } from '../../../shared/ipc'
 import { domMeasure } from '../../canvas/measure'
 import { ensureFont, useFontCatalog } from '../../fonts/fontLoader'
 import { useDoc } from '../../state/store'
-import { mixed, setOps } from '../props'
+import { mixed } from '../props'
 import { ColorRow } from './ColorRow'
 import { NumberField } from './NumberField'
 import { applyPhase } from './PaintSections'
@@ -34,6 +34,8 @@ export function weightsOf(info: FontInfo | undefined): number[] {
 export function FontPicker({ current, catalog, onPick, onClose }: { current: string; catalog: FontInfo[]; onPick(family: string): void; onClose(): void }) {
   const [query, setQuery] = useState('')
   const box = useRef<HTMLDivElement>(null)
+  const hover = useRef(0)
+  useEffect(() => () => window.clearTimeout(hover.current), [])
   const results = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (!q) return catalog.slice(0, 100)
@@ -44,6 +46,8 @@ export function FontPicker({ current, catalog, onPick, onClose }: { current: str
 
   useEffect(() => {
     const away = (e: PointerEvent) => {
+      // Le bouton qui ouvre la liste la referme lui-même : ne pas la fermer puis la rouvrir.
+      if ((e.target as Element | null)?.closest?.('[data-font-trigger]')) return
       if (!box.current?.contains(e.target as Node)) onClose()
     }
     window.addEventListener('pointerdown', away, true)
@@ -51,7 +55,16 @@ export function FontPicker({ current, catalog, onPick, onClose }: { current: str
   }, [onClose])
 
   return (
-    <div className="font-picker" ref={box} onKeyDown={(e) => e.key === 'Escape' && onClose()}>
+    <div
+      className="font-picker"
+      ref={box}
+      onKeyDown={(e) => {
+        if (e.key !== 'Escape') return
+        // Échap ferme la liste, sans aller jusqu'au canevas (qui désélectionnerait).
+        e.stopPropagation()
+        onClose()
+      }}
+    >
       <input
         autoFocus
         type="search"
@@ -70,7 +83,12 @@ export function FontPicker({ current, catalog, onPick, onClose }: { current: str
             type="button"
             role="option"
             aria-selected={f.family === current}
-            onMouseEnter={() => void ensureFont(f.family)}
+            onMouseEnter={() => {
+              // Aperçu chargé seulement si le pointeur s'arrête (balayer la liste ne télécharge rien).
+              window.clearTimeout(hover.current)
+              hover.current = window.setTimeout(() => void ensureFont(f.family), 150)
+            }}
+            onMouseLeave={() => window.clearTimeout(hover.current)}
             onClick={() => onPick(f.family)}
           >
             <span className="font-name" style={{ fontFamily: `"${f.family}", system-ui` }}>{f.family}</span>
@@ -117,7 +135,17 @@ export function TextSection() {
   const styleId = mixed(texts.map((t) => t.textStyle ?? ''))
   const color = mixed(texts.map((t) => t.color))
 
-  const set = (patch: Record<string, unknown>) => setOps(ids, patch)
+  // Un texte lié à un style nommé affiche les valeurs du style : si on modifie une propriété de police
+  // (ou qu'on retire le style), on recopie d'abord ces valeurs, sinon le texte « sauterait » aux
+  // anciennes valeurs propres du nœud.
+  const set = (patch: Record<string, unknown>) =>
+    texts.map((t) => {
+      const detach = !!t.textStyle && (FONT_KEYS.some((k) => k in patch) || patch.textStyle === null)
+      if (!detach) return { op: 'update' as const, id: t.id, set: patch }
+      const f = fontOf(t, styles.text)
+      const fontProps = Object.fromEntries(FONT_KEYS.map((k) => [k, f[k]]))
+      return { op: 'update' as const, id: t.id, set: { ...fontProps, ...patch } }
+    })
   const num = (key: 'fontSize' | 'lineHeight' | 'letterSpacing', name: string, label: string, opts: { min?: number; step?: number } = {}) => (
     <NumberField
       name={name}
@@ -191,7 +219,7 @@ export function TextSection() {
         </label>
       )}
       <div className="font-row">
-        <button type="button" className="font-button" aria-label="Police" aria-expanded={picking} onClick={() => setPicking((p) => !p)}>
+        <button type="button" className="font-button" data-font-trigger aria-label="Police" aria-expanded={picking} onClick={() => setPicking((p) => !p)}>
           <span style={{ fontFamily: typeof family === 'string' ? `"${family}", system-ui` : undefined }}>{family === 'mixed' ? 'Mixte' : family}</span>
           <Icon d="M5 6.5 8 9.5l3-3" />
         </button>

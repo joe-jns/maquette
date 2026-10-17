@@ -728,6 +728,8 @@ export class InteractionController {
 
   private keyDown(e: KeyboardEvent): void {
     if (typingInField(e.target)) return
+    // Focus dans un panneau latéral : Tab, Entrée, Espace et Échap gardent leur rôle clavier normal.
+    if ((e.target as Element | null)?.closest?.('.panel') && ['Tab', 'Enter', ' ', 'Escape'].includes(e.key)) return
     if (ui().helpOpen) {
       const command = matchShortcut(e)
       if (command === 'escape' || command === 'help') ui().setHelp(false)

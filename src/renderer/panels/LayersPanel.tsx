@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type DragEvent } from 'react'
 import type { Op } from '../../core/ops'
-import { findNode } from '../../core/tree'
+import { findNode, walk } from '../../core/tree'
 import type { Page } from '../../core/types'
 import { docStore, useDoc } from '../state/store'
 import { uiStore, useUi } from '../state/ui'
@@ -43,23 +43,25 @@ export function LayersPanel() {
   const listRef = useRef<HTMLUListElement>(null)
 
   // Les ancêtres de la sélection se déplient pour qu'elle soit visible.
+  // Seulement quand la sélection change : replier ensuite un parent de la sélection reste possible.
   useEffect(() => {
+    const current = docStore.getState().doc
     const need = new Set<string>()
     for (const id of selection) {
-      let loc = findNode(doc, id)
+      let loc = findNode(current, id)
       while (loc?.parent) {
         need.add(loc.parent.id)
-        loc = findNode(doc, loc.parent.id)
+        loc = findNode(current, loc.parent.id)
       }
     }
-    if ([...need].some((id) => !expanded.has(id))) setExpanded((prev) => new Set([...prev, ...need]))
-  }, [selection, doc, expanded])
+    setExpanded((prev) => ([...need].every((id) => prev.has(id)) ? prev : new Set([...prev, ...need])))
+  }, [selection])
 
-  // La ligne sélectionnée reste visible.
+  // La ligne sélectionnée reste visible (après le dépliage ci-dessus).
   useEffect(() => {
     const [first] = selection
-    if (first) listRef.current?.querySelector(`[data-layer-id="${CSS.escape(first)}"]`)?.scrollIntoView({ block: 'nearest' })
-  }, [selection, expanded])
+    if (first) requestAnimationFrame(() => listRef.current?.querySelector(`[data-layer-id="${CSS.escape(first)}"]`)?.scrollIntoView({ block: 'nearest' }))
+  }, [selection])
 
   const rows = useMemo(() => layerRows(page, expanded), [page, expanded])
 
@@ -128,7 +130,11 @@ export function LayersPanel() {
               onMouseLeave={() => uiStore.getState().setHover(null)}
               onDragStart={(e) => {
                 const ui = uiStore.getState()
-                dragged.current = ui.selection.includes(row.id) ? ui.selection : [row.id]
+                // Ordre du document (pas l'ordre des clics) : le bloc garde son ordre relatif.
+                const ids = ui.selection.includes(row.id) ? ui.selection : [row.id]
+                const order: string[] = []
+                walk(docStore.getState().doc, ({ node }) => order.push(node.id))
+                dragged.current = [...ids].sort((a, b) => order.indexOf(a) - order.indexOf(b))
                 e.dataTransfer.effectAllowed = 'move'
                 e.dataTransfer.setData('text/plain', row.id)
               }}
