@@ -1,5 +1,6 @@
 import type { MaquetteDocument } from '../core/types'
 import type { ChatApi } from './chat'
+import type { ImagesApi } from './images'
 import type { RecentEntry } from './home'
 import type { ToolResult } from '../mcp/tools'
 import type { DirectionOption, DirectionSheet } from '../taste/direction'
@@ -93,6 +94,8 @@ export interface MaquetteApi {
     /** Contrôle qualité d'un cadre ; null si introuvable, masqué ou trop long. */
     check(doc: MaquetteDocument, nodeId: string, allow?: string[]): Promise<TasteCheck | null>
   }
+  /** Photos libres pour l'outil MCP `images` : recherche, téléchargement dans assets/, crédits. */
+  images: ImagesApi
   /** La fenêtre peut recevoir les outils (document initial chargé) ; false pendant le chargement. */
   mcpReady(ready: boolean): void
   backup: {

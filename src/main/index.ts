@@ -7,6 +7,7 @@ import { closeExportWindow, isExportWindow, registerExportIpc, renderNode } from
 import { FONT_SCHEME, handleFonts, registerFontIpc } from './fontService'
 import { registerFileIpc } from './ipc'
 import { registerHomeIpc } from './home'
+import { registerImageIpc } from './imageSearch'
 import { guardClose, registerSessionIpc } from './docSession'
 import { startMcp } from './mcpApp'
 import { registerTasteIpc } from './taste'
@@ -76,6 +77,7 @@ registerHomeIpc()
 registerFontIpc()
 registerExportIpc()
 registerTasteIpc()
+registerImageIpc()
 registerChatIpc()
 registerSessionIpc()
 // Tests : la fenêtre reste derrière les autres ; Chromium ne doit pas la ralentir pour autant.

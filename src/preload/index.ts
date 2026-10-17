@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 import type { ChatEvent, ChatItem } from '../shared/chat'
+import type { ImageCredit, ImagePlace, ImageSearch } from '../shared/images'
 import type { DialogRequest, ExportJob, ExportMeasure, FontInfo, ImageImport, MaquetteApi, MenuCommand, OpenedFile, RenderedImage } from '../shared/ipc'
 
 // Questions du principal : arrivées avant que la fenêtre écoute (démarrage), elles l'attendent.
@@ -41,6 +42,11 @@ const api: MaquetteApi = {
     options: (input) => ipcRenderer.invoke('taste:options', input),
     direction: (input) => ipcRenderer.invoke('taste:direction', input),
     check: (doc, nodeId, allow) => ipcRenderer.invoke('taste:check', { doc, nodeId, allow }),
+  },
+  images: {
+    search: (query, n, thumbs) => ipcRenderer.invoke('images:search', { query, n, thumbs }) as Promise<ImageSearch>,
+    place: (ref) => ipcRenderer.invoke('images:place', ref) as Promise<ImagePlace>,
+    credits: () => ipcRenderer.invoke('images:credits') as Promise<ImageCredit[]>,
   },
   mcpReady: (ready) => ipcRenderer.send('mcp:ready', ready),
   backup: {
