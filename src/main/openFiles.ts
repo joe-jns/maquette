@@ -5,6 +5,7 @@ import type { OpenedFile } from '../shared/ipc'
 import { askWindow } from './askDialog'
 import { RecentStore } from './recent'
 import { offerPath } from './state'
+import { ensureThumb, removeThumb } from './thumbs'
 import { FileWatcher } from './watch'
 
 let recent: RecentStore | null = null
@@ -54,6 +55,17 @@ export function documentShown(path: string | null): void {
   if (text !== undefined) watcher?.wrote(text)
   watcher?.watch(path)
   if (path) void addRecent(path)
+  // Ouvert depuis le disque sans aperçu pour l'accueil : il est fait un peu plus tard.
+  if (path && text !== undefined) ensureThumb(path, text)
+}
+
+/** Les fichiers récents, du plus récemment ouvert au plus ancien. */
+export const listRecents = (): Promise<string[]> => recents().list()
+
+/** Retire un fichier des récents (menu et accueil suivent) ; son aperçu est effacé. */
+export async function removeRecent(path: string): Promise<void> {
+  onRecentChange(await recents().remove(path))
+  await removeThumb(path)
 }
 
 /** Avant un enregistrement : notre propre écriture ne doit pas passer pour un changement extérieur. */
@@ -79,7 +91,7 @@ export async function openInWindow(path: string): Promise<void> {
     win.webContents.send('open-file', await readForWindow(path))
   } catch {
     // Retiré des récents sans attendre la réponse : la question n'a qu'un bouton.
-    onRecentChange(await recents().remove(path))
+    await removeRecent(path)
     await askWindow(win, {
       message: `${basename(path)} est introuvable.`,
       detail: `${path}\nIl est retiré des fichiers récents.`,
