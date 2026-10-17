@@ -1,0 +1,29 @@
+# Installateur Windows de Maquette (npm run dist).
+appId: yt.joe.maquette
+productName: Maquette
+copyright: Copyright © 2026 Joakim Janssens
+directories:
+  output: dist
+  buildResources: build
+files:
+  - out/**
+  - package.json
+# La copie de taste-skill reste hors de l'archive : draw.mjs est lancé comme un vrai fichier.
+extraResources:
+  - from: vendor/taste-skill
+    to: vendor/taste-skill
+win:
+  target: nsis
+  icon: build/icon.ico
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  shortcutName: Maquette
+fileAssociations:
+  - ext: maquette
+    name: Maquette
+    description: Maquette de site
+    icon: build/icon.ico
+    role: Editor
