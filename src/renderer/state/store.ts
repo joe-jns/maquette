@@ -1,3 +1,4 @@
+import { freeze } from 'immer'
 import { createStore, useStore } from 'zustand'
 import { History } from '../../core/history'
 import { applyOps, type ApplyResult, type Measure, type Op } from '../../core/ops'
@@ -48,7 +49,7 @@ const livePage = (doc: MaquetteDocument, pageId: string) => (doc.pages.some((p) 
 let measure: Measure | undefined
 let gesture: Gesture | null = null
 
-const initial = newDocument()
+const initial = freeze(newDocument(), true)
 
 export const docStore = createStore<DocState>()((set, get) => ({
   doc: initial,
@@ -61,6 +62,8 @@ export const docStore = createStore<DocState>()((set, get) => ({
   inGesture: false,
 
   load(doc, path) {
+    // Gelé comme tout document produit par Immer : il ne change plus, son index (core/tree) reste juste.
+    freeze(doc, true)
     history.clear()
     gesture = null
     set({ doc, filePath: path, dirty: false, pageId: doc.pages[0]!.id, notice: null, canUndo: false, canRedo: false, inGesture: false })
