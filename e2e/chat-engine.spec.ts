@@ -106,8 +106,8 @@ test.describe('chat : moteur', () => {
       await idle(page)
       const tool = (await events(page)).filter((e) => e.type === 'item' && e.item.kind === 'tool').map((e) => e.type === 'item' && e.item)
       expect(tool).toEqual([
-        { kind: 'tool', id: 'toolu_dessin', name: 'appliquer', summary: 'appliquer · 1 opération', status: 'running' },
-        { kind: 'tool', id: 'toolu_dessin', name: 'appliquer', summary: 'appliquer · 1 opération', status: 'done' },
+        { kind: 'tool', id: 'toolu_dessin', name: 'appliquer', summary: '1 opération', status: 'running' },
+        { kind: 'tool', id: 'toolu_dessin', name: 'appliquer', summary: '1 opération', status: 'done' },
       ])
       expect(await texts(page, 'assistant')).toEqual(['Fait.'])
       const names = await page.evaluate(() =>
@@ -130,7 +130,7 @@ test.describe('chat : moteur', () => {
       await open(page, s.file)
       await send(page, 'lance une commande')
       const p1 = await asking()
-      expect(p1).toMatchObject({ tool: 'Bash', summary: 'Bash · echo hi' })
+      expect(p1).toMatchObject({ tool: 'Bash', summary: 'echo hi' })
       await permission(page, p1.requestId, 'allow')
       await idle(page)
       expect((await items(page)).find((i) => i.id === p1.id)).toMatchObject({ status: 'allowed' })

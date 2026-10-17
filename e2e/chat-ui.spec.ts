@@ -35,7 +35,7 @@ test('Ctrl+L, historique, texte au fil de l’eau, autorisation, Stop', async ()
     await expect(panel.locator('.chat-bubble')).toContainText('+ 1 image')
     await expect(panel.locator('.chat-assistant strong')).toHaveText('trois')
     await expect(panel.locator('.chat-assistant li')).toHaveText(['Base', 'Pro'])
-    await expect(panel.locator('.chat-tool')).toContainText('appliquer')
+    await expect(panel.locator('.chat-tool')).toContainText('Modifie la maquette')
 
     // Texte qui arrive, curseur pendant que Claude travaille.
     await emit(app, { type: 'busy', busy: true })

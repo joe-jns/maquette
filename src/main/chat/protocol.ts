@@ -30,13 +30,13 @@ export function toolName(name: string): string {
 
 const cut = (s: string, max: number) => (s.length > max ? `${s.slice(0, max - 1)}…` : s)
 
-/** Résumé d'un appel d'outil en une ligne courte. */
+/** Détail d'un appel d'outil en une ligne courte (sans le nom de l'outil, affiché à côté) ; vide s'il n'y en a pas. */
 export function toolSummary(name: string, input: unknown): string {
   const short = toolName(name)
   const args = isObj(input) ? input : {}
   if (short === 'appliquer') {
     const ops = Array.isArray(args.operations) ? args.operations : Array.isArray(args.ops) ? args.ops : null
-    if (ops) return `appliquer · ${ops.length} opération${ops.length > 1 ? 's' : ''}`
+    if (ops) return `${ops.length} opération${ops.length > 1 ? 's' : ''}`
   }
   const first = (...keys: string[]) => keys.map((k) => str(args[k])).find((v) => v !== undefined)
   const detail =
@@ -46,7 +46,7 @@ export function toolSummary(name: string, input: unknown): string {
     : short === 'WebSearch' ? first('query')
     : short === 'Glob' || short === 'Grep' ? first('pattern')
     : undefined
-  return detail ? `${short} · ${cut(detail.replace(/\s+/g, ' ').trim(), 80)}` : short
+  return detail ? cut(detail.replace(/\s+/g, ' ').trim(), 80) : ''
 }
 
 const RESUME_FAILED = /No conversation found/i

@@ -30,8 +30,8 @@ describe('décodage des lignes de claude', () => {
     const all = [L.init, L.hook, L.start1, L.toolStart, L.toolJson, L.toolUse, L.toolResult, L.rate, L.start2, L.thinkStart, L.textStart, L.delta1, L.delta2, L.thinking, L.text, L.result].flatMap(decode)
     expect(all).toEqual([
       { type: 'session', sessionId: 'a82640d3-8f1c-4734-b926-f907e7f9949a' },
-      { type: 'item', item: { kind: 'tool', id: 'toolu_01K5fsbrLuoJyhUaQTYKNT7z', name: 'Bash', summary: 'Bash · echo hi', status: 'running' } },
-      { type: 'item', item: { kind: 'tool', id: 'toolu_01K5fsbrLuoJyhUaQTYKNT7z', name: 'Bash', summary: 'Bash · echo hi', status: 'done' } },
+      { type: 'item', item: { kind: 'tool', id: 'toolu_01K5fsbrLuoJyhUaQTYKNT7z', name: 'Bash', summary: 'echo hi', status: 'running' } },
+      { type: 'item', item: { kind: 'tool', id: 'toolu_01K5fsbrLuoJyhUaQTYKNT7z', name: 'Bash', summary: 'echo hi', status: 'done' } },
       { type: 'delta', id: 'msg_011Cg7k1sC7AVSKnSZzkCiUt:1', text: 'O' },
       { type: 'delta', id: 'msg_011Cg7k1sC7AVSKnSZzkCiUt:1', text: 'K' },
       // Même id que les morceaux : le texte complet les remplace (blocs « thinking » ignorés).
@@ -50,12 +50,12 @@ describe('décodage des lignes de claude', () => {
     const decode = createDecoder()
     decode(L.toolUse)
     expect(decode(L.toolResult.replace('"is_error":false', '"is_error":true'))).toEqual([
-      { type: 'item', item: { kind: 'tool', id: 'toolu_01K5fsbrLuoJyhUaQTYKNT7z', name: 'Bash', summary: 'Bash · echo hi', status: 'error' } },
+      { type: 'item', item: { kind: 'tool', id: 'toolu_01K5fsbrLuoJyhUaQTYKNT7z', name: 'Bash', summary: 'echo hi', status: 'error' } },
     ])
   })
 
   it('demande d’accord', () => {
-    expect(createDecoder()(L.permission)).toEqual([{ type: 'permission', requestId: 'req-7', tool: 'Bash', input: { command: 'rm -rf build' }, summary: 'Bash · rm -rf build' }])
+    expect(createDecoder()(L.permission)).toEqual([{ type: 'permission', requestId: 'req-7', tool: 'Bash', input: { command: 'rm -rf build' }, summary: 'rm -rf build' }])
   })
 
   it('reprise impossible : conversation introuvable', () => {
@@ -72,17 +72,17 @@ describe('décodage des lignes de claude', () => {
 
 describe('résumés des outils', () => {
   it('outils de Maquette sans préfixe, nombre d’opérations', () => {
-    expect(toolSummary('mcp__maquette__appliquer', { operations: [{ op: 'create' }, { op: 'update' }] })).toBe('appliquer · 2 opérations')
-    expect(toolSummary('mcp__maquette__appliquer', { ops: [{ op: 'create' }] })).toBe('appliquer · 1 opération')
-    expect(toolSummary('mcp__maquette__lire_document', {})).toBe('lire_document')
+    expect(toolSummary('mcp__maquette__appliquer', { operations: [{ op: 'create' }, { op: 'update' }] })).toBe('2 opérations')
+    expect(toolSummary('mcp__maquette__appliquer', { ops: [{ op: 'create' }] })).toBe('1 opération')
+    expect(toolSummary('mcp__maquette__lire_document', {})).toBe('')
   })
 
   it('commande tronquée, chemin, adresse', () => {
     const long = `echo ${'a'.repeat(100)}`
-    expect(toolSummary('Bash', { command: long })).toHaveLength('Bash · '.length + 80)
-    expect(toolSummary('Read', { file_path: 'C:\\x\\a.ts' })).toBe('Read · C:\\x\\a.ts')
-    expect(toolSummary('WebFetch', { url: 'https://exemple.be' })).toBe('WebFetch · https://exemple.be')
-    expect(toolSummary('TodoWrite', { todos: [] })).toBe('TodoWrite')
+    expect(toolSummary('Bash', { command: long })).toHaveLength(80)
+    expect(toolSummary('Read', { file_path: 'C:\\x\\a.ts' })).toBe('C:\\x\\a.ts')
+    expect(toolSummary('WebFetch', { url: 'https://exemple.be' })).toBe('https://exemple.be')
+    expect(toolSummary('TodoWrite', { todos: [] })).toBe('')
   })
 })
 

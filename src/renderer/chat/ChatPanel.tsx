@@ -28,14 +28,39 @@ const NEW = 'M12 5v14M5 12h14'
 
 // ——— Éléments de la conversation ———
 
+/** Noms lisibles des outils (Maquette et Claude Code) ; les autres restent tels quels. */
+const TOOL_LABELS: Record<string, string> = {
+  lire_document: 'Lit le document',
+  lire_elements: 'Lit des éléments',
+  chercher: 'Cherche dans le document',
+  appliquer: 'Modifie la maquette',
+  capture: 'Regarde le rendu',
+  selection: 'Lit la sélection',
+  verifier_gout: 'Vérifie le goût',
+  ToolSearch: 'Prépare ses outils',
+  Read: 'Lit un fichier',
+  Write: 'Écrit un fichier',
+  Edit: 'Modifie un fichier',
+  Bash: 'Lance une commande',
+  PowerShell: 'Lance une commande',
+  Glob: 'Cherche des fichiers',
+  Grep: 'Cherche dans les fichiers',
+  WebFetch: 'Lit une page web',
+  WebSearch: 'Cherche sur le web',
+  TodoWrite: 'Note ses étapes',
+  Task: 'Lance un sous-agent',
+  Agent: 'Lance un sous-agent',
+}
+const toolLabel = (name: string) => TOOL_LABELS[name] ?? name
+
 function ToolLine({ item }: { item: Extract<ChatItem, { kind: 'tool' }> }) {
-  const label = `${item.name}${item.summary ? ` · ${item.summary}` : ''}`
+  const label = `${toolLabel(item.name)}${item.summary ? ` · ${item.summary}` : ''}`
   return (
     <div className={`chat-tool is-${item.status}`} title={label} data-status={item.status}>
       <span className="chat-tool-state" aria-hidden>
         {item.status === 'done' ? '✓' : item.status === 'error' ? '!' : <span className="chat-dot" />}
       </span>
-      <span className="chat-tool-name">{item.name}</span>
+      <span className="chat-tool-name">{toolLabel(item.name)}</span>
       {item.summary && <span className="chat-tool-summary">{item.summary}</span>}
       <span className="visually-hidden">{item.status === 'running' ? ' (en cours)' : item.status === 'error' ? ' (erreur)' : ' (fait)'}</span>
     </div>
@@ -47,7 +72,7 @@ function PermissionCard({ item }: { item: Extract<ChatItem, { kind: 'permission'
   const [sent, setSent] = useState(false)
   if (item.status !== 'asking') {
     const allowed = item.status === 'allowed'
-    const label = `${allowed ? 'Autorisé' : 'Refusé'} : ${item.tool}`
+    const label = `${allowed ? 'Autorisé' : 'Refusé'} : ${toolLabel(item.tool)}`
     return (
       <div className={`chat-tool ${allowed ? 'is-done' : 'is-denied'}`} title={`${label}${item.summary ? ` · ${item.summary}` : ''}`}>
         <span className="chat-tool-state" aria-hidden>{allowed ? '✓' : '×'}</span>
