@@ -123,7 +123,7 @@ export function Overlay() {
         return (
           <g key={`d${i}`} data-distance>
             <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={GUIDE} strokeWidth={1} />
-            <SizeLabel x={(a.x + b.x) / 2} y={(a.y + b.y) / 2 - 10} text={String(round(d.length))} color={GUIDE} />
+            <SizeLabel x={(a.x + b.x) / 2} y={(a.y + b.y) / 2 - 10} text={round(d.length)} color={GUIDE} />
           </g>
         )
       })}
@@ -131,10 +131,14 @@ export function Overlay() {
   )
 }
 
-/** Valeur affichée : au dixième, et un quasi-entier (bruit de mesure à zoom non entier) devient entier. */
+/**
+ * Valeur affichée : un quasi-entier (bruit de mesure à zoom non entier) devient entier,
+ * sinon une décimale, avec la virgule française (« 339,9 »).
+ */
 const round = (n: number) => {
   const whole = Math.round(n)
-  return Math.abs(n - whole) < 0.05 ? whole : Math.round(n * 10) / 10
+  const value = Math.abs(n - whole) < 0.05 ? whole : Math.round(n * 10) / 10
+  return String(value).replace('.', ',')
 }
 
 const rectAttrs = (r: Rect) => ({ x: r.x, y: r.y, width: Math.max(0, r.width), height: Math.max(0, r.height) })
@@ -144,11 +148,21 @@ function RectPath({ r, stroke, width, testId }: { r: Rect; stroke: string; width
 }
 
 function SizeLabel({ x, y, text, color = ACCENT }: { x: number; y: number; text: string; color?: string }) {
+  // Chiffres tabulaires d'Inter à 11 px : ~6,6 px par signe, 6 px de marge de chaque côté.
   const w = text.length * 6.6 + 12
   return (
     <g data-testid={color === ACCENT ? 'size-label' : undefined}>
-      <rect x={x - w / 2} y={y} width={w} height={18} rx={3} fill={color} />
-      <text x={x} y={y + 13} textAnchor="middle" fill="#fff" fontSize={11} fontFamily="system-ui, sans-serif">
+      <rect x={x - w / 2} y={y} width={w} height={16} rx={2} fill={color} />
+      <text
+        x={x}
+        y={y + 12}
+        textAnchor="middle"
+        fill="#fff"
+        fontSize={11}
+        fontWeight={500}
+        fontFamily="'Inter Variable', system-ui, sans-serif"
+        style={{ fontVariantNumeric: 'tabular-nums' }}
+      >
         {text}
       </text>
     </g>
