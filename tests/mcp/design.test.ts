@@ -235,3 +235,15 @@ describe('outil direction', () => {
     expect(t.draws).toEqual([])
   })
 })
+
+describe('style sombre', () => {
+  it('Dark Centered Platform : les rôles inversés deviennent Fond et Encre', () => {
+    const style = findStyle(lib, 'Dark Centered Platform')!
+    const v = variantsOf(lib, style)[0]!
+    const colors = styleStyles(lib, style, v).colors
+    const palette = lib.palettes[v.params.colorPalette!]!
+    expect(colors.find((c) => c.name === 'Fond')?.value).toBe(palette['surface.inverse']!.toUpperCase())
+    expect(colors.find((c) => c.name === 'Encre')?.value).toBe(palette['foreground.inverse']!.toUpperCase())
+    expect(colors.map((c) => c.name)).not.toContain('Fond inversé')
+  })
+})

@@ -68,23 +68,28 @@ export function findVariant(lib: StyleLibrary, style: StyleEntry, name: string):
   return variantsOf(lib, style).find((v) => fold(variantLabel(v)) === n || fold(v.name) === n || fold(v.params.colorPalette ?? '') === n)
 }
 
-/** Fond et encre de base, toujours posés : un style sombre peut ne citer que les rôles inversés. */
+/** Fond et encre de base, toujours posés : Fond et Encre existent pour chaque style. */
 const BASE_KEYS = ['surface.primary', 'foreground.primary']
+
+/** Style sombre : il ne cite que les rôles inversés, qui sont alors son fond et son encre. */
+const isDark = (keys: string[] | undefined) => !!keys?.includes('surface.inverse') && !keys.includes('surface.primary')
+const DARK_NAMES: Record<string, string> = { 'surface.inverse': 'Fond', 'foreground.inverse': 'Encre' }
 
 /** Clés de palette utilisées par le style (toutes sauf les états si le style n'en dit rien), dans l'ordre de la palette. */
 function paletteKeys(lib: StyleLibrary, style: StyleEntry, v: StyleVariant): string[] {
   const all = Object.keys(lib.palettes[v.params.colorPalette ?? ''] ?? {})
   const keys = style.parameters.colorPalette?.keys
-  const wanted = new Set(keys?.length ? [...BASE_KEYS, ...keys] : all.filter((k) => !k.startsWith('status.')))
+  const wanted = new Set(keys?.length ? [...(isDark(keys) ? [] : BASE_KEYS), ...keys] : all.filter((k) => !k.startsWith('status.')))
   return all.filter((k) => wanted.has(k))
 }
 
 export function paletteOf(lib: StyleLibrary, style: StyleEntry, v: StyleVariant): { name: string; value: string; role: string }[] {
   const palette = lib.palettes[v.params.colorPalette ?? ''] ?? {}
+  const dark = isDark(style.parameters.colorPalette?.keys)
   const out: { name: string; value: string; role: string }[] = []
   for (const role of paletteKeys(lib, style, v)) {
     const value = palette[role] ? normalizeColor(palette[role]) : null
-    if (value) out.push({ name: COLOR_NAMES[role] ?? role, value, role })
+    if (value) out.push({ name: (dark && DARK_NAMES[role]) || COLOR_NAMES[role] || role, value, role })
   }
   return out
 }
