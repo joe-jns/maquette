@@ -1,6 +1,7 @@
 import { app, BrowserWindow, protocol } from 'electron'
 import { join } from 'node:path'
 import { ASSET_SCHEME, handleAssets } from './assets'
+import { closeExportWindow, isExportWindow, registerExportIpc, renderNode } from './exportPng'
 import { FONT_SCHEME, handleFonts, registerFontIpc } from './fontService'
 import { registerFileIpc } from './ipc'
 import { buildMenu } from './menu'
@@ -21,6 +22,10 @@ function createWindow(): BrowserWindow {
     },
   })
   win.once('ready-to-show', () => win.show())
+  // La fenêtre cachée de l'export ne doit pas garder l'app ouverte une fois l'éditeur fermé.
+  win.on('closed', () => {
+    if (editorWindows().length === 0) closeExportWindow()
+  })
   // La fenêtre ne quitte jamais l'éditeur : ni navigation (fichier lâché, lien), ni nouvelle fenêtre.
   win.webContents.on('will-navigate', (e) => e.preventDefault())
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
@@ -33,8 +38,14 @@ function createWindow(): BrowserWindow {
   return win
 }
 
+const editorWindows = () => BrowserWindow.getAllWindows().filter((w) => !isExportWindow(w))
+
 registerFileIpc(fileArg)
 registerFontIpc()
+registerExportIpc()
+if (process.env.MAQUETTE_E2E === '1') {
+  ;(globalThis as unknown as { __maquetteRenderNode: typeof renderNode }).__maquetteRenderNode = renderNode
+}
 // Un seul appel : chaque appel remplace la liste des protocoles privilégiés.
 protocol.registerSchemesAsPrivileged([ASSET_SCHEME, FONT_SCHEME])
 
@@ -44,9 +55,11 @@ app.whenReady().then(() => {
   buildMenu()
   createWindow()
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    if (editorWindows().length === 0) createWindow()
   })
 })
+
+app.on('before-quit', () => closeExportWindow())
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
