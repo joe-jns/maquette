@@ -105,7 +105,11 @@ test('la barre d’outils change l’outil au clic', async () => {
   const { app, page } = await launch([scene])
   await settled(page, 'rBleu1')
   await resetCamera(page)
-  await page.locator('[data-tool-button="ellipse"]').click()
+  await page.locator('[data-tool-button="text"]').click()
+  expect((await uiState(page)).tool).toBe('text')
+  // L'ellipse est dans le groupe des formes : chevron, puis choix dans la liste.
+  await page.getByRole('button', { name: 'Formes' }).click()
+  await page.getByRole('menuitemradio', { name: 'Ellipse' }).click()
   expect((await uiState(page)).tool).toBe('ellipse')
   await expect(page.locator('[data-tool-button="ellipse"]')).toHaveAttribute('aria-pressed', 'true')
   await page.keyboard.press('Escape')

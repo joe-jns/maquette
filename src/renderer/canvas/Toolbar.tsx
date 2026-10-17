@@ -1,34 +1,118 @@
+import { Fragment, useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { uiStore, useUi, type Tool } from '../state/ui'
+import { Icon, type IconName } from '../ui/icons'
+import { QuickMenu } from '../ui/QuickMenu'
 import { shortcutKeys } from './shortcuts'
 
-const TOOLS: { tool: Tool; label: string; icon: string }[] = [
-  { tool: 'move', label: 'Déplacer', icon: 'M5 3l14 8-6 2-3 6z' },
-  { tool: 'frame', label: 'Cadre', icon: 'M7 3v18M17 3v18M3 7h18M3 17h18' },
-  { tool: 'rect', label: 'Rectangle', icon: 'M4 5h16v14H4z' },
-  { tool: 'ellipse', label: 'Ellipse', icon: 'M12 5a8 7 0 1 0 0.01 0z' },
-  { tool: 'text', label: 'Texte', icon: 'M5 5h14M12 5v14M9 19h6' },
-]
+interface ToolDef { tool: Tool; label: string; key: string; icon: IconName }
 
-/** Barre d'outils flottante en bas du canevas ; ses infobulles s'ouvrent au-dessus. */
+const MOVE: ToolDef = { tool: 'move', label: 'Déplacer', key: 'V', icon: 'move' }
+const FRAME: ToolDef = { tool: 'frame', label: 'Cadre', key: 'F', icon: 'frame' }
+const SHAPES: ToolDef[] = [
+  { tool: 'rect', label: 'Rectangle', key: 'R', icon: 'rect' },
+  { tool: 'ellipse', label: 'Ellipse', key: 'O', icon: 'ellipse' },
+]
+const TEXT: ToolDef = { tool: 'text', label: 'Texte', key: 'T', icon: 'text' }
+
+/** Groupes séparés par un trait : sélection | création (cadre, formes, texte). */
+const GROUPS: (ToolDef | 'shapes')[][] = [[MOVE], [FRAME, 'shapes', TEXT]]
+
+function ToolButton({ def, current }: { def: ToolDef; current: Tool }) {
+  return (
+    <button
+      type="button"
+      className="tool-button"
+      data-tool-button={def.tool}
+      aria-pressed={current === def.tool}
+      data-tooltip={def.label}
+      data-shortcut={shortcutKeys(`tool.${def.tool}`)}
+      onClick={() => uiStore.getState().setTool(def.tool)}
+    >
+      <Icon name={def.icon} />
+      <span className="visually-hidden">{def.label}</span>
+    </button>
+  )
+}
+
+/** Outil de forme, avec son chevron qui ouvre la liste des formes ; la dernière forme choisie reste affichée. */
+function ShapeGroup({ current }: { current: Tool }) {
+  const [shape, setShape] = useState<ToolDef>(SHAPES[0]!)
+  const [open, setOpen] = useState(false)
+  const chevron = useRef<HTMLButtonElement>(null)
+  const group = useRef<HTMLDivElement>(null)
+
+  // Une forme prise au clavier (R, O) devient aussi celle du groupe.
+  useEffect(() => {
+    const found = SHAPES.find((s) => s.tool === current)
+    if (found) setShape(found)
+  }, [current])
+
+  return (
+    <div className="tool-split" ref={group}>
+      <ToolButton def={shape} current={current} />
+      <button
+        ref={chevron}
+        type="button"
+        className="tool-chevron"
+        aria-label="Formes"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        data-tooltip="Formes"
+        onClick={() => setOpen((o) => !o)}
+        onKeyDown={(e) => {
+          if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+            e.preventDefault()
+            e.stopPropagation()
+            setOpen(true)
+          }
+        }}
+      >
+        <Icon name="chevronDownSmall" size={16} />
+      </button>
+      {open && (
+        <QuickMenu
+          anchor={chevron}
+          alignTo={group}
+          label="Formes"
+          placement="above"
+          onClose={() => setOpen(false)}
+          entries={SHAPES.map((s) => ({
+            id: s.tool,
+            label: s.label,
+            icon: s.icon,
+            shortcut: s.key,
+            checked: s.tool === shape.tool,
+            onSelect: () => {
+              setShape(s)
+              uiStore.getState().setTool(s.tool)
+            },
+          }))}
+        />
+      )}
+    </div>
+  )
+}
+
+/**
+ * Entrée et Espace sur un bouton posé sur le canevas : le bouton s'active, le canevas ne les voit pas
+ * (sinon Entrée « sélectionne les enfants » et Espace passe en mode main).
+ */
+export function keepButtonKeys(e: KeyboardEvent<HTMLElement>): void {
+  if ((e.key === 'Enter' || e.key === ' ') && (e.target as HTMLElement).closest('button')) e.stopPropagation()
+}
+
+/** Barre d'outils flottante en bas du canevas, centrée (Figma UI3). */
 export function Toolbar() {
   const current = useUi((s) => s.tool)
   return (
-    <div className="toolbar" role="toolbar" aria-label="Outils" data-ui data-tooltip-side="top">
-      {TOOLS.map(({ tool, label, icon }) => (
-        <button
-          key={tool}
-          type="button"
-          data-tool-button={tool}
-          aria-pressed={current === tool}
-          data-tooltip={label}
-          data-shortcut={shortcutKeys(`tool.${tool}`)}
-          onClick={() => uiStore.getState().setTool(tool)}
-        >
-          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden>
-            <path d={icon} fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" strokeLinecap="round" />
-          </svg>
-          <span className="visually-hidden">{label}</span>
-        </button>
+    <div className="toolbar" role="toolbar" aria-label="Outils" data-ui data-tooltip-side="top" onKeyDown={keepButtonKeys}>
+      {GROUPS.map((group, g) => (
+        <Fragment key={g}>
+          {g > 0 && <span className="toolbar-separator" aria-hidden />}
+          {group.map((item) =>
+            item === 'shapes' ? <ShapeGroup key="shapes" current={current} /> : <ToolButton key={item.tool} def={item} current={current} />,
+          )}
+        </Fragment>
       ))}
     </div>
   )

@@ -12,6 +12,7 @@ import { Overlay } from './Overlay'
 import { HelpOverlay } from './HelpOverlay'
 import { TastePins } from './TastePins'
 import { Toolbar } from './Toolbar'
+import { ZoomControl } from './ZoomControl'
 
 export function Canvas() {
   const page = useDoc((s) => s.doc.pages.find((p) => p.id === s.pageId) ?? s.doc.pages[0]!)
@@ -99,7 +100,7 @@ export function Canvas() {
       <TastePins />
       <Toolbar />
       <HelpOverlay />
-      <div className="zoom-badge" data-testid="zoom">{formatZoom(camera.zoom)}</div>
+      <ZoomControl />
       {menu && (
         <Menu
           label="Canevas"
@@ -112,5 +113,3 @@ export function Canvas() {
     </div>
   )
 }
-
-const formatZoom = (zoom: number) => `${Math.round(zoom * 100)} %`

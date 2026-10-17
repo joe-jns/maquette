@@ -1,107 +1,261 @@
-import { useEffect, useMemo, useRef, useState, type DragEvent } from 'react'
+import { memo, useEffect, useMemo, useRef, useState, type DragEvent, type MouseEvent } from 'react'
 import type { Op } from '../../core/ops'
 import { findNode, walk } from '../../core/tree'
-import type { Page } from '../../core/types'
 import { docStore, useDoc } from '../state/store'
 import { uiStore, useUi } from '../state/ui'
 import { selectionMenu } from '../canvas/contextMenu'
+import { Icon } from '../ui/icons'
 import { Menu } from '../ui/Menu'
 import { InlineName } from './InlineName'
 import { layerDrop, layerRows, type LayerRow } from './layerRows'
 
-/** Icône par type d'élément (un cadre automatique montre sa direction). */
-function TypeIcon({ row, page }: { row: LayerRow; page: Page }) {
-  const node = findNode({ format: 'maquette', version: 1, styles: { colors: [], text: [] }, pages: [page] }, row.id)?.node
-  let d = 'M3 3h10v10H3z'
-  if (node?.type === 'frame') {
-    d = node.layout.mode === 'auto'
-      ? node.layout.direction === 'row' ? 'M2.5 4.5h4v7h-4zM9.5 4.5h4v7h-4z' : 'M4.5 2.5h7v4h-7zM4.5 9.5h7v4h-7z'
-      : 'M5 2v12M11 2v12M2 5h12M2 11h12'
-  } else if (node?.type === 'text') d = 'M4 4h8M8 4v9'
-  else if (node?.type === 'image') d = 'M2.5 3.5h11v9h-11zM2.5 10.5l3.5-3 3 2.5 2-1.5 2.5 2'
-  else if (node?.type === 'shape' && node.shape === 'ellipse') d = 'M8 2.8a5.2 5.2 0 1 0 0.01 0z'
-  return (
-    <svg className="layer-icon" viewBox="0 0 16 16" width="14" height="14" aria-hidden>
-      <path d={d} fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
-    </svg>
-  )
+type Zone = 'before' | 'inside' | 'after'
+
+/** Actions d'une ligne : un seul objet stable, pour que la mémoïsation des lignes tienne. */
+interface RowActions {
+  click(id: string, e: MouseEvent): void
+  toggle(id: string): void
+  rename(id: string | null): void
+  dragStart(id: string, e: DragEvent<HTMLElement>): void
+  dragOver(index: number, row: LayerRow, e: DragEvent<HTMLElement>): void
+  dragLeave(): void
+  drop(index: number, row: LayerRow, e: DragEvent<HTMLElement>): void
+  dragEnd(): void
+  menu(id: string, e: MouseEvent): void
 }
 
-const EYE = 'M1.5 8s2.4-4.5 6.5-4.5S14.5 8 14.5 8 12.1 12.5 8 12.5 1.5 8 1.5 8zM8 6a2 2 0 1 0 0.01 0z'
-const EYE_OFF = 'M2 2l12 12M6.3 4c.5-.2 1.1-.3 1.7-.3 4.1 0 6.5 4.3 6.5 4.3s-.6 1.1-1.8 2.3M10.6 11.7c-.8.5-1.7.8-2.6.8-4.1 0-6.5-4.5-6.5-4.5s.8-1.5 2.3-2.8'
-const LOCK = 'M4.5 7.5h7v6h-7zM6 7.5V5.5a2 2 0 0 1 4 0v2'
-const UNLOCK = 'M4.5 7.5h7v6h-7zM6 7.5V5.5a2 2 0 0 1 3.9-.6'
+const zoneOf = (e: DragEvent<HTMLElement>, row: LayerRow): { ratio: number; zone: Zone } => {
+  const box = e.currentTarget.getBoundingClientRect()
+  const ratio = (e.clientY - box.top) / box.height
+  const zone = ratio < 0.25 ? 'before' : ratio > 0.75 ? 'after' : row.type === 'frame' ? 'inside' : 'before'
+  return { ratio, zone }
+}
 
-/** Arbre des calques de la page affichée (ordre de Figma), synchronisé avec le canevas. */
+/**
+ * Place de la ligne dans la sélection :
+ * - `sel` / `sel-open` : sélectionnée (`open` : ses enfants suivent, le bloc continue dessous) ;
+ * - `in` / `in-last` : descendante d'un élément sélectionné (`last` : dernière ligne du bloc).
+ */
+type Tint = '' | 'sel' | 'sel-open' | 'in' | 'in-last'
+
+function tintOf(selection: string[], row: LayerRow, next: string[] | null): Tint {
+  if (selection.length === 0) return ''
+  if (selection.includes(row.id)) return next?.includes(row.id) ? 'sel-open' : 'sel'
+  // Ancêtre sélectionné le plus haut : c'est lui qui ouvre le bloc.
+  const owner = row.ancestors.findLast((a) => selection.includes(a))
+  if (!owner) return ''
+  return next?.includes(owner) ? 'in' : 'in-last'
+}
+
+const sameList = (a: string[] | null, b: string[] | null) =>
+  a === b || (!!a && !!b && a.length === b.length && a.every((x, i) => x === b[i]))
+
+const sameRow = (a: LayerRow, b: LayerRow) =>
+  a.id === b.id && a.name === b.name && a.type === b.type && a.depth === b.depth && a.parentId === b.parentId &&
+  a.hasChildren === b.hasChildren && a.expanded === b.expanded && a.visible === b.visible && a.locked === b.locked &&
+  a.auto === b.auto && a.icon === b.icon && sameList(a.ancestors, b.ancestors)
+
+interface RowProps {
+  row: LayerRow
+  index: number
+  /** Ancêtres de la ligne suivante (fin du bloc teinté), `null` pour la dernière. */
+  next: string[] | null
+  renaming: boolean
+  dropZone: Zone | null
+  actions: RowActions
+}
+
+/** Une ligne : lit sa propre sélection et son propre survol, ne se redessine que si elle change. */
+const LayerRowView = memo(
+  function LayerRowView({ row, index, next, renaming, dropZone, actions }: RowProps) {
+    const tint = useUi((s) => tintOf(s.selection, row, next))
+    const hover = useUi((s) => s.hoverId === row.id)
+    const selected = tint === 'sel' || tint === 'sel-open'
+    return (
+      <li
+        role="treeitem"
+        aria-selected={selected}
+        aria-expanded={row.hasChildren ? row.expanded : undefined}
+        data-layer-id={row.id}
+        data-tint={tint || undefined}
+        className={[
+          'layer-row',
+          selected && 'is-selected',
+          (tint === 'in' || tint === 'in-last') && 'is-in-selection',
+          hover && 'is-hover',
+          !row.visible && 'is-hidden',
+          dropZone && `drop-${dropZone}`,
+        ].filter(Boolean).join(' ')}
+        style={{ paddingLeft: 4 + row.depth * 16 }}
+        draggable={!renaming}
+        onClick={(e) => actions.click(row.id, e)}
+        onDoubleClick={() => actions.rename(row.id)}
+        onContextMenu={(e) => actions.menu(row.id, e)}
+        onMouseEnter={() => uiStore.getState().setHover(row.id)}
+        onMouseLeave={() => uiStore.getState().setHover(null)}
+        onDragStart={(e) => actions.dragStart(row.id, e)}
+        onDragOver={(e) => actions.dragOver(index, row, e)}
+        onDragLeave={actions.dragLeave}
+        onDrop={(e) => actions.drop(index, row, e)}
+        onDragEnd={actions.dragEnd}
+      >
+        <button
+          type="button"
+          className="twisty"
+          aria-label={row.expanded ? 'Replier' : 'Déplier'}
+          tabIndex={-1}
+          style={{ visibility: row.hasChildren ? 'visible' : 'hidden' }}
+          onClick={(e) => {
+            e.stopPropagation()
+            actions.toggle(row.id)
+          }}
+        >
+          <Icon name="chevronRight" size={16} className={row.expanded ? 'is-open' : undefined} />
+        </button>
+        <Icon name={row.icon} size={16} className="layer-icon" />
+        {renaming ? (
+          <InlineName
+            value={row.name}
+            onCommit={(name) => docStore.getState().dispatch([{ op: 'update', id: row.id, set: { name } }], 'Renommer')}
+            onDone={() => actions.rename(null)}
+          />
+        ) : (
+          <span className="layer-name">{row.name}</span>
+        )}
+        <span className="layer-actions">
+          <button
+            type="button"
+            className={`layer-action${row.locked ? ' is-on' : ''}`}
+            aria-label={row.locked ? 'Déverrouiller' : 'Verrouiller'}
+            data-tooltip={row.locked ? 'Déverrouiller' : 'Verrouiller'}
+            onClick={(e) => {
+              e.stopPropagation()
+              docStore.getState().dispatch([{ op: 'update', id: row.id, set: { locked: !row.locked } }], row.locked ? 'Déverrouiller' : 'Verrouiller')
+            }}
+          >
+            <Icon name={row.locked ? 'lock' : 'unlock'} size={16} />
+          </button>
+          <button
+            type="button"
+            className={`layer-action${!row.visible ? ' is-on' : ''}`}
+            aria-label={row.visible ? 'Masquer' : 'Afficher'}
+            data-tooltip={row.visible ? 'Masquer' : 'Afficher'}
+            onClick={(e) => {
+              e.stopPropagation()
+              docStore.getState().dispatch([{ op: 'update', id: row.id, set: { visible: !row.visible } }], row.visible ? 'Masquer' : 'Afficher')
+            }}
+          >
+            <Icon name={row.visible ? 'eye' : 'eyeOff'} size={16} />
+          </button>
+        </span>
+      </li>
+    )
+  },
+  (a, b) =>
+    a.index === b.index && a.renaming === b.renaming && a.dropZone === b.dropZone && a.actions === b.actions &&
+    sameRow(a.row, b.row) && sameList(a.next, b.next),
+)
+
+/**
+ * Arbre des calques de la page affichée (ordre de Figma), synchronisé avec le canevas.
+ * Le panneau ne dépend ni de la sélection ni du survol : chaque ligne les lit elle-même.
+ */
 export function LayersPanel() {
   const page = useDoc((s) => s.doc.pages.find((p) => p.id === s.pageId) ?? s.doc.pages[0]!)
-  const doc = useDoc((s) => s.doc)
-  const selection = useUi((s) => s.selection)
-  const hoverId = useUi((s) => s.hoverId)
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set())
   const [renaming, setRenaming] = useState<string | null>(null)
   const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null)
-  const [drop, setDrop] = useState<{ index: number; zone: 'before' | 'inside' | 'after' } | null>(null)
+  const [drop, setDrop] = useState<{ index: number; zone: Zone } | null>(null)
   const dragged = useRef<string[] | null>(null)
   const listRef = useRef<HTMLUListElement>(null)
 
-  // Les ancêtres de la sélection se déplient pour qu'elle soit visible.
-  // Seulement quand la sélection change : replier ensuite un parent de la sélection reste possible.
-  useEffect(() => {
-    const current = docStore.getState().doc
-    const need = new Set<string>()
-    for (const id of selection) {
-      let loc = findNode(current, id)
-      while (loc?.parent) {
-        need.add(loc.parent.id)
-        loc = findNode(current, loc.parent.id)
-      }
-    }
-    setExpanded((prev) => ([...need].every((id) => prev.has(id)) ? prev : new Set([...prev, ...need])))
-  }, [selection])
-
-  // La ligne sélectionnée reste visible (après le dépliage ci-dessus).
-  useEffect(() => {
-    const [first] = selection
-    if (first) requestAnimationFrame(() => listRef.current?.querySelector(`[data-layer-id="${CSS.escape(first)}"]`)?.scrollIntoView({ block: 'nearest' }))
-  }, [selection])
-
   const rows = useMemo(() => layerRows(page, expanded), [page, expanded])
+  const latest = useRef({ page, rows, drop })
+  latest.current = { page, rows, drop }
 
-  const toggle = (id: string) =>
-    setExpanded((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
+  // Quand la sélection change : ses ancêtres se déplient (replier ensuite un parent reste possible),
+  // puis sa première ligne est ramenée dans la vue.
+  useEffect(() => {
+    const onSelection = (selection: string[]) => {
+      const current = docStore.getState().doc
+      const need = new Set<string>()
+      for (const id of selection) {
+        let loc = findNode(current, id)
+        while (loc?.parent) {
+          need.add(loc.parent.id)
+          loc = findNode(current, loc.parent.id)
+        }
+      }
+      setExpanded((prev) => ([...need].every((id) => prev.has(id)) ? prev : new Set([...prev, ...need])))
+      const [first] = selection
+      if (first) requestAnimationFrame(() => listRef.current?.querySelector(`[data-layer-id="${CSS.escape(first)}"]`)?.scrollIntoView({ block: 'nearest' }))
+    }
+    onSelection(uiStore.getState().selection)
+    return uiStore.subscribe((s, prev) => {
+      if (s.selection !== prev.selection) onSelection(s.selection)
     })
+  }, [])
 
-  const click = (id: string, e: { shiftKey: boolean; ctrlKey: boolean; metaKey: boolean }) => {
-    const ui = uiStore.getState()
-    if (e.shiftKey || e.ctrlKey || e.metaKey) {
-      ui.select(ui.selection.includes(id) ? ui.selection.filter((s) => s !== id) : [...ui.selection, id])
-    } else ui.select([id])
-  }
-
-  const zoneOf = (e: DragEvent<HTMLElement>, row: LayerRow): { ratio: number; zone: 'before' | 'inside' | 'after' } => {
-    const box = e.currentTarget.getBoundingClientRect()
-    const ratio = (e.clientY - box.top) / box.height
-    const zone = ratio < 0.25 ? 'before' : ratio > 0.75 ? 'after' : row.type === 'frame' ? 'inside' : 'before'
-    return { ratio, zone }
-  }
-
-  const onDrop = (e: DragEvent<HTMLElement>, index: number, row: LayerRow) => {
-    e.preventDefault()
-    const ids = dragged.current
-    dragged.current = null
-    setDrop(null)
-    if (!ids) return
-    const target = layerDrop(page, rows, index, zoneOf(e, row).ratio, ids)
-    if (!target) return
-    // Les éléments tirés gardent leur ordre relatif, à partir de la place visée.
-    const ops: Op[] = ids.map((id, k) => ({ op: 'move', id, parent: target.parent, index: target.index + k }))
-    docStore.getState().dispatch(ops, 'Déplacer')
-  }
+  const actions = useMemo<RowActions>(() => ({
+    click(id, e) {
+      const ui = uiStore.getState()
+      if (e.shiftKey || e.ctrlKey || e.metaKey) {
+        ui.select(ui.selection.includes(id) ? ui.selection.filter((s) => s !== id) : [...ui.selection, id])
+      } else ui.select([id])
+    },
+    toggle(id) {
+      setExpanded((prev) => {
+        const next = new Set(prev)
+        if (next.has(id)) next.delete(id)
+        else next.add(id)
+        return next
+      })
+    },
+    rename: setRenaming,
+    dragStart(id, e) {
+      const ui = uiStore.getState()
+      // Ordre du document (pas l'ordre des clics) : le bloc garde son ordre relatif.
+      const ids = ui.selection.includes(id) ? ui.selection : [id]
+      const order: string[] = []
+      walk(docStore.getState().doc, ({ node }) => order.push(node.id))
+      dragged.current = [...ids].sort((a, b) => order.indexOf(a) - order.indexOf(b))
+      e.dataTransfer.effectAllowed = 'move'
+      e.dataTransfer.setData('text/plain', id)
+    },
+    dragOver(index, row, e) {
+      if (!dragged.current) return
+      e.preventDefault()
+      const { zone } = zoneOf(e, row)
+      const d = latest.current.drop
+      if (d?.index !== index || d.zone !== zone) setDrop({ index, zone })
+    },
+    dragLeave() {
+      setDrop(null)
+    },
+    drop(index, row, e) {
+      e.preventDefault()
+      const ids = dragged.current
+      dragged.current = null
+      setDrop(null)
+      if (!ids) return
+      const { page: p, rows: r } = latest.current
+      const target = layerDrop(p, r, index, zoneOf(e, row).ratio, ids)
+      if (!target) return
+      // Les éléments tirés gardent leur ordre relatif, à partir de la place visée.
+      const ops: Op[] = ids.map((id, k) => ({ op: 'move', id, parent: target.parent, index: target.index + k }))
+      docStore.getState().dispatch(ops, 'Déplacer')
+    },
+    dragEnd() {
+      dragged.current = null
+      setDrop(null)
+    },
+    menu(id, e) {
+      // Comme Figma : un calque hors de la sélection devient la sélection.
+      e.preventDefault()
+      if (!uiStore.getState().selection.includes(id)) uiStore.getState().select([id])
+      setMenu({ id, x: e.clientX, y: e.clientY })
+    },
+  }), [])
 
   return (
     <section className="panel-section layers" aria-label="Calques">
@@ -109,115 +263,17 @@ export function LayersPanel() {
         <h2>Calques</h2>
       </header>
       <ul className="layer-list" role="tree" ref={listRef}>
-        {rows.map((row, index) => {
-          const selected = selection.includes(row.id)
-          return (
-            <li
-              key={row.id}
-              role="treeitem"
-              aria-selected={selected}
-              aria-expanded={row.hasChildren ? row.expanded : undefined}
-              data-layer-id={row.id}
-              className={[
-                'layer-row',
-                selected && 'is-selected',
-                hoverId === row.id && 'is-hover',
-                !row.visible && 'is-hidden',
-                drop?.index === index && `drop-${drop.zone}`,
-              ].filter(Boolean).join(' ')}
-              style={{ paddingLeft: 6 + row.depth * 14 }}
-              draggable={renaming !== row.id}
-              onClick={(e) => click(row.id, e)}
-              onDoubleClick={() => setRenaming(row.id)}
-              onContextMenu={(e) => {
-                // Comme Figma : un calque hors de la sélection devient la sélection.
-                e.preventDefault()
-                if (!uiStore.getState().selection.includes(row.id)) uiStore.getState().select([row.id])
-                setMenu({ id: row.id, x: e.clientX, y: e.clientY })
-              }}
-              onMouseEnter={() => uiStore.getState().setHover(row.id)}
-              onMouseLeave={() => uiStore.getState().setHover(null)}
-              onDragStart={(e) => {
-                const ui = uiStore.getState()
-                // Ordre du document (pas l'ordre des clics) : le bloc garde son ordre relatif.
-                const ids = ui.selection.includes(row.id) ? ui.selection : [row.id]
-                const order: string[] = []
-                walk(docStore.getState().doc, ({ node }) => order.push(node.id))
-                dragged.current = [...ids].sort((a, b) => order.indexOf(a) - order.indexOf(b))
-                e.dataTransfer.effectAllowed = 'move'
-                e.dataTransfer.setData('text/plain', row.id)
-              }}
-              onDragOver={(e) => {
-                if (!dragged.current) return
-                e.preventDefault()
-                const { zone } = zoneOf(e, row)
-                if (drop?.index !== index || drop.zone !== zone) setDrop({ index, zone })
-              }}
-              onDragLeave={() => setDrop(null)}
-              onDrop={(e) => onDrop(e, index, row)}
-              onDragEnd={() => {
-                dragged.current = null
-                setDrop(null)
-              }}
-            >
-              <button
-                type="button"
-                className="twisty"
-                aria-label={row.expanded ? 'Replier' : 'Déplier'}
-                tabIndex={-1}
-                style={{ visibility: row.hasChildren ? 'visible' : 'hidden' }}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  toggle(row.id)
-                }}
-              >
-                <svg viewBox="0 0 10 10" width="8" height="8" aria-hidden style={{ transform: row.expanded ? 'rotate(90deg)' : undefined }}>
-                  <path d="M3 1.5 7 5 3 8.5z" fill="currentColor" />
-                </svg>
-              </button>
-              <TypeIcon row={row} page={page} />
-              {renaming === row.id ? (
-                <InlineName
-                  value={row.name}
-                  onCommit={(name) => docStore.getState().dispatch([{ op: 'update', id: row.id, set: { name } }], 'Renommer')}
-                  onDone={() => setRenaming(null)}
-                />
-              ) : (
-                <span className="layer-name">{row.name}</span>
-              )}
-              <span className="layer-actions">
-                <button
-                  type="button"
-                  className={`icon-button small${row.locked ? ' is-on' : ''}`}
-                  aria-label={row.locked ? 'Déverrouiller' : 'Verrouiller'}
-                  data-tooltip={row.locked ? 'Déverrouiller' : 'Verrouiller'}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    docStore.getState().dispatch([{ op: 'update', id: row.id, set: { locked: !row.locked } }], row.locked ? 'Déverrouiller' : 'Verrouiller')
-                  }}
-                >
-                  <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden>
-                    <path d={row.locked ? LOCK : UNLOCK} fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
-                  </svg>
-                </button>
-                <button
-                  type="button"
-                  className={`icon-button small${!row.visible ? ' is-on' : ''}`}
-                  aria-label={row.visible ? 'Masquer' : 'Afficher'}
-                  data-tooltip={row.visible ? 'Masquer' : 'Afficher'}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    docStore.getState().dispatch([{ op: 'update', id: row.id, set: { visible: !row.visible } }], row.visible ? 'Masquer' : 'Afficher')
-                  }}
-                >
-                  <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden>
-                    <path d={row.visible ? EYE : EYE_OFF} fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-                  </svg>
-                </button>
-              </span>
-            </li>
-          )
-        })}
+        {rows.map((row, index) => (
+          <LayerRowView
+            key={row.id}
+            row={row}
+            index={index}
+            next={rows[index + 1]?.ancestors ?? null}
+            renaming={renaming === row.id}
+            dropZone={drop?.index === index ? drop.zone : null}
+            actions={actions}
+          />
+        ))}
         {rows.length === 0 && <li className="empty-note">Aucun élément sur cette page.</li>}
       </ul>
       {menu && (

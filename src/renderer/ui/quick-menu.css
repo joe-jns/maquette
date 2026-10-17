@@ -1,0 +1,20 @@
+/* Petit menu sombre (barre d'outils, zoom, fichier) : Figma UI3, rangées de 24 px, raccourci à droite. */
+.quick-menu {
+  position: fixed; z-index: 60; box-sizing: border-box; min-width: 160px; padding: 8px;
+  display: flex; flex-direction: column; background: var(--ink); color: var(--ink-text);
+  border-radius: var(--radius-lg); box-shadow: var(--elevation-400);
+  font: 400 var(--fs) / var(--lh) var(--font-ui); letter-spacing: var(--ls); outline: none;
+}
+.quick-menu button {
+  display: flex; align-items: center; gap: 8px; height: var(--field-h); padding: 0 8px; box-sizing: border-box;
+  border: 0; border-radius: var(--radius); background: transparent; color: inherit; font: inherit; letter-spacing: inherit;
+  text-align: left; white-space: nowrap; cursor: default;
+}
+.quick-menu button:hover:not(:disabled), .quick-menu button:focus-visible { background: var(--accent); outline: none; }
+.quick-menu button:disabled { color: rgba(255, 255, 255, 0.35); }
+.quick-menu-check, .quick-menu-icon { flex: none; display: grid; place-items: center; width: 16px; height: 16px; }
+.quick-menu-label { flex: 1; }
+.quick-menu-shortcut { margin-left: 24px; font: inherit; color: var(--ink-muted); }
+.quick-menu button:hover:not(:disabled) .quick-menu-shortcut,
+.quick-menu button:focus-visible .quick-menu-shortcut { color: var(--ink-text); }
+.quick-menu-separator { height: 1px; margin: 8px -8px; background: rgba(255, 255, 255, 0.1); }
