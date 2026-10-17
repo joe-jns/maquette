@@ -2,6 +2,7 @@ import { serializeDocument } from '../../core/format'
 import type { MaquetteDocument } from '../../core/types'
 import { fileName } from './openDocument'
 import { docStore } from './store'
+import { uiStore } from './ui'
 
 const EVERY_MS = 5000
 
@@ -28,11 +29,14 @@ export function startAutosave(): () => void {
   }
   const timer = setInterval(() => void tick(), EVERY_MS)
 
+  // Un texte en cours de frappe n'est dans le document qu'à sa validation : il compte comme un changement.
   const report = () => {
     const { dirty, filePath } = docStore.getState()
-    window.maquette.docState({ dirty, name: fileName(filePath), path: filePath })
+    const typing = uiStore.getState().editingTextId !== null
+    window.maquette.docState({ dirty: dirty || typing, name: fileName(filePath), path: filePath })
   }
   report()
+  const unsubscribeUi = uiStore.subscribe((s, prev) => s.editingTextId !== prev.editingTextId && report())
   const unsubscribe = docStore.subscribe((state, prev) => {
     if (state.dirty !== prev.dirty || state.filePath !== prev.filePath) report()
     // Enregistré, ou document remplacé (Nouveau, Ouvrir) : la copie de l'ancien n'a plus lieu d'être.
@@ -45,5 +49,6 @@ export function startAutosave(): () => void {
   return () => {
     clearInterval(timer)
     unsubscribe()
+    unsubscribeUi()
   }
 }
