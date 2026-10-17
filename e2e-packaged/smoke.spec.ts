@@ -23,3 +23,15 @@ test('app installable : ouvre un fichier, tire des directions, contrôle un cadr
     await app.close()
   }
 })
+
+test('app installable : le relais MCP démarre depuis l’archive de l’app', async () => {
+  const { spawn } = await import('node:child_process')
+  const relay = spawn(resolve('dist/win-unpacked/Maquette.exe'), [resolve('dist/win-unpacked/resources/app.asar/out/main/relay.js')], {
+    env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
+  })
+  let out = ''
+  relay.stdout.on('data', (d) => (out += d))
+  relay.stdin.write(JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 't', version: '1' } } }) + '\n')
+  await expect.poll(() => out, { timeout: 15000 }).toContain('"serverInfo":{"name":"maquette"')
+  relay.kill()
+})

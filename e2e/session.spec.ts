@@ -52,14 +52,24 @@ test('copie de secours : l’app plante, au lancement suivant le travail est res
     await second.app.close()
   }
 
-  // Restaurée puis fermée sans changement : plus rien à proposer.
+  // Restaurée mais jamais enregistrée : elle est recopiée tout de suite, donc reproposée au lancement suivant.
   const third = await launch([], { MAQUETTE_USER_DATA: userData })
   try {
-    await expect(third.page.getByTestId('canvas')).toBeVisible()
-    await third.page.waitForTimeout(500)
+    await expect(third.page.getByTestId('recovery')).toContainText('Sans titre')
+    await third.page.getByTestId('recovery').getByRole('button', { name: 'Ignorer' }).click()
     await expect(third.page.getByTestId('recovery')).toHaveCount(0)
   } finally {
     await third.app.close()
+  }
+
+  // Ignorée : plus rien à proposer.
+  const fourth = await launch([], { MAQUETTE_USER_DATA: userData })
+  try {
+    await expect(fourth.page.getByTestId('canvas')).toBeVisible()
+    await fourth.page.waitForTimeout(500)
+    await expect(fourth.page.getByTestId('recovery')).toHaveCount(0)
+  } finally {
+    await fourth.app.close()
   }
 })
 
@@ -75,6 +85,24 @@ test('fermeture avec changements : question ; Annuler garde la fenêtre, Ne pas 
   expect(page.isClosed()).toBe(false)
   expect(await app.evaluate(() => (globalThis as unknown as { __asked: string[] }).__asked)).toEqual(['Enregistrer les modifications de Sans titre ?'])
 
+  await answerDialog(app, 1)
+  const closed = app.waitForEvent('close')
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find((w) => w.isVisible())?.close())
+  await closed
+})
+
+test('fermeture pendant la saisie d’un texte : la question est posée', async () => {
+  const { app, page } = await launch([join(__dirname, 'fixtures', 'scene.maquette')], { MAQUETTE_E2E_GUARD: '1' })
+  await expect(page.locator('[data-node-id="tTitre"]')).toBeVisible()
+  // Comme l'utilisateur : double-clic dans le texte, puis frappe (le texte n'est pas encore validé).
+  await page.locator('[data-node-id="tTitre"]').dblclick()
+  await page.locator('[data-node-id="tTitre"]').dblclick()
+  await page.keyboard.type(' !')
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __maquetteUi: { getState(): { editingTextId: string | null } } }).__maquetteUi.getState().editingTextId)).toBe('tTitre')
+  await answerDialog(app, 2)
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find((w) => w.isVisible())?.close())
+  await page.waitForTimeout(300)
+  expect(await app.evaluate(() => (globalThis as unknown as { __asked: string[] }).__asked)).toEqual(['Enregistrer les modifications de scene.maquette ?'])
   await answerDialog(app, 1)
   const closed = app.waitForEvent('close')
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find((w) => w.isVisible())?.close())
