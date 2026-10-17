@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { dialogStore, useDialog, type PendingDialog } from './dialogStore'
+import { ask, dialogStore, useDialog, type PendingDialog } from './dialogStore'
 import './dialog.css'
 
 /** Fenêtre de question de l'app : une à la fois, les suivantes attendent leur tour. */
 export function Dialog() {
   const current = useDialog((s) => s.queue[0])
+  // Questions du processus principal : même fenêtre, même file.
+  useEffect(() => window.maquette.onDialogAsk(ask), [])
   if (!current) return null
   // Une clé par question : focus et clavier repartent de zéro pour la suivante.
   return <DialogCard key={current.id} pending={current} />

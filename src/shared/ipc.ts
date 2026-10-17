@@ -111,4 +111,6 @@ export interface MaquetteApi {
   /** Relit le fichier courant sur le disque. */
   reloadFile(path: string): Promise<OpenedFile | null>
   onMcpCall(cb: (tool: string, args: Record<string, unknown>) => Promise<ToolResult>): () => void
+  /** Questions posées par le principal (fermeture, fichier introuvable…) ; la réponse repart au principal. */
+  onDialogAsk(cb: (request: DialogRequest) => Promise<number>): () => void
 }
