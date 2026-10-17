@@ -32,7 +32,7 @@ test.describe('connexion Claude Code (MCP)', () => {
     const c = await client(exe)
     try {
       const { tools } = await c.listTools()
-      expect(tools.map((t) => t.name)).toEqual(['lire_document', 'lire_elements', 'chercher', 'appliquer', 'capture', 'selection', 'verifier_gout'])
+      expect(tools.map((t) => t.name)).toEqual(['lire_document', 'lire_elements', 'chercher', 'appliquer', 'capture', 'selection', 'verifier_gout', 'icones'])
 
       const lu = JSON.parse(textOf(await c.callTool({ name: 'lire_document', arguments: {} })))
       expect(lu.pages).toHaveLength(1)
