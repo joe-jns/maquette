@@ -28,6 +28,7 @@ const api: MaquetteApi = {
     direction: (input) => ipcRenderer.invoke('taste:direction', input),
     check: (doc, nodeId, allow) => ipcRenderer.invoke('taste:check', { doc, nodeId, allow }),
   },
+  mcpReady: (ready) => ipcRenderer.send('mcp:ready', ready),
   onMcpCall: (cb) => {
     const handler = (_e: IpcRendererEvent, id: number, tool: string, args: Record<string, unknown>) => {
       void cb(tool, args).then((result) => ipcRenderer.send('mcp:result', id, result))

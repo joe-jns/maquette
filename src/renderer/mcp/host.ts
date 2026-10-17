@@ -22,6 +22,10 @@ const host: ToolHost = {
   pageId: () => docStore.getState().pageId,
   selection: () => uiStore.getState().selection,
   apply(ops: Op[], label: string) {
+    // Un geste en cours (glisser, redimensionner) n'est jamais interrompu : Claude réessaie.
+    if (docStore.getState().inGesture) {
+      return { ok: false, errors: [{ path: 'operations', message: 'l’utilisateur déplace un élément en ce moment : réessayez dans quelques secondes' }] }
+    }
     const result = docStore.getState().dispatch(ops, label)
     if (result.ok) {
       const touched = ops.flatMap((op) => ('id' in op && typeof op.id === 'string' ? [result.ids[op.id] ?? op.id] : []))
@@ -37,6 +41,7 @@ const host: ToolHost = {
 
 /** Exécute dans la fenêtre les outils appelés par Claude Code. */
 export function serveMcp(): () => void {
+  window.maquette.mcpReady(false)
   return window.maquette.onMcpCall((tool, args): Promise<ToolResult> =>
     runTool(host, tool, args).catch((e: unknown) => ({ text: `Erreur : ${(e as Error).message}`, isError: true })),
   )

@@ -17,9 +17,10 @@ export function App() {
 
   useEffect(() => {
     docStore.getState().setMeasure(domMeasure)
-    void window.maquette.getInitialDocument().then((file) => {
-      if (file) void openDocument(file)
-    })
+    void window.maquette
+      .getInitialDocument()
+      .then((file) => (file ? openDocument(file) : undefined))
+      .finally(() => window.maquette.mcpReady(true))
     return window.maquette.onMenu((cmd) => void runCommand(cmd))
   }, [])
 

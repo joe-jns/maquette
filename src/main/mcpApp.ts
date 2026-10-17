@@ -11,6 +11,12 @@ const CALL_TIMEOUT_MS = 30_000
 export async function startMcp(editorWindow: () => BrowserWindow | undefined): Promise<Bridge | null> {
   const pending = new Map<number, (result: ToolResult) => void>()
   let nextId = 1
+  // Fenêtres prêtes à recevoir les outils : document initial chargé (oubliées à chaque rechargement).
+  const ready = new WeakSet<Electron.WebContents>()
+  ipcMain.on('mcp:ready', (event, isReady: boolean) => {
+    if (isReady) ready.add(event.sender)
+    else ready.delete(event.sender)
+  })
   ipcMain.on('mcp:result', (_event, id: number, result: ToolResult) => {
     pending.get(id)?.(result)
     pending.delete(id)
@@ -18,7 +24,7 @@ export async function startMcp(editorWindow: () => BrowserWindow | undefined): P
 
   const handle = (tool: string, args: Record<string, unknown>): Promise<ToolResult> => {
     const win = editorWindow()
-    if (!win || win.webContents.isLoading()) return Promise.resolve({ text: 'Maquette démarre encore : réessayez dans un instant.', isError: true })
+    if (!win || win.webContents.isLoading() || !ready.has(win.webContents)) return Promise.resolve({ text: 'Maquette démarre encore : réessayez dans un instant.', isError: true })
     const id = nextId++
     return new Promise((resolve) => {
       const timer = setTimeout(() => {

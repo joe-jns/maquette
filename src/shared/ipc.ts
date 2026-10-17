@@ -70,5 +70,7 @@ export interface MaquetteApi {
     /** Contrôle qualité d'un cadre ; null si introuvable, masqué ou trop long. */
     check(doc: MaquetteDocument, nodeId: string, allow?: string[]): Promise<TasteCheck | null>
   }
+  /** La fenêtre peut recevoir les outils (document initial chargé) ; false pendant le chargement. */
+  mcpReady(ready: boolean): void
   onMcpCall(cb: (tool: string, args: Record<string, unknown>) => Promise<ToolResult>): () => void
 }
