@@ -1,5 +1,6 @@
 import { test, expect, _electron as electron, type Page } from '@playwright/test'
 import { mkdtempSync } from 'node:fs'
+import { readdir, utimes, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { emit, fakeChat, reopen } from '../e2e/chat'
@@ -11,13 +12,21 @@ import { emit, fakeChat, reopen } from '../e2e/chat'
 const out = process.env.SHOTS ?? join(tmpdir(), 'maquette-shots')
 const scene = resolve('e2e/fixtures/scene.maquette')
 
-async function open(args: string[] = []) {
+async function open(args: string[] = [], opts: { userData?: string; home?: boolean } = {}) {
   const app = await electron.launch({
     args: ['.', ...args],
-    env: { ...process.env, MAQUETTE_E2E: '1', MAQUETTE_USER_DATA: mkdtempSync(join(tmpdir(), 'maquette-shots-')) },
+    env: { ...process.env, MAQUETTE_E2E: '1', MAQUETTE_USER_DATA: opts.userData ?? mkdtempSync(join(tmpdir(), 'maquette-shots-')) },
   })
   const page = await app.firstWindow()
-  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]!.setContentSize(1440, 900))
+  // La fenêtre de l'éditeur (pas celle, cachée, du rendu des aperçus et exports).
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find((w) => !w.webContents.isOffscreen())!.setContentSize(1440, 900))
+  if (opts.home) {
+    await expect(page.getByTestId('home')).toBeVisible()
+    await page.waitForTimeout(600)
+    return { app, page }
+  }
+  // Sans fichier : l'accueil, puis « Nouvelle maquette ».
+  if (!args.length) await page.getByTestId('home').getByRole('button', { name: 'Nouvelle maquette' }).first().click()
   await expect(page.getByTestId('canvas')).toBeVisible()
   await page.waitForTimeout(600)
   return { app, page }
@@ -129,7 +138,7 @@ test('états de l’interface', async () => {
     const store = (window as unknown as { __maquetteStore: Store }).__maquetteStore
     store.getState().dispatch([{ op: 'create', parent: store.getState().doc.pages[0]!.id, node: { type: 'shape', shape: 'rectangle', name: 'r', x: 10, y: 10, width: 50, height: 50 } }], 'capture')
   })
-  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find((w) => w.isVisible())!.webContents.send('menu', 'new'))
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find((w) => !w.webContents.isOffscreen())!.webContents.send('menu', 'new'))
   await expect(page.getByRole('dialog')).toBeVisible()
   await page.waitForTimeout(200)
   await shot(page, '17-dialogue')
@@ -172,5 +181,76 @@ test('chat avec Claude', async () => {
   await page.getByRole('textbox', { name: 'Message à Claude' }).fill('Et réduis l’espace entre les colonnes à 24 px,\npuis aligne les boutons en bas')
   await page.waitForTimeout(300)
   await shot(page, '14-chat-saisie')
+  await app.close()
+})
+
+/** Une page de site plausible (1440 × 900) : barre, titre, texte, bouton, visuel. */
+function siteDoc(accent: string, title: string, width = 1440, height = 900): string {
+  const base = { visible: true, locked: false, opacity: 1, position: 'flow' }
+  const rect = (id: string, x: number, y: number, w: number, h: number, fill: string, radius = 0) =>
+    ({ ...base, id, type: 'shape', shape: 'rectangle', name: id, x, y, width: w, height: h, fills: [fill], radius, shadows: [] })
+  const text = (id: string, x: number, y: number, w: number, content: string, size: number, weight: number, color: string) =>
+    ({ ...base, id, type: 'text', name: id, x, y, width: w, height: { mode: 'hug' }, content, fontFamily: 'Inter', fontWeight: weight, fontStyle: 'normal', fontSize: size, lineHeight: Math.round(size * 1.15), letterSpacing: 0, textAlign: 'left', color, textSizing: 'auto-height' })
+  const mobile = width < 600
+  const pad = mobile ? 24 : 96
+  const children = [
+    rect('bar', 0, 0, width, 72, '#FFFFFF'),
+    text('logo', pad, 24, 200, title, 18, 700, '#111111'),
+    text('h1', pad, mobile ? 140 : 220, mobile ? width - 48 : 620, 'Des sites qui donnent envie de pousser la porte', mobile ? 34 : 56, 700, '#111111'),
+    text('p', pad, mobile ? 330 : 440, mobile ? width - 48 : 520, 'Conception, rédaction et mise en ligne en trois semaines, pour les commerces de la région.', mobile ? 16 : 18, 400, '#444444'),
+    rect('cta', pad, mobile ? 430 : 540, 180, 52, accent, 8),
+    rect('visuel', mobile ? 24 : 820, mobile ? 520 : 160, mobile ? width - 48 : 524, mobile ? 260 : 600, accent, 16),
+  ]
+  const frame = { ...base, id: 'fPage', type: 'frame', name: 'Accueil', x: 0, y: 0, width, height, layout: { mode: 'free' }, fills: ['#F4F1EA'], radius: 0, shadows: [], clip: true, children }
+  return JSON.stringify({ format: 'maquette', version: 1, styles: { colors: [], text: [] }, pages: [{ id: 'p1', name: 'Page 1', children: [frame] }] })
+}
+
+test('accueil', async () => {
+  test.setTimeout(120_000)
+  const empty = await open([], { home: true })
+  await shot(empty.page, '21-accueil-vide')
+  await empty.app.close()
+
+  // Quatre fichiers aux aperçus faits par l'app (ouverts une fois chacun), plus un introuvable.
+  const userData = mkdtempSync(join(tmpdir(), 'maquette-shots-home-'))
+  const dir = mkdtempSync(join(tmpdir(), 'maquette-shots-files-'))
+  const files = [
+    ['Boulangerie Delvaux', siteDoc('#B45309', 'Delvaux')],
+    ['Studio Été — refonte', siteDoc('#1D4ED8', 'Studio Été')],
+    ['Garage Lambert mobile', siteDoc('#15803D', 'Lambert', 390, 844)],
+    ['Fleuriste', siteDoc('#BE185D', 'Fleurs & Co')],
+  ] as const
+  const paths: string[] = []
+  for (const [name, text] of files) {
+    const path = join(dir, `${name}.maquette`)
+    await writeFile(path, text, 'utf8')
+    paths.push(path)
+  }
+  for (const path of paths) {
+    const run = await open([path], { userData })
+    const before = (await readdir(join(userData, 'thumbs')).catch(() => [])).length
+    await expect.poll(async () => (await readdir(join(userData, 'thumbs')).catch(() => [])).length, { timeout: 20_000 }).toBe(before + 1)
+    await run.app.close()
+  }
+  const now = Date.now() / 1000
+  const ages = [20 * 60, 3 * 3600, 26 * 3600, 9 * 86400]
+  await Promise.all(paths.map((p, i) => utimes(p, now - ages[i]!, now - ages[i]!)))
+  await writeFile(join(userData, 'recent.json'), JSON.stringify([...paths, join(dir, 'Ancien projet.maquette')]), 'utf8')
+
+  const { app, page } = await open([], { userData, home: true })
+  await page.waitForTimeout(400)
+  await shot(page, '22-accueil')
+  await page.keyboard.press('ArrowDown')
+  await page.keyboard.press('ArrowRight')
+  await page.waitForTimeout(200)
+  await shot(page, '23-accueil-clavier')
+  await page.getByTestId('home-card').nth(1).hover()
+  await page.getByTestId('home-card').nth(1).locator('.home-card-more').click()
+  await page.waitForTimeout(200)
+  await shot(page, '24-accueil-menu')
+  await page.keyboard.press('Escape')
+  await page.getByRole('searchbox').fill('studio')
+  await page.waitForTimeout(200)
+  await shot(page, '25-accueil-recherche')
   await app.close()
 })
