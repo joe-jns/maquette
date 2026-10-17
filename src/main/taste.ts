@@ -1,5 +1,6 @@
 import { app, ipcMain } from 'electron'
 import { execFile } from 'node:child_process'
+import { existsSync } from 'node:fs'
 import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -22,14 +23,24 @@ export interface DrawInput { sector: string; brief: string; tone?: string }
 
 /** Lance draw.mjs avec l'exécutable d'Electron en mode Node : aucun Node installé n'est requis. */
 function draw(args: string[]): Promise<string> {
+  const script = join(tasteRoot(), 'scripts', 'draw.mjs')
+  if (!existsSync(script)) return Promise.reject(new Error('la copie de taste-skill est introuvable (réinstallez Maquette)'))
   return new Promise((resolve, reject) => {
     execFile(
       process.execPath,
-      [join(tasteRoot(), 'scripts', 'draw.mjs'), ...args],
-      { env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' }, timeout: DRAW_TIMEOUT_MS, windowsHide: true, maxBuffer: 4 * 1024 * 1024 },
+      [script, ...args],
+      {
+        // Historique des tirages propre à Maquette : celui du skill de Claude Code n'est pas touché.
+        env: { ...process.env, ELECTRON_RUN_AS_NODE: '1', TASTE_SKILL_HISTORY: process.env.TASTE_SKILL_HISTORY || join(app.getPath('userData'), 'taste-history.json') },
+        timeout: DRAW_TIMEOUT_MS,
+        windowsHide: true,
+        maxBuffer: 4 * 1024 * 1024,
+      },
       (error, stdout, stderr) => {
-        if (error) reject(new Error((stderr || error.message).trim().split('\n')[0] || 'tirage impossible'))
-        else resolve(stdout)
+        if (!error) return resolve(stdout)
+        // Jamais la ligne de commande dans le message : seulement ce que draw.mjs a dit.
+        if (error.killed) return reject(new Error('le tirage a pris trop de temps'))
+        reject(new Error(stderr.trim().split('\n')[0] || 'tirage impossible'))
       },
     )
   })
@@ -79,12 +90,23 @@ function tasteModules(): Promise<TasteModules> {
  * puis ses règles. `allow` = règles ignorées en plus de celles d'une maquette fixe.
  */
 export async function checkFrame(doc: MaquetteDocument, nodeId: string, allow: string[] = []): Promise<TasteCheck | null> {
+  try {
+    return await check(doc, nodeId, allow)
+  } catch (e) {
+    console.error(`Contrôle taste-skill impossible : ${(e as Error).message}`)
+    return null
+  }
+}
+
+async function check(doc: MaquetteDocument, nodeId: string, allow: string[]): Promise<TasteCheck | null> {
   const { probe, judge } = await tasteModules()
   // probe() est autonome (aucune fermeture sur son module) : son texte s'exécute tel quel dans la page.
   const shown = await evaluateInNode<unknown>(doc, nodeId, `(${probe.toString()})()`, VIEWPORT_HEIGHT)
   if (!shown) return null
   const isPage = shown.width >= 900 && shown.height >= 600
+  // Les fautes bloquantes d'abord : une liste tronquée (outil MCP) les garde.
   const findings = judge(shown.result, { width: shown.width, allow: [...STATIC_ALLOW, ...allow] })
+    .sort((a, b) => Number(b.level === 'FAIL') - Number(a.level === 'FAIL'))
   return { findings, isPage, width: shown.width, height: shown.height }
 }
 
