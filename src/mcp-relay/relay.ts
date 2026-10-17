@@ -2,6 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { pipePath, readToken, userDataDir } from '../mcp/pipe'
 import { connectBridge } from '../mcp/pipeClient'
+import { MCP_INSTRUCTIONS } from '../mcp/design/instructions'
 import { TOOLS, type ToolResult } from '../mcp/tools'
 
 /**
@@ -34,23 +35,25 @@ function drop(client: Bridge): void {
   if (bridge) void bridge.then((b) => b === client && (bridge = null), () => undefined)
 }
 
-/** Appels qui modifient le document : jamais rejoués après une coupure. */
-const writes = (tool: string, args: Record<string, unknown>) => tool === 'appliquer' || (tool === 'images' && args.poser !== undefined)
+/** Appels qui modifient le document : jamais rejoués après une coupure (ils ont pu être appliqués). */
+const mutates = (tool: string, args: Record<string, unknown>) =>
+  tool === 'appliquer' || args.appliquer === true || (tool === 'images' && args.poser !== undefined)
 
-function failure(e: unknown, sent: boolean, tool: string, args: Record<string, unknown>): ToolResult {
+function failure(e: unknown, sent: boolean, mutating: boolean): ToolResult {
   const code = (e as { code?: string }).code
   if (code === 'JETON_REFUSE') return { text: TOKEN_REFUSED, isError: true }
-  if (code === 'APP_FERMEE') return { text: sent && writes(tool, args) ? CUT : APP_CLOSED, isError: true }
+  if (code === 'APP_FERMEE') return { text: sent && mutating ? CUT : APP_CLOSED, isError: true }
   return { text: `Erreur : ${(e as Error).message}`, isError: true }
 }
 
 async function call(tool: string, args: Record<string, unknown>): Promise<ToolResult> {
+  const mutating = mutates(tool, args)
   for (let attempt = 0; attempt < 2; attempt++) {
     let client: Bridge
     try {
       client = await getBridge()
     } catch (e) {
-      return failure(e, false, tool, args)
+      return failure(e, false, mutating)
     }
     // Connexion morte (app relancée) : rien n'a été envoyé, on en ouvre une neuve.
     if (!client.isOpen()) {
@@ -64,15 +67,16 @@ async function call(tool: string, args: Record<string, unknown>): Promise<ToolRe
       // Seule une connexion perdue est fermée : un délai ne concerne que cet appel.
       if (code === 'APP_FERMEE' || code === 'PROTOCOLE') drop(client)
       // Un lot peut avoir été appliqué avant la coupure : jamais rejoué. Une lecture, si.
-      if (code === 'APP_FERMEE' && attempt === 0 && !writes(tool, args)) continue
-      return failure(e, true, tool, args)
+      if (code === 'APP_FERMEE' && attempt === 0 && !mutating) continue
+      return failure(e, true, mutating)
     }
   }
   return { text: APP_CLOSED, isError: true }
 }
 
 async function main(): Promise<void> {
-  const server = new McpServer({ name: 'maquette', version: '0.1.0' })
+  // Les instructions résument la méthode de design pour Claude Code hors de l'app.
+  const server = new McpServer({ name: 'maquette', version: '0.1.0' }, { instructions: MCP_INSTRUCTIONS })
 
   for (const tool of TOOLS) {
     server.registerTool(tool.name, { description: tool.description, inputSchema: tool.input }, async (args: unknown) => {

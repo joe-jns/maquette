@@ -48,6 +48,9 @@ const api: MaquetteApi = {
     place: (ref) => ipcRenderer.invoke('images:place', ref) as Promise<ImagePlace>,
     credits: () => ipcRenderer.invoke('images:credits') as Promise<ImageCredit[]>,
   },
+  design: {
+    read: (path) => ipcRenderer.invoke('design:read', path) as Promise<string | null>,
+  },
   mcpReady: (ready) => ipcRenderer.send('mcp:ready', ready),
   backup: {
     write: (path, text) => ipcRenderer.invoke('backup:write', { path, text }),

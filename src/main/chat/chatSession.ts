@@ -7,6 +7,7 @@ import { createLineReader } from '../../mcp/pipe'
 import { imageHashes, type ChatImages } from './chatImages'
 import { chatKey, type ChatStore } from './chatStore'
 import { claudeArgs, claudeCommand, NOT_FOUND_CODES, NOT_FOUND_TEXT } from './command'
+import { consigne } from './consigne'
 import { createDecoder, interruptLine, permissionLine, userLine, type ClaudeAction } from './protocol'
 
 const NOT_INSTALLED = 'Claude Code n’est pas installé sur cet ordinateur (commande « claude » introuvable). Installez-le puis réessayez.'
@@ -40,16 +41,12 @@ interface Pending { item: Extract<ChatItem, { kind: 'permission' }>; input: unkn
 let nextId = 1
 const uid = (prefix: string) => `${prefix}-${Date.now().toString(36)}-${nextId++}`
 
-/** Consigne ajoutée à celle de Claude Code. */
+/**
+ * Consigne ajoutée à celle de Claude Code : méthode obligatoire pour toute nouvelle page (sujet,
+ * direction, guide, section par section, contrôle), règles de goût de Pen et de taste-skill (consigne.ts).
+ */
 export function systemPrompt(docName: string): string {
-  return [
-    'Tu es intégré à Maquette, un éditeur de maquettes de sites (comme Figma).',
-    `Document ouvert : ${docName}.`,
-    'Lis-le et modifie-le avec les outils maquette (lire_document, chercher, lire_elements, appliquer, capture, verifier_gout).',
-    'Chaque appel à appliquer = une seule annulation (Ctrl+Z) pour l’utilisateur.',
-    'L’utilisateur regarde le canevas pendant que tu travailles : construis une grande demande (page, landing) section par section, un appel à appliquer par section (hero, puis la suivante…), jamais tout en un seul appel.',
-    'Réponds en français simple et court.',
-  ].join('\n')
+  return consigne(docName)
 }
 
 /** Termine le processus et ses enfants (sous Windows, cmd lance claude : tuer cmd seul ne suffit pas). */

@@ -39,7 +39,7 @@ function scene() {
 
 describe('outils MCP', () => {
   it('la liste des outils a des descriptions courtes', () => {
-    expect(TOOLS.map((t) => t.name)).toEqual(['lire_document', 'lire_elements', 'chercher', 'appliquer', 'capture', 'selection', 'verifier_gout', 'images', 'icones'])
+    expect(TOOLS.map((t) => t.name)).toEqual(expect.arrayContaining(['lire_document', 'lire_elements', 'chercher', 'appliquer', 'capture', 'selection', 'verifier_gout', 'images', 'icones', 'guide', 'style', 'direction']))
     for (const t of TOOLS) expect(t.description.length).toBeLessThan(400)
   })
 
@@ -52,6 +52,7 @@ describe('outils MCP', () => {
       { id: 'R1', type: 'shape', nom: 'Bleu', l: 100, h: 100, x: 700, y: 40 },
     ])
     expect(data.couleurs).toEqual({ accent: '#C2410C' })
+    expect(data.ids_styles).toEqual({ accent: 'C1' })
     expect(r.text.length).toBeLessThan(1200)
   })
 

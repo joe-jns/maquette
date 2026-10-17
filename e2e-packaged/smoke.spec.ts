@@ -19,6 +19,8 @@ test('app installable : ouvre un fichier, tire des directions, contrôle un cadr
       window.maquette.taste.check((window as unknown as { __maquetteStore: { getState(): { doc: never } } }).__maquetteStore.getState().doc, 'fHero1'),
     )
     expect(check).not.toBeNull()
+    // Guides et styles de design (vendor/design, ressources hors archive).
+    expect(await page.evaluate(() => window.maquette.design.read('maquette/methode.md'))).toContain('appliquer')
   } finally {
     await app.close()
   }

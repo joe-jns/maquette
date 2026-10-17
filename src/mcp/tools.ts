@@ -11,6 +11,7 @@ import { searchIcons } from '../core/icons/lucide'
 import { findNode, walk } from '../core/tree'
 import type { MaquetteDocument, Node, NodeInput, Size } from '../core/types'
 import { IMAGES_DESCRIPTION, IMAGES_INPUT, runImages, type ImageHost } from './images'
+import { DESIGN_TOOLS, isDesignTool, runDesignTool, type DesignHost } from './design'
 import { ALIASES, normalizeOperations, originPath } from './normalize'
 
 export interface ToolHost {
@@ -23,6 +24,8 @@ export interface ToolHost {
   check(id: string): Promise<{ findings: { level: 'FAIL' | 'WARN'; id: string; message: string; fix: string }[]; isPage: boolean } | null>
   /** Photos libres (outil images) ; absent : l'outil répond qu'il n'est pas disponible. */
   images?: ImageHost
+  /** Guides, styles et directions (outils guide, style, direction) ; absent : ces outils sont indisponibles. */
+  design?: DesignHost
 }
 
 export interface ToolResult { text: string; image?: { data: string; mimeType: string }; isError?: boolean }
@@ -66,7 +69,7 @@ export const TOOLS: ToolDef[] = [
   {
     name: 'lire_document',
     description:
-      'Résumé du document : pages et leurs éléments de premier niveau (l/h = largeur/hauteur en px, "hug" ou "fill" ; enfants = nombre), couleurs et styles de texte nommés. Point de départ avant toute modification.',
+      'Résumé du document : pages et leurs éléments de premier niveau (l/h = largeur/hauteur en px, "hug" ou "fill" ; enfants = nombre), couleurs et styles de texte nommés (ids_styles : leurs identifiants, pour {"style":id} et textStyle). Point de départ avant toute modification.',
     input: INPUTS.lire_document,
   },
   {
@@ -119,6 +122,7 @@ export const TOOLS: ToolDef[] = [
     ].join('\n'),
     input: INPUTS.icones,
   },
+  ...DESIGN_TOOLS,
 ]
 
 const json = (value: unknown): string => JSON.stringify(value)
@@ -126,6 +130,7 @@ const ok = (value: unknown): ToolResult => ({ text: json(value) })
 const error = (text: string): ToolResult => ({ text, isError: true })
 
 export async function runTool(host: ToolHost, name: string, args: unknown): Promise<ToolResult> {
+  if (isDesignTool(name)) return runDesignTool(host, name, args)
   if (!Object.hasOwn(INPUTS, name)) return error(`outil inconnu : ${name}`)
   const tool = name as ToolName
   const parsed = z.strictObject(INPUTS[tool]).safeParse(args ?? {})
@@ -190,6 +195,9 @@ function readDocument(host: ToolHost) {
       `${s.fontFamily} ${s.fontWeight}${s.fontStyle === 'italic' ? ' italique' : ''} ${s.fontSize}/${s.lineHeight}`,
     ]))
   }
+  // Identifiants des styles par nom : {"style":id} pour une couleur, textStyle:id pour un texte.
+  const styles = [...doc.styles.colors, ...doc.styles.text]
+  if (styles.length) out.ids_styles = Object.fromEntries(styles.map((s) => [s.name, s.id]))
   return out
 }
 
