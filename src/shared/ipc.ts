@@ -1,5 +1,6 @@
 import type { MaquetteDocument } from '../core/types'
 import type { ChatApi } from './chat'
+import type { RecentEntry } from './home'
 import type { ToolResult } from '../mcp/tools'
 import type { DirectionOption, DirectionSheet } from '../taste/direction'
 
@@ -42,7 +43,7 @@ export interface DialogRequest {
   defaultIndex: number
 }
 
-export type MenuCommand = 'new' | 'open' | 'save' | 'save-as' | 'undo' | 'redo' | 'export-png-1' | 'export-png-2' | 'export-png-3' | 'save-and-close' | 'toggle-chat'
+export type MenuCommand = 'home' | 'new' | 'open' | 'save' | 'save-as' | 'undo' | 'redo' | 'export-png-1' | 'export-png-2' | 'export-png-3' | 'save-and-close' | 'toggle-chat'
 
 export interface RenderOptions {
   scale: number
@@ -112,6 +113,17 @@ export interface MaquetteApi {
   /** Relit le fichier courant sur le disque. */
   reloadFile(path: string): Promise<OpenedFile | null>
   onMcpCall(cb: (tool: string, args: Record<string, unknown>) => Promise<ToolResult>): () => void
+  /** Écran d'accueil : fichiers récents (seuls ceux de la liste sont lus, montrés ou retirés). */
+  home: {
+    list(): Promise<RecentEntry[]>
+    /** Aperçu d'un fichier (data URL JPEG) par son empreinte, ou null. */
+    thumb(hash: string): Promise<string | null>
+    /** Lit un fichier récent pour l'ouvrir ; null s'il est introuvable ou hors de la liste. */
+    open(path: string): Promise<OpenedFile | null>
+    remove(path: string): Promise<void>
+    /** Montre le fichier dans l'Explorateur. */
+    reveal(path: string): Promise<void>
+  }
   /** Chat avec Claude (panneau de droite). */
   chat: ChatApi
   /** Questions posées par le principal (fermeture, fichier introuvable…) ; la réponse repart au principal. */

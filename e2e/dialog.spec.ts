@@ -15,7 +15,7 @@ const names = (page: Page) =>
   page.evaluate(() => (window as unknown as { __maquetteStore: Store }).__maquetteStore.getState().doc.pages[0]!.children.map((c) => c.name))
 
 const menu = (app: ElectronApplication, cmd: string) =>
-  app.evaluate(({ BrowserWindow }, c) => BrowserWindow.getAllWindows().find((w) => w.isVisible())!.webContents.send('menu', c), cmd)
+  app.evaluate(({ BrowserWindow }, c) => BrowserWindow.getAllWindows().find((w) => !w.webContents.isOffscreen())!.webContents.send('menu', c), cmd)
 
 /** Les boîtes natives sont remplacées par un mouchard : tout appel est noté (et répond « annuler »). */
 async function spyNative(app: ElectronApplication, page: Page): Promise<() => Promise<string[]>> {

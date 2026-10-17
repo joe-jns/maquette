@@ -8,7 +8,7 @@
 
 export type IconName =
   | 'move' | 'hand' | 'frame' | 'rect' | 'ellipse' | 'line' | 'text' | 'image'
-  | 'chevronDown' | 'chevronRight' | 'chevronDownSmall'
+  | 'chevronDown' | 'chevronRight' | 'chevronLeft' | 'chevronDownSmall' | 'more'
   | 'eye' | 'eyeOff' | 'lock' | 'unlock'
   | 'autoRow' | 'autoCol' | 'group' | 'page'
   | 'plus' | 'minus' | 'check' | 'chat' | 'zoom' | 'fit'
@@ -30,7 +30,13 @@ const PATHS: Record<IconName, string[]> = {
   image: ['M5 5.5h14v13H5z', 'M5 16l4-4 3.5 3.5 2-2L19 18', 'M15.25 8.25a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 1 0 0-2.5z'],
   chevronDown: ['M8 10l4 4 4-4'],
   chevronRight: ['M10 8l4 4-4 4'],
+  chevronLeft: ['M14 8l-4 4 4 4'],
   chevronDownSmall: ['M10 11l2 2 2-2'],
+  more: [
+    'M7 11.25a.75.75 0 1 0 0 1.5.75.75 0 1 0 0-1.5z',
+    'M12 11.25a.75.75 0 1 0 0 1.5.75.75 0 1 0 0-1.5z',
+    'M17 11.25a.75.75 0 1 0 0 1.5.75.75 0 1 0 0-1.5z',
+  ],
   eye: ['M3.5 12S6.5 6.5 12 6.5 20.5 12 20.5 12 17.5 17.5 12 17.5 3.5 12 3.5 12z', 'M12 9.75a2.25 2.25 0 1 0 0 4.5 2.25 2.25 0 1 0 0-4.5z'],
   eyeOff: [
     'M5 5l14 14',

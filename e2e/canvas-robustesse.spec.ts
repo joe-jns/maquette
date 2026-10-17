@@ -23,7 +23,7 @@ test('lâcher un fichier qui n’est pas une image ne fait pas quitter le docume
   expect(page.url()).toBe(url)
   await expect(page.locator('[data-node-id="rBleu1"]')).toBeVisible()
   const prevented = await app.evaluate(({ BrowserWindow }) => {
-    const wc = BrowserWindow.getAllWindows()[0]!.webContents
+    const wc = BrowserWindow.getAllWindows().find((w) => !w.webContents.isOffscreen())!.webContents
     let blocked = false
     wc.emit('will-navigate', { preventDefault() { blocked = true } }, 'file:///C:/notes.pdf')
     return blocked
@@ -76,7 +76,7 @@ test('enregistrer pendant l’édition d’un texte garde ce qui vient d’être
   await page.mouse.dblclick(c.x, c.y)
   await expect.poll(async () => (await uiState(page)).editing).toBe('tTitre')
   await page.keyboard.type('Titre tapé')
-  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]!.webContents.send('menu', 'save'))
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find((w) => !w.webContents.isOffscreen())!.webContents.send('menu', 'save'))
   await expect.poll(async () => readFile(file, 'utf8')).toContain('"content": "Titre tapé"')
   await expect(page).toHaveTitle('scène.maquette — Maquette')
   await app.close()

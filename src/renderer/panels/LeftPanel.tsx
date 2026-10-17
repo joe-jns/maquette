@@ -45,6 +45,8 @@ function FileHeader() {
           placement="below"
           onClose={() => setOpen(false)}
           entries={[
+            { id: 'home', label: 'Accueil', shortcut: 'Ctrl+Maj+H', onSelect: () => void runCommand('home') },
+            'separator',
             { id: 'new', label: 'Nouveau', shortcut: 'Ctrl+N', onSelect: () => void runCommand('new') },
             { id: 'open', label: 'Ouvrir…', shortcut: 'Ctrl+O', onSelect: () => void runCommand('open') },
             'separator',

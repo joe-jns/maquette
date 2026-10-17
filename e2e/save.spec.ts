@@ -19,11 +19,11 @@ test('modifier, enregistrer puis annuler, dans un dossier avec espaces et accent
   await expect(page.locator('[data-node-id="tTitre"]')).toHaveText('Modifié ✓')
   await expect(page).toHaveTitle('démo.maquette • — Maquette')
 
-  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]!.webContents.send('menu', 'save'))
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find((w) => !w.webContents.isOffscreen())!.webContents.send('menu', 'save'))
   await expect(page).toHaveTitle('démo.maquette — Maquette')
   expect(await readFile(file, 'utf8')).toContain('"content": "Modifié ✓"')
 
-  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]!.webContents.send('menu', 'undo'))
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find((w) => !w.webContents.isOffscreen())!.webContents.send('menu', 'undo'))
   await expect(page.locator('[data-node-id="tTitre"]')).toHaveText('Bonjour Maquette')
   await expect(page).toHaveTitle('démo.maquette • — Maquette')
   await app.close()

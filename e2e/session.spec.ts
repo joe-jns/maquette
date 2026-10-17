@@ -16,7 +16,7 @@ const names = (page: Page) =>
 
 /** Demande la fermeture de la fenêtre de l'éditeur (comme la croix). */
 const closeWindow = (app: ElectronApplication) =>
-  app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find((w) => w.isVisible())?.close())
+  app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find((w) => !w.webContents.isOffscreen())?.close())
 
 /** La question posée dans la fenêtre : on vérifie son texte, puis on clique sur un de ses boutons. */
 async function answerDialog(page: Page, message: string, button: string): Promise<void> {

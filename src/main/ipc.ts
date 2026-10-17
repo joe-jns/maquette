@@ -3,6 +3,7 @@ import type { ImageImport, OpenedFile } from '../shared/ipc'
 import { writeFileAtomic } from './files'
 import { importImage } from './images'
 import { aboutToWrite, documentShown, readForWindow } from './openFiles'
+import { updateThumb } from './thumbs'
 import { acceptPath, allowedSavePath, getCurrentDir, getCurrentPath, offerPath, savedTo } from './state'
 
 const FILTERS = [{ name: 'Maquette', extensions: ['maquette'] }]
@@ -63,6 +64,8 @@ export function registerFileIpc(fileArg: string | undefined): void {
     await writeFileAtomic(target, args.text)
     savedTo(target)
     documentShown(target)
+    // Aperçu de l'accueil : en arrière-plan, l'enregistrement n'attend pas (et n'échoue jamais pour lui).
+    updateThumb(target, args.text)
     return target
   })
 }

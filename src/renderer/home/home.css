@@ -1,0 +1,106 @@
+/* ——— Accueil (navigateur de fichiers, comme Figma) : barre de 48 px, grille de cartes ——— */
+.home {
+  position: absolute; inset: 0; z-index: 2; display: flex; flex-direction: column; min-height: 0;
+  background: var(--panel-bg); color: var(--panel-text); font: var(--panel-font); letter-spacing: var(--ls);
+}
+.home *, .home *::before, .home *::after { box-sizing: border-box; }
+
+.home-bar {
+  flex: none; display: grid; grid-template-columns: minmax(0, 1fr) minmax(200px, 360px) minmax(0, 1fr); align-items: center; gap: 16px;
+  height: 48px; padding: 0 24px; border-bottom: 1px solid var(--panel-border);
+}
+.home-brand { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.home-title { margin: 0; font-size: var(--fs-large); line-height: var(--lh-large); font-weight: var(--fw-strong); letter-spacing: -0.0025em; }
+.home-back {
+  display: grid; place-items: center; width: var(--row-h); height: var(--row-h); margin-left: -8px; padding: 0; border: 0;
+  border-radius: var(--radius); background: transparent; color: var(--icon); cursor: pointer;
+}
+.home-back:hover { background: var(--panel-hover); }
+
+/* Recherche : champ gris de 32 px, contour bleu au focus (comme les champs du panneau). */
+.home-search {
+  display: flex; align-items: center; gap: 8px; height: var(--row-h); padding: 0 8px; border-radius: var(--radius);
+  background: var(--field-bg); color: var(--icon-muted); box-shadow: inset 0 0 0 1px transparent; cursor: text;
+}
+.home-search:hover { box-shadow: inset 0 0 0 1px var(--control-border); }
+.home-search:focus-within { box-shadow: inset 0 0 0 1px var(--accent); background: var(--panel-bg); }
+.home-search input {
+  flex: 1; min-width: 0; height: 100%; padding: 0; border: 0; outline: none; background: transparent;
+  color: var(--panel-text); font: var(--panel-font); letter-spacing: var(--ls);
+}
+.home-search input::placeholder { color: var(--panel-muted); }
+.home-search input::-webkit-search-cancel-button { display: none; }
+
+.home-actions { display: flex; justify-content: flex-end; align-items: center; gap: 8px; }
+/* Boutons de 32 px, comme ceux des fenêtres de question : secondaire cerné, principal bleu. */
+.home-button {
+  display: inline-flex; align-items: center; gap: 4px; height: var(--row-h); padding: 0 12px; white-space: nowrap;
+  border: 1px solid var(--control-border); border-radius: var(--radius); background: var(--panel-bg); color: var(--panel-text);
+  font: var(--fw-strong) var(--fs) / var(--lh) var(--font-ui); letter-spacing: var(--ls); cursor: pointer;
+}
+.home-button:hover { background: var(--panel-hover); }
+.home-button:active { background: var(--pressed); }
+.home-button.is-primary { padding-left: 8px; border-color: transparent; background: var(--accent); color: var(--ink-text); }
+.home-button.is-primary:hover { background: var(--accent-hover); }
+
+.home-body { flex: 1; min-height: 0; overflow: hidden auto; padding: 24px 24px 48px; }
+.home:focus { outline: none; }
+
+.home-section { display: flex; align-items: baseline; gap: 8px; margin: 0 0 12px; }
+.home-section-title { margin: 0; font-size: var(--fs-large); line-height: var(--lh-large); font-weight: var(--fw-strong); letter-spacing: -0.0025em; }
+.home-section-count { color: var(--panel-muted); font-variant-numeric: tabular-nums; }
+.home-none { margin: 0; color: var(--panel-muted); }
+
+.home-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(224px, 1fr)); gap: 16px;
+  margin: 0; padding: 0; list-style: none;
+}
+
+/* Carte : aperçu 16:10 sur le gris du canevas, puis nom, date et dossier. Survol : bordure appuyée. */
+.home-card { position: relative; min-width: 0; }
+.home-card-open {
+  display: flex; flex-direction: column; width: 100%; padding: 0; text-align: left; cursor: pointer;
+  border: 1px solid var(--panel-border); border-radius: var(--radius-lg); background: var(--panel-bg); color: inherit;
+  font: inherit; letter-spacing: inherit; overflow: hidden;
+}
+.home-card-open:hover, .home-card[data-menu-open] .home-card-open { border-color: var(--pressed); box-shadow: var(--elevation-100); }
+.home-card-open:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
+
+.home-thumb {
+  position: relative; display: grid; place-items: center; aspect-ratio: 16 / 10; width: 100%; overflow: hidden;
+  background: var(--canvas-bg); border-bottom: 1px solid var(--panel-border);
+}
+.home-thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: block; }
+.home-thumb-empty { color: var(--panel-faint); }
+.home-thumb-label { color: var(--panel-faint); font-weight: var(--fw-strong); }
+
+.home-card-meta { display: flex; flex-direction: column; min-width: 0; padding: 8px 40px 10px 12px; }
+.home-card-name {
+  font-size: var(--fs-large); line-height: var(--lh-large); font-weight: var(--fw-strong); letter-spacing: -0.0025em;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.home-card-date { color: var(--panel-muted); }
+.home-card-date, .home-card-folder { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.home-card-folder { color: var(--panel-muted); }
+
+/* ⋯ : en bas à droite, visible au survol, au focus et menu ouvert. */
+.home-card-more {
+  position: absolute; right: 8px; bottom: 10px; display: grid; place-items: center; width: var(--field-h); height: var(--field-h);
+  padding: 0; border: 0; border-radius: var(--radius); background: transparent; color: var(--icon-muted); cursor: pointer; opacity: 0;
+}
+.home-card:hover .home-card-more, .home-card:focus-within .home-card-more, .home-card[data-menu-open] .home-card-more { opacity: 1; }
+.home-card-more:hover, .home-card[data-menu-open] .home-card-more { background: var(--panel-hover); color: var(--icon); }
+
+/* Fichier introuvable : carte éteinte, seule l'action « Retirer » reste. */
+.home-card.is-missing .home-card-open { cursor: default; }
+.home-card.is-missing .home-card-name { color: var(--panel-muted); }
+.home-card.is-missing .home-card-open:hover { box-shadow: none; }
+
+/* Aucun récent : une phrase et les deux boutons, au centre. */
+.home-empty { display: flex; flex-direction: column; align-items: center; text-align: center; margin: 15vh auto 0; max-width: 360px; }
+.home-empty-title { margin: 0; font-size: var(--fs-large); line-height: var(--lh-large); font-weight: var(--fw-strong); letter-spacing: -0.0025em; }
+.home-empty-text { margin: 4px 0 16px; color: var(--panel-muted); }
+.home-empty .home-actions { justify-content: center; }
+
+/* L'éditeur reste monté derrière (taille du canevas, document) mais caché et inerte. */
+.layout.is-hidden { visibility: hidden; }
