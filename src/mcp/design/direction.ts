@@ -62,7 +62,7 @@ export function sheetText(sheet: FullSheet): string {
   )
   const sections = (sheet.sections ?? []).filter((s) => s.blueprint)
   if (sections.length) {
-    out.push('', '## Sections (dans l’ordre)')
+    out.push('', '## Sections (dans l’ordre) — construis chacune d’après son plan, avec le contenu du client')
     for (const s of sections) out.push(`- ${s.role} — ${s.name} : ${s.blueprint}`)
   }
   if (sheet.photos?.title) out.push('', `## Photos : ${sheet.photos.title}${sheet.photos.note ? ` (${sheet.photos.note})` : ''}`)

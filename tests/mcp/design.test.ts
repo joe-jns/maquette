@@ -216,6 +216,8 @@ describe('outil direction', () => {
     expect(sheet.text).toContain('## Hero — ')
     expect(sheet.text).toContain('## Palette')
     expect(sheet.text).toContain('## Typographie')
+    // Plans des sections : Claude construit chaque section d'après le sien.
+    expect(sheet.text).toMatch(/## Sections \(dans l’ordre\)[^\n]*\n- [\w-]+ — .+ : .{80,}/)
     const applied = await runTool(t.h, 'direction', { secteur: 'restaurant', brief: 'bistrot à Charleroi', sections: ['intro', 'gallery', 'contact'], choix: 'one-motif', appliquer: true })
     expect(applied.isError, applied.text).toBeFalsy()
     expect(t.draws).toEqual([
