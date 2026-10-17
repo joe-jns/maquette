@@ -1,4 +1,5 @@
 import { test, expect, type ElectronApplication, type Page } from '@playwright/test'
+import { execFileSync } from 'node:child_process'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -31,7 +32,13 @@ test('copie de secours : l’app plante, au lancement suivant le travail est res
   await expect(first.page.getByTestId('canvas')).toBeVisible()
   await addRect(first.page, 'Travail perdu ?')
   await first.page.waitForTimeout(6000)
-  first.app.process().kill()
+  // Plantage : processus tué. On attend sa fin, sinon le verrou « une seule Maquette » est encore tenu.
+  // Tout l'arbre (les processus enfants d'Electron gardent sinon le dossier de données verrouillé).
+  const dead = new Promise((resolve) => first.app.process().once('exit', resolve))
+  if (process.platform === 'win32') execFileSync('taskkill', ['/PID', String(first.app.process().pid), '/T', '/F'], { stdio: 'ignore' })
+  else first.app.process().kill('SIGKILL')
+  await dead
+  await new Promise((resolve) => setTimeout(resolve, 500))
 
   const second = await launch([], { MAQUETTE_USER_DATA: userData })
   try {
