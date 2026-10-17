@@ -1,5 +1,6 @@
 import { BrowserWindow, Menu } from 'electron'
 import type { MenuCommand } from '../shared/ipc'
+import { connectClaudeCode } from './claudeConnect'
 
 const send = (cmd: MenuCommand) => () => BrowserWindow.getFocusedWindow()?.webContents.send('menu', cmd)
 
@@ -23,6 +24,8 @@ export function buildMenu(): void {
               { label: '3×', click: send('export-png-3') },
             ],
           },
+          { type: 'separator' },
+          { label: 'Connecter à Claude Code…', click: () => void connectClaudeCode(BrowserWindow.getFocusedWindow() ?? undefined) },
           { type: 'separator' },
           { label: 'Quitter', role: 'quit' },
         ],
