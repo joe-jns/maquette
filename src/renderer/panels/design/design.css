@@ -10,6 +10,24 @@
 .design-heading h3 { margin: 0; font-size: var(--fs); font-weight: var(--fw-strong); }
 .design-actions { display: flex; gap: 0; margin-right: -4px; }
 
+/* En-tête de la sélection : type + nom (32 px), puis la rangée d'alignement en rails de 24 px. */
+.selection-header { padding: 4px var(--panel-pad) 16px; border-bottom: 1px solid var(--panel-border); display: flex; flex-direction: column; gap: 8px; }
+.selection-title { display: flex; align-items: center; gap: 4px; min-height: 28px; margin-left: -4px; }
+.selection-icon { flex: none; display: grid; place-items: center; width: 24px; height: 24px; color: var(--icon-muted); }
+.selection-name {
+  flex: 1; min-width: 0; margin: 0; font-size: var(--fs); line-height: var(--lh); font-weight: var(--fw-strong);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.align-row { display: flex; gap: 8px; }
+.align-group { display: flex; border-radius: var(--radius); background: var(--field-bg); }
+.align-group button {
+  display: grid; place-items: center; width: var(--field-h); height: var(--field-h); padding: 0; border: 0; border-radius: var(--radius);
+  background: transparent; color: var(--icon); cursor: default;
+}
+.align-group button:hover:not(:disabled) { background: var(--pressed); }
+.align-group button:disabled { color: var(--panel-faint); }
+.align-group button:focus-visible { outline: var(--focus-ring); outline-offset: calc(-1 * var(--focus-offset) - 1px); }
+
 .field-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
 
 .number-field {

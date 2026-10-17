@@ -6,6 +6,7 @@ import { CheckSection } from './design/CheckSection'
 import { DocumentPanel } from './design/DocumentPanel'
 import { FillSection, ShadowSection, StrokeSection } from './design/PaintSections'
 import { PositionSection } from './design/PositionSection'
+import { SelectionHeader } from './design/SelectionHeader'
 import { TextSection } from './design/TextSection'
 import { DirectionPanel } from './direction/DirectionPanel'
 import './design/design.css'
@@ -47,6 +48,7 @@ export function RightPanel() {
         <DirectionPanel />
       ) : count > 0 ? (
         <div className="design" key="selection">
+          <SelectionHeader />
           <PositionSection />
           <AutoLayoutSection />
           <TextSection />

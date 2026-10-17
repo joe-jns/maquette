@@ -73,8 +73,9 @@ export function IconButton({ label, onClick, pressed, disabled, title, children 
   )
 }
 
-export const Icon = ({ d, size = 14 }: { d: string; size?: number }) => (
+/** Glyphe de 16 px (dans une boîte de 24), trait de 1,25 px, bouts ronds. */
+export const Icon = ({ d, size = 16 }: { d: string; size?: number }) => (
   <svg viewBox="0 0 16 16" width={size} height={size} aria-hidden>
-    <path d={d} fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+    <path d={d} fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 )
