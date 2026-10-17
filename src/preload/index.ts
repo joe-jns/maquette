@@ -10,6 +10,7 @@ const api: MaquetteApi = {
   fontCatalog: () => ipcRenderer.invoke('fonts:catalog') as Promise<FontInfo[]>,
   fontCss: (family) => ipcRenderer.invoke('fonts:css', family) as Promise<string | null>,
   renderNode: (doc, nodeId, opts) => ipcRenderer.invoke('export:node', { doc, nodeId, ...opts }) as Promise<RenderedImage | null>,
+  exportPng: (doc, nodeId, scale) => ipcRenderer.invoke('export:save', { doc, nodeId, scale }) as Promise<string | null>,
   exportView: {
     onJob: (cb) => {
       const handler = (_e: IpcRendererEvent, id: number, job: ExportJob) => {

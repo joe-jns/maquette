@@ -15,6 +15,15 @@ export function buildMenu(): void {
           { label: 'Enregistrer', accelerator: 'CmdOrCtrl+S', click: send('save') },
           { label: 'Enregistrer sous…', accelerator: 'CmdOrCtrl+Shift+S', click: send('save-as') },
           { type: 'separator' },
+          {
+            label: 'Exporter la sélection en PNG',
+            submenu: [
+              { label: '1×', click: send('export-png-1') },
+              { label: '2×', accelerator: 'CmdOrCtrl+Shift+E', click: send('export-png-2') },
+              { label: '3×', click: send('export-png-3') },
+            ],
+          },
+          { type: 'separator' },
           { label: 'Quitter', role: 'quit' },
         ],
       },

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { mkdtemp, readFile, readdir, writeFile, rename, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { writeFileAtomic, type FsLike } from '../../src/main/files'
+import { writeBytesAtomic, writeFileAtomic, type FsLike } from '../../src/main/files'
 
 let dir: string
 beforeEach(async () => {
@@ -77,5 +77,33 @@ describe('writeFileAtomic', () => {
       rm: async () => { throw new Error('nettoyage impossible') },
     }
     await expect(writeFileAtomic(join(dir, 'a.maquette'), 'x', { fs, delayMs: 1 })).rejects.toThrow('disque plein')
+  })
+})
+
+describe('writeBytesAtomic', () => {
+  it('écrit les octets tels quels, sans temporaire', async () => {
+    const target = join(dir, 'Hero é@2x.png')
+    const bytes = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x00, 0xff, 0x0a, 0x0d])
+    await writeBytesAtomic(target, bytes)
+    expect(Buffer.compare(await readFile(target), bytes)).toBe(0)
+    expect(await readdir(dir)).toEqual(['Hero é@2x.png'])
+  })
+
+  it('remplace un fichier existant', async () => {
+    const target = join(dir, 'a.png')
+    await writeFile(target, 'ancien', 'utf8')
+    await writeBytesAtomic(target, new Uint8Array([1, 2, 3]))
+    expect([...(await readFile(target))]).toEqual([1, 2, 3])
+  })
+
+  it('réessaie un renommage bloqué ; en cas d’échec, l’original reste intact', async () => {
+    const target = join(dir, 'a.png')
+    await writeFile(target, 'original', 'utf8')
+    let calls = 0
+    const fs: FsLike = { writeFile, rm, rename: async () => { calls++; throw busy() } }
+    await expect(writeBytesAtomic(target, new Uint8Array([1]), { fs, retries: 2, delayMs: 1 })).rejects.toThrow('occupé')
+    expect(calls).toBe(3)
+    expect(await readFile(target, 'utf8')).toBe('original')
+    expect(await readdir(dir)).toEqual(['a.png'])
   })
 })

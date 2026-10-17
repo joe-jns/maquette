@@ -11,7 +11,7 @@ export interface FontInfo {
   variable: { min: number; max: number } | null
 }
 
-export type MenuCommand = 'new' | 'open' | 'save' | 'save-as' | 'undo' | 'redo'
+export type MenuCommand = 'new' | 'open' | 'save' | 'save-as' | 'undo' | 'redo' | 'export-png-1' | 'export-png-2' | 'export-png-3'
 
 export interface RenderOptions {
   scale: number
@@ -49,5 +49,7 @@ export interface MaquetteApi {
   fontCss(family: string): Promise<string | null>
   /** Rend un élément en image (hors écran) ; null si introuvable, masqué ou trop long. */
   renderNode(doc: MaquetteDocument, nodeId: string, opts: RenderOptions): Promise<RenderedImage | null>
+  /** Exporte un élément en PNG : boîte d'enregistrement, puis écriture ; chemin écrit ou null (annulé). */
+  exportPng(doc: MaquetteDocument, nodeId: string, scale: number): Promise<string | null>
   exportView: ExportViewApi
 }

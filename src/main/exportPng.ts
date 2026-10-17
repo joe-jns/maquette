@@ -1,7 +1,9 @@
-import { BrowserWindow, ipcMain, type WebContents } from 'electron'
+import { BrowserWindow, dialog, ipcMain, type WebContents } from 'electron'
 import { join } from 'node:path'
 import type { MaquetteDocument, Node } from '../core/types'
 import type { ExportJob, ExportMeasure, RenderedImage, RenderOptions } from '../shared/ipc'
+import { writeBytesAtomic } from './files'
+import { getCurrentDir } from './state'
 
 /** Au-delà, le rendu est abandonné (image ou police qui ne répond pas). */
 const TIMEOUT_MS = 15_000
@@ -184,6 +186,13 @@ export function renderNode(doc: MaquetteDocument, nodeId: string, opts: RenderOp
   return run
 }
 
+/** Nom de fichier proposé : `<nom de l'élément>@<n>x.png`, sans caractères interdits. */
+export function exportFileName(name: string, scale: number): string {
+  // eslint-disable-next-line no-control-regex
+  const base = name.replace(/[<>:"/\\|?*\x00-\x1f]/g, '_').replace(/[. ]+$/, '').trim() || 'export'
+  return `${base}@${scale}x.png`
+}
+
 export function registerExportIpc(): void {
   ipcMain.on('export:measured', (event, id: number, measure: ExportMeasure) => {
     if (!win || event.sender !== win.webContents) return
@@ -202,4 +211,24 @@ export function registerExportIpc(): void {
     },
   )
 
+  ipcMain.handle('export:save', async (event, args: { doc: MaquetteDocument; nodeId: string; scale: number }): Promise<string | null> => {
+    if (win && event.sender === win.webContents) return null
+    const scale = [1, 2, 3].includes(args.scale) ? args.scale : 1
+    const node = findVisible(args.doc, args.nodeId)
+    if (!node) throw new Error('élément introuvable ou masqué')
+    const rendered = await renderNode(args.doc, args.nodeId, { scale, format: 'png' })
+    if (!rendered) throw new Error('le rendu de l’élément a échoué')
+    const name = exportFileName(node.name, scale)
+    const dir = getCurrentDir()
+    const options = {
+      defaultPath: dir ? join(dir, name) : name,
+      filters: [{ name: 'Image PNG', extensions: ['png'] }],
+    }
+    const parent = BrowserWindow.fromWebContents(event.sender)
+    const res = parent ? await dialog.showSaveDialog(parent, options) : await dialog.showSaveDialog(options)
+    if (res.canceled || !res.filePath) return null
+    const target = res.filePath.toLowerCase().endsWith('.png') ? res.filePath : `${res.filePath}.png`
+    await writeBytesAtomic(target, rendered.buffer)
+    return target
+  })
 }

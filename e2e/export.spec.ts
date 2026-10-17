@@ -1,8 +1,8 @@
 import { test, expect, type ElectronApplication, type Page } from '@playwright/test'
-import { mkdir, mkdtemp, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { boxOf, scene, settled } from './canvas'
+import { boxOf, clickOn, scene, settled } from './canvas'
 import { launch } from './launch'
 
 const PNG_RED_1x1 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg=='
@@ -130,3 +130,36 @@ test('rend une image du dossier assets, en PNG puis en JPEG réduit', async () =
   await app.close()
 })
 
+test('menu Exporter : rien de sélectionné → message ; sélection → fichier PNG écrit', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'export menu é '))
+  const { app, page } = await launch([scene])
+  await settled(page, 'fHero1')
+
+  const sendMenu = (cmd: string) =>
+    app.evaluate(({ BrowserWindow }, cmd) => {
+      const editor = BrowserWindow.getAllWindows().find((w) => !w.webContents.getURL().includes('export=1'))
+      editor!.webContents.send('menu', cmd)
+    }, cmd)
+
+  // Le menu propose les trois échelles, 2× au clavier.
+  const items = await app.evaluate(({ Menu }) => {
+    const file = Menu.getApplicationMenu()!.items.find((i) => i.label === 'Fichier')!
+    const exp = file.submenu!.items.find((i) => i.label === 'Exporter la sélection en PNG')!
+    return exp.submenu!.items.map((i) => `${i.label}${i.accelerator ? ` ${i.accelerator}` : ''}`)
+  })
+  expect(items).toEqual(['1×', '2× CmdOrCtrl+Shift+E', '3×'])
+
+  await sendMenu('export-png-2')
+  await expect(page.getByRole('alert')).toContainText('Sélectionnez un élément à exporter')
+
+  await clickOn(page, 'rBleu1')
+  const target = join(dir, 'bleu.png')
+  await app.evaluate(({ dialog }, target) => {
+    dialog.showSaveDialog = (async () => ({ canceled: false, filePath: target })) as typeof dialog.showSaveDialog
+  }, target)
+  await sendMenu('export-png-3')
+  await expect.poll(async () => (await readFile(target).catch(() => null))?.length ?? 0).toBeGreaterThan(0)
+  const size = await app.evaluate(({ nativeImage }, target) => nativeImage.createFromPath(target).getSize(), target)
+  expect(size).toEqual({ width: 300, height: 300 })
+  await app.close()
+})

@@ -20,6 +20,25 @@ async function save(asNew: boolean): Promise<void> {
   }
 }
 
+/** Message d'une erreur renvoyée par le principal, sans le préfixe ajouté par Electron. */
+const remoteMessage = (e: unknown) =>
+  (e as Error).message.replace(/^Error invoking remote method '[^']*': (Error: )?/, '')
+
+async function exportSelection(scale: number): Promise<void> {
+  const id = uiStore.getState().selection[0]
+  if (!id) {
+    docStore.getState().showError('Sélectionnez un élément à exporter')
+    return
+  }
+  // Un texte en cours d'édition n'est dans le document qu'à sa fermeture : on le valide d'abord.
+  if (uiStore.getState().editingTextId) (document.activeElement as HTMLElement | null)?.blur()
+  try {
+    await window.maquette.exportPng(docStore.getState().doc, id, scale)
+  } catch (e) {
+    docStore.getState().showError(`Export impossible : ${remoteMessage(e)}`)
+  }
+}
+
 export async function runCommand(cmd: MenuCommand): Promise<void> {
   const store = docStore.getState()
   switch (cmd) {
@@ -48,5 +67,11 @@ export async function runCommand(cmd: MenuCommand): Promise<void> {
     case 'redo':
       store.redo()
       return
+    case 'export-png-1':
+      return exportSelection(1)
+    case 'export-png-2':
+      return exportSelection(2)
+    case 'export-png-3':
+      return exportSelection(3)
   }
 }
