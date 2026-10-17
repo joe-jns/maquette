@@ -119,6 +119,20 @@ function isAncestor(d: MaquetteDocument, ancestor: string, id: string): boolean 
   return false
 }
 
+/** Point de l'écran (clientX/clientY). */
+export interface ScreenPoint { clientX: number; clientY: number }
+
+/** Contrôleur actif (un seul canevas), pour les menus qui lancent les mêmes commandes que le clavier. */
+let active: InteractionController | null = null
+
+/**
+ * Lance une commande du canevas comme son raccourci (menus contextuels). `at` : point du clic droit,
+ * où « Coller ici » dépose. Renvoie false sans canevas ou pour une commande non gérée.
+ */
+export function runCanvasCommand(command: CommandId, at?: ScreenPoint): boolean {
+  return active?.command(command, at) ?? false
+}
+
 export class InteractionController {
   private state: State = { kind: 'idle' }
   private spaceDown = false
@@ -129,8 +143,14 @@ export class InteractionController {
   private clipboard = ''
   private readonly listeners: [EventTarget, string, EventListener][] = []
 
-  constructor(private readonly el: HTMLElement) {
+  constructor(
+    private readonly el: HTMLElement,
+    /** Clic droit sur le canevas, après la mise à jour de la sélection : ouvrir le menu à ce point. */
+    private readonly onContextMenu: (at: ScreenPoint) => void = () => {},
+  ) {
+    active = this
     this.on(el, 'pointerdown', (e) => this.pointerDown(e as PointerEvent))
+    this.on(el, 'contextmenu', (e) => this.contextMenu(e as MouseEvent))
     this.on(el, 'pointermove', (e) => this.pointerMove(e as PointerEvent))
     this.on(el, 'pointerup', (e) => this.pointerUp(e as PointerEvent))
     this.on(el, 'pointerleave', () => {
@@ -151,6 +171,35 @@ export class InteractionController {
 
   dispose(): void {
     for (const [target, type, fn] of this.listeners) target.removeEventListener(type, fn)
+    if (active === this) active = null
+  }
+
+  /** Commande lancée depuis un menu (même effet que son raccourci). */
+  command(command: CommandId, at?: ScreenPoint): boolean {
+    if (command === 'paste') {
+      void this.paste(at)
+      return true
+    }
+    return this.run(command)
+  }
+
+  /**
+   * Clic droit, comme Figma : sur un élément hors de la sélection, il devient la sélection ; dans le
+   * vide, la sélection est vidée ; puis le menu s'ouvre.
+   */
+  private contextMenu(e: MouseEvent): void {
+    const target = e.target as Element | null
+    if (target?.closest?.('[data-ui]') || target?.closest?.('[data-editing]')) return
+    e.preventDefault()
+    if (this.state.kind !== 'idle') return
+    const hit = this.hitAt(e)
+    if (hit) {
+      const picked = pickClickTarget(doc(), hit, { deep: e.ctrlKey || e.metaKey, context: currentContext(), rectOf: worldRectOf })
+      if (!ui().selection.includes(picked)) ui().select([picked])
+    } else if (!(target?.closest?.('[data-handle]'))) {
+      ui().select([])
+    }
+    this.onContextMenu({ clientX: e.clientX, clientY: e.clientY })
   }
 
   private on(target: EventTarget, type: string, fn: EventListener): void {
@@ -793,8 +842,11 @@ export class InteractionController {
     }
   }
 
-  /** Coller : dans le cadre sélectionné, sinon à côté de la sélection ; au pointeur s'il est sur le canevas. */
-  private async paste(): Promise<void> {
+  /**
+   * Coller : dans le cadre sélectionné, sinon à côté de la sélection ; au point `at` (clic droit) ou
+   * au pointeur s'il est sur le canevas.
+   */
+  private async paste(at: ScreenPoint | null = this.pointer): Promise<void> {
     let text = this.clipboard
     try {
       text = (await navigator.clipboard.readText()) || text
@@ -808,13 +860,13 @@ export class InteractionController {
     const firstNode = first ? findNode(d, first)?.node : undefined
     const parent =
       firstNode?.type === 'frame' && rest.length === 0 ? firstNode.id : (first ? contextOf(d, first) : null) ?? docStore.getState().pageId
-    let at: Point | undefined
-    if (this.pointer) {
-      const world = this.toWorld(this.pointer)
+    let place: Point | undefined
+    if (at) {
+      const world = this.toWorld(at)
       const origin = parent === docStore.getState().pageId ? { x: 0, y: 0 } : worldRectOf(parent)
-      if (origin) at = { x: Math.round(world.x - origin.x), y: Math.round(world.y - origin.y) }
+      if (origin) place = { x: Math.round(world.x - origin.x), y: Math.round(world.y - origin.y) }
     }
-    this.apply(pasteOps(d, payload, { parent, at }), 'Coller')
+    this.apply(pasteOps(d, payload, { parent, at: place }), 'Coller')
   }
 
   /** Exécute une commande clavier ; renvoie false si elle n'est pas gérée ici. */

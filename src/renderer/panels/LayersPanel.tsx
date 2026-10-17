@@ -4,6 +4,8 @@ import { findNode, walk } from '../../core/tree'
 import type { Page } from '../../core/types'
 import { docStore, useDoc } from '../state/store'
 import { uiStore, useUi } from '../state/ui'
+import { selectionMenu } from '../canvas/contextMenu'
+import { Menu } from '../ui/Menu'
 import { InlineName } from './InlineName'
 import { layerDrop, layerRows, type LayerRow } from './layerRows'
 
@@ -38,6 +40,7 @@ export function LayersPanel() {
   const hoverId = useUi((s) => s.hoverId)
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set())
   const [renaming, setRenaming] = useState<string | null>(null)
+  const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null)
   const [drop, setDrop] = useState<{ index: number; zone: 'before' | 'inside' | 'after' } | null>(null)
   const dragged = useRef<string[] | null>(null)
   const listRef = useRef<HTMLUListElement>(null)
@@ -126,6 +129,12 @@ export function LayersPanel() {
               draggable={renaming !== row.id}
               onClick={(e) => click(row.id, e)}
               onDoubleClick={() => setRenaming(row.id)}
+              onContextMenu={(e) => {
+                // Comme Figma : un calque hors de la sélection devient la sélection.
+                e.preventDefault()
+                if (!uiStore.getState().selection.includes(row.id)) uiStore.getState().select([row.id])
+                setMenu({ id: row.id, x: e.clientX, y: e.clientY })
+              }}
               onMouseEnter={() => uiStore.getState().setHover(row.id)}
               onMouseLeave={() => uiStore.getState().setHover(null)}
               onDragStart={(e) => {
@@ -211,6 +220,15 @@ export function LayersPanel() {
         })}
         {rows.length === 0 && <li className="empty-note">Aucun élément sur cette page.</li>}
       </ul>
+      {menu && (
+        <Menu
+          label="Calque"
+          x={menu.x}
+          y={menu.y}
+          items={selectionMenu({ rename: () => setRenaming(menu.id) })}
+          onClose={() => setMenu(null)}
+        />
+      )}
     </section>
   )
 }
