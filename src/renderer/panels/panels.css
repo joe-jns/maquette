@@ -80,6 +80,17 @@
 .panel, .panel *, .panel *::before, .panel *::after { box-sizing: border-box; }
 .panel-left { border-right: 1px solid var(--panel-border); }
 .panel-right { border-left: 1px solid var(--panel-border); }
+/* En-tête du panneau gauche : nom du fichier en 13 px fort, point discret s'il est modifié, menu Fichier. */
+.file-header { flex: none; display: flex; align-items: center; height: var(--header-h); padding: 0 8px; border-bottom: 1px solid var(--panel-border); }
+.file-title {
+  display: flex; align-items: center; gap: 4px; min-width: 0; max-width: 100%; height: var(--row-h); padding: 0 4px 0 8px; border: 0;
+  border-radius: var(--radius); background: transparent; color: var(--panel-text); cursor: pointer;
+  font: var(--fw-strong) var(--fs-large) / var(--lh-large) var(--font-ui); letter-spacing: -0.0025em;
+}
+.file-title:hover, .file-title[aria-expanded='true'] { background: var(--panel-hover); }
+.file-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-dirty { flex: none; width: 6px; height: 6px; border-radius: var(--radius-pill); background: var(--panel-faint); }
+.file-chevron { flex: none; color: var(--icon-muted); }
 .panel-section { border-bottom: 1px solid var(--panel-border); padding: 4px 0 8px; }
 .panel-heading { display: flex; align-items: center; justify-content: space-between; min-height: var(--row-h); padding: 0 8px 0 var(--panel-pad); }
 .panel-heading h2 { margin: 0; font-size: var(--fs); font-weight: var(--fw-strong); }
