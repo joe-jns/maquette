@@ -52,12 +52,12 @@ export const DESIGN_TOOLS: ToolDef[] = [
   },
   {
     name: 'style',
-    description: 'Styles archétypes de Pen (complément de direction : référence, ou look demandé). Sans nom : liste ; style(nom) : variantes ; style(nom, variante) : fiche (identité, composition, polices, palette, arrondis, élévation, imagerie). appliquer:true crée couleurs nommées et styles de texte (une annulation).',
+    description: 'Styles archétypes de Pen. Sans nom : liste ; style(nom) : variantes ; style(nom, variante) : fiche (identité, composition, polices et graisses, palette, arrondis, élévation, imagerie). appliquer:true crée couleurs nommées et styles de texte (une annulation).',
     input: DESIGN_INPUTS.style,
   },
   {
     name: 'direction',
-    description: 'Direction artistique taste-skill, obligatoire pour toute nouvelle page : pour un secteur et un brief : 3 directions, puis choix:id pour la fiche (hero, typo, palette, sections). appliquer:true crée couleurs nommées et styles de texte (une annulation). sections : rôles dans l’ordre (intro, features, gallery, pricing, faq, contact, footer…).',
+    description: 'Direction artistique taste-skill : pour un secteur et un brief : 3 directions, puis choix:id pour la fiche (hero, typo, palette, sections). appliquer:true crée couleurs nommées et styles de texte (une annulation). sections : rôles dans l’ordre (intro, features, gallery, pricing, faq, contact, footer…).',
     input: DESIGN_INPUTS.direction,
   },
 ]

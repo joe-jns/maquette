@@ -214,7 +214,7 @@ export function styleSheet(lib: StyleLibrary, style: StyleEntry, v: StyleVariant
   if (round) lines.push(`Arrondis : ${roundKeys.filter((k) => k in round).map((k) => `${k} ${round[k]}`).join(' · ')}`)
   const elevation = lib.elevation[v.params.elevation ?? '']
   if (elevation) {
-    lines.push(`Élévation « ${v.params.elevation} » (shadows, seulement sur ce qui flotte) :`)
+    lines.push(`Élévation « ${v.params.elevation} » (shadows du style) :`)
     for (const [level, list] of Object.entries(elevation)) lines.push(`  ${level} : [${list.map(shadowText).join(', ')}]`)
   }
   const imagery = v.params.decorativeImagery

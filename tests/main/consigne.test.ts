@@ -101,7 +101,15 @@ describe('consigne du chat', () => {
     }
   })
 
-  it('instructions du serveur MCP : courtes', () => {
+  it('instructions du serveur MCP : courtes et neutres (la consigne du chat décide de la méthode)', () => {
     expect(tokens(MCP_INSTRUCTIONS)).toBeLessThanOrEqual(700)
+    for (const k of ['style(', 'direction(', 'verifier_gout', 'appliquer:true', 'capture', 'guide("methode")', 'garde le style']) expect(MCP_INSTRUCTIONS).toContain(k)
+    for (const k of ['mandatory', 'always taste-skill', 'no eyebrow', 'House rules:']) expect(MCP_INSTRUCTIONS).not.toContain(k)
+  })
+
+  it('descriptions des outils : aucune n’impose taste-skill', () => {
+    for (const t of TOOLS) {
+      expect(t.description, t.name).not.toMatch(/obligatoire|mandatory/i)
+    }
   })
 })
