@@ -21,6 +21,9 @@ test('un document passé en argument est affiché avec sa mise en page automatiq
 test('un fichier qui n’est pas une maquette affiche une alerte au lieu de planter', async () => {
   const { app, page } = await launch([fixture('pas-une-maquette.maquette')])
   await expect(page.getByRole('alert')).toContainText('n’est pas un document Maquette')
+  // Rien d'ouvert : l'accueil, qui reste utilisable (nouvelle maquette → l'éditeur).
+  await expect(page.getByTestId('home')).toBeVisible()
+  await page.getByTestId('home').getByRole('button', { name: 'Nouvelle maquette' }).first().click()
   await expect(page.locator('.canvas')).toBeVisible()
   await app.close()
 })
