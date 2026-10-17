@@ -20,6 +20,7 @@ function host(start: MaquetteDocument): ToolHost {
       return r
     },
     capture: async () => null,
+    check: async () => null,
   }
 }
 

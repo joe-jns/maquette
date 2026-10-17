@@ -22,6 +22,10 @@ function host(start: MaquetteDocument, selection: string[] = []): ToolHost & { c
       return r
     },
     capture: async (id, width) => (id === 'F1' ? { data: `img-${width}`, mimeType: 'image/jpeg' } : null),
+    check: async (id) =>
+      id === 'F1'
+        ? { isPage: false, findings: Array.from({ length: 17 }, (_, i) => ({ level: i ? 'WARN' : 'FAIL', id: `regle-${i}`, message: `message ${i}`, fix: `correction ${i}` }) as const) }
+        : null,
   }
 }
 
@@ -35,7 +39,7 @@ function scene() {
 
 describe('outils MCP', () => {
   it('la liste des outils a des descriptions courtes', () => {
-    expect(TOOLS.map((t) => t.name)).toEqual(['lire_document', 'lire_elements', 'chercher', 'appliquer', 'capture', 'selection'])
+    expect(TOOLS.map((t) => t.name)).toEqual(['lire_document', 'lire_elements', 'chercher', 'appliquer', 'capture', 'selection', 'verifier_gout'])
     for (const t of TOOLS) expect(t.description.length).toBeLessThan(400)
   })
 
@@ -84,6 +88,16 @@ describe('outils MCP', () => {
     expect(data).toEqual({ ok: true, ids: { $btn: expect.any(String) } })
     expect(r.text.length).toBeLessThan(300)
     expect(h.labels).toEqual(['Claude : ajouter un bouton'])
+  })
+
+  it('verifier_gout : fautes compactes, au plus 15, cadre seulement', async () => {
+    const r = await runTool(host(scene()), 'verifier_gout', { id: 'F1' })
+    const data = JSON.parse(r.text)
+    expect(data.fautes).toHaveLength(15)
+    expect(data.fautes[0]).toEqual(['FAIL', 'regle-0', 'message 0', 'correction 0'])
+    expect(data).toMatchObject({ page: false, plus: 2 })
+    expect((await runTool(host(scene()), 'verifier_gout', { id: 'R1' })).isError).toBe(true)
+    expect((await runTool(host(scene()), 'verifier_gout', { id: 'X' })).isError).toBe(true)
   })
 
   it('appliquer : une clé devinée (CSS, Figma) est corrigée dans le message', async () => {

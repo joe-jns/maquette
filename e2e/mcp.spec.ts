@@ -32,7 +32,7 @@ test.describe('connexion Claude Code (MCP)', () => {
     const c = await client(exe)
     try {
       const { tools } = await c.listTools()
-      expect(tools.map((t) => t.name)).toEqual(['lire_document', 'lire_elements', 'chercher', 'appliquer', 'capture', 'selection'])
+      expect(tools.map((t) => t.name)).toEqual(['lire_document', 'lire_elements', 'chercher', 'appliquer', 'capture', 'selection', 'verifier_gout'])
 
       const lu = JSON.parse(textOf(await c.callTool({ name: 'lire_document', arguments: {} })))
       expect(lu.pages).toHaveLength(1)
@@ -56,6 +56,21 @@ test.describe('connexion Claude Code (MCP)', () => {
       await page.locator('.canvas').click({ position: { x: 5, y: 5 } })
       await page.keyboard.press('Control+z')
       await expect(el).toHaveCount(0)
+
+      // verifier_gout : les règles de taste-skill sur le rendu réel d'un cadre dessiné par Claude.
+      const page2 = await c.callTool({
+        name: 'appliquer',
+        arguments: { operations: [
+          { op: 'create', parent: lu.pages[0].id, node: { id: '$p', type: 'frame', name: 'Page', x: 0, y: 0, width: 1440, height: 900, fills: ['#FFFFFF'], layout: { mode: 'auto', direction: 'column', padding: [120, 120, 120, 120] } } },
+          { op: 'create', parent: '$p', node: { type: 'text', content: 'Un titre beaucoup trop long qui tient sur bien plus que deux lignes à cette taille-là', fontSize: 96, width: 800, textSizing: 'auto-height' } },
+        ] },
+      })
+      const pageId = JSON.parse(textOf(page2)).ids.$p as string
+      const gout = await c.callTool({ name: 'verifier_gout', arguments: { id: pageId } })
+      expect(gout.isError).toBeFalsy()
+      const data = JSON.parse(textOf(gout))
+      expect(data.page).toBe(true)
+      expect(data.fautes.map((f: string[]) => f[1])).toContain('headline-lines')
     } finally {
       await c.close()
       await app.close()

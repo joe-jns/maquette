@@ -16,6 +16,8 @@ export interface ToolHost {
   selection(): string[]
   apply(ops: Op[], label: string): ApplyResult
   capture(id: string, width: number): Promise<{ data: string; mimeType: string } | null>
+  /** Contrôle taste-skill d'un cadre (rendu réel) ; null si impossible. */
+  check(id: string): Promise<{ findings: { level: 'FAIL' | 'WARN'; id: string; message: string; fix: string }[]; isPage: boolean } | null>
 }
 
 export interface ToolResult { text: string; image?: { data: string; mimeType: string }; isError?: boolean }
@@ -45,6 +47,7 @@ const INPUTS = {
     largeur: z.number().int().min(100).max(1600).optional(),
   },
   selection: {},
+  verifier_gout: { id: z.string() },
 } satisfies Record<string, z.ZodRawShape>
 
 type ToolName = keyof typeof INPUTS
@@ -92,6 +95,11 @@ export const TOOLS: ToolDef[] = [
     description: 'Éléments sélectionnés par l’utilisateur dans Maquette (id, type, nom).',
     input: INPUTS.selection,
   },
+  {
+    name: 'verifier_gout',
+    description: 'Contrôle taste-skill d’un cadre sur son rendu réel : [niveau, règle, message, correction] (au plus 15), "page" = cadre de la taille d’une page. À lancer après une section ou une page.',
+    input: INPUTS.verifier_gout,
+  },
 ]
 
 const json = (value: unknown): string => JSON.stringify(value)
@@ -120,6 +128,8 @@ export async function runTool(host: ToolHost, name: string, args: unknown): Prom
       return capture(host, a.id as string, (a.largeur as number | undefined) ?? 800)
     case 'selection':
       return ok(selection(host))
+    case 'verifier_gout':
+      return checkTaste(host, a.id as string)
   }
 }
 
@@ -314,4 +324,20 @@ function selection(host: ToolHost) {
     return node ? [{ id: node.id, type: node.type, nom: node.name }] : []
   })
   return elements
+}
+
+// ——— verifier_gout ———
+
+const MAX_FINDINGS = 15
+
+async function checkTaste(host: ToolHost, id: string): Promise<ToolResult> {
+  const loc = findNode(host.doc(), id)
+  if (!loc) return error(`élément introuvable : ${id}`)
+  if (loc.node.type !== 'frame') return error(`${loc.node.name} n’est pas un cadre : le contrôle porte sur un cadre (section ou page)`)
+  const r = await host.check(id)
+  if (!r) return error(`contrôle impossible pour ${loc.node.name} (masqué, ou rendu trop long)`)
+  const fautes = r.findings.slice(0, MAX_FINDINGS).map((f) => [f.level, f.id, f.message, f.fix])
+  const out: Record<string, unknown> = { fautes, page: r.isPage }
+  if (r.findings.length > MAX_FINDINGS) out.plus = r.findings.length - MAX_FINDINGS
+  return ok(out)
 }
