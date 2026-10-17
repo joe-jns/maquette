@@ -53,7 +53,7 @@ test('Ctrl+L, historique, texte au fil de l’eau, autorisation, Stop', async ()
     await expect.poll(() => calls(app)).toContainEqual(['chat:permission', 'req-7', 'allow'])
     await emit(app, { type: 'item', item: { kind: 'permission', id: 'p1', requestId: 'req-7', tool: 'Bash', summary: 'npm run build', status: 'allowed' } })
     await expect(card).toHaveCount(0)
-    await expect(panel.getByText('Autorisé : Bash')).toBeVisible()
+    await expect(panel.getByText('Autorisé : Lance une commande')).toBeVisible()
 
     // Stop.
     await panel.getByRole('button', { name: 'Arrêter' }).click()
