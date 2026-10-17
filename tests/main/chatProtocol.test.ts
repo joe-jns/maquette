@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { createDecoder, interruptLine, permissionLine, toolSummary, userLine } from '../../src/main/chat/protocol'
+import { clip, createDecoder, interruptLine, MAX_TOOL_TEXT, permissionLine, toolInput, toolOutput, toolSummary, TRUNCATED, userLine } from '../../src/main/chat/protocol'
 
 /** Lignes enregistrées avec Claude Code 2.1.302 (champs sans intérêt retirés). */
 const L = {
@@ -30,8 +30,8 @@ describe('décodage des lignes de claude', () => {
     const all = [L.init, L.hook, L.start1, L.toolStart, L.toolJson, L.toolUse, L.toolResult, L.rate, L.start2, L.thinkStart, L.textStart, L.delta1, L.delta2, L.thinking, L.text, L.result].flatMap(decode)
     expect(all).toEqual([
       { type: 'session', sessionId: 'a82640d3-8f1c-4734-b926-f907e7f9949a' },
-      { type: 'item', item: { kind: 'tool', id: 'toolu_01K5fsbrLuoJyhUaQTYKNT7z', name: 'Bash', summary: 'echo hi', status: 'running' } },
-      { type: 'item', item: { kind: 'tool', id: 'toolu_01K5fsbrLuoJyhUaQTYKNT7z', name: 'Bash', summary: 'echo hi', status: 'done' } },
+      { type: 'item', item: { kind: 'tool', id: 'toolu_01K5fsbrLuoJyhUaQTYKNT7z', name: 'Bash', summary: 'echo hi', input: 'echo hi', status: 'running' } },
+      { type: 'item', item: { kind: 'tool', id: 'toolu_01K5fsbrLuoJyhUaQTYKNT7z', name: 'Bash', summary: 'echo hi', input: 'echo hi', output: 'hi', status: 'done' } },
       { type: 'delta', id: 'msg_011Cg7k1sC7AVSKnSZzkCiUt:1', text: 'O' },
       { type: 'delta', id: 'msg_011Cg7k1sC7AVSKnSZzkCiUt:1', text: 'K' },
       // Même id que les morceaux : le texte complet les remplace (blocs « thinking » ignorés).
@@ -50,8 +50,34 @@ describe('décodage des lignes de claude', () => {
     const decode = createDecoder()
     decode(L.toolUse)
     expect(decode(L.toolResult.replace('"is_error":false', '"is_error":true'))).toEqual([
-      { type: 'item', item: { kind: 'tool', id: 'toolu_01K5fsbrLuoJyhUaQTYKNT7z', name: 'Bash', summary: 'echo hi', status: 'error' } },
+      { type: 'item', item: { kind: 'tool', id: 'toolu_01K5fsbrLuoJyhUaQTYKNT7z', name: 'Bash', summary: 'echo hi', input: 'echo hi', output: 'hi', status: 'error' } },
     ])
+  })
+
+  it('résultat en blocs : textes mis bout à bout, images à part (capture de Maquette)', () => {
+    const decode = createDecoder()
+    decode('{"type":"assistant","message":{"id":"m1","content":[{"type":"tool_use","id":"t1","name":"mcp__maquette__capture","input":{"id":"f1","largeur":800}}]},"parent_tool_use_id":null}')
+    const result = {
+      type: 'user',
+      message: {
+        role: 'user',
+        content: [{
+          type: 'tool_result',
+          tool_use_id: 't1',
+          content: [
+            { type: 'text', text: 'capture de Hero' },
+            { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: '/9j/AA' } },
+            { type: 'text', text: '(800 px)' },
+          ],
+        }],
+      },
+      parent_tool_use_id: null,
+    }
+    expect(decode(JSON.stringify(result))).toEqual([{
+      type: 'item',
+      item: { kind: 'tool', id: 't1', name: 'capture', summary: '', input: '{\n  "id": "f1",\n  "largeur": 800\n}', output: 'capture de Hero\n(800 px)', status: 'done' },
+      images: [{ mediaType: 'image/jpeg', data: '/9j/AA' }],
+    }])
   })
 
   it('demande d’accord', () => {
@@ -83,6 +109,48 @@ describe('résumés des outils', () => {
     expect(toolSummary('Read', { file_path: 'C:\\x\\a.ts' })).toBe('C:\\x\\a.ts')
     expect(toolSummary('WebFetch', { url: 'https://exemple.be' })).toBe('https://exemple.be')
     expect(toolSummary('TodoWrite', { todos: [] })).toBe('')
+  })
+})
+
+describe('détail des outils', () => {
+  it('entrée lisible selon l’outil', () => {
+    const ops = [{ op: 'create', parent: 'p1' }]
+    expect(toolInput('mcp__maquette__appliquer', { libelle: 'x', operations: ops })).toBe(JSON.stringify(ops, null, 2))
+    expect(toolInput('Bash', { command: 'npm run build', description: 'Build' })).toBe('npm run build')
+    expect(toolInput('PowerShell', { command: 'Get-ChildItem' })).toBe('Get-ChildItem')
+    expect(toolInput('Read', { file_path: 'C:\\a.ts' })).toBe('C:\\a.ts')
+    expect(toolInput('Read', { file_path: 'C:\\a.ts', offset: 10, limit: 5 })).toBe('C:\\a.ts\n(à partir de la ligne 10, 5 lignes)')
+    expect(toolInput('Write', { file_path: 'a.txt', content: 'salut' })).toBe('a.txt\n\nsalut')
+    expect(toolInput('Edit', { file_path: 'a.ts', old_string: 'x = 1', new_string: 'x = 2' })).toBe('a.ts\n\nAncien texte :\nx = 1\n\nNouveau texte :\nx = 2')
+    expect(toolInput('WebFetch', { url: 'https://exemple.be', prompt: 'Résume' })).toBe('https://exemple.be\n\nRésume')
+    expect(toolInput('WebSearch', { query: 'figma auto layout' })).toBe('figma auto layout')
+    expect(toolInput('mcp__maquette__lire_document', {})).toBe('')
+    expect(toolInput('Glob', { pattern: '**/*.ts' })).toBe('{\n  "pattern": "**/*.ts"\n}')
+  })
+
+  it('résultat : texte seul, blocs, images au format de l’API ou du MCP, le reste ignoré', () => {
+    expect(toolOutput('ok')).toEqual({ text: 'ok', images: [] })
+    expect(toolOutput(undefined)).toEqual({ text: '', images: [] })
+    expect(
+      toolOutput([
+        { type: 'text', text: 'a' },
+        { type: 'image', source: { type: 'base64', media_type: 'image/png', data: 'AAAA' } },
+        { type: 'image', data: 'BBBB', mimeType: 'image/jpeg' },
+        { type: 'image', source: { type: 'base64', media_type: 'text/plain', data: 'CCCC' } },
+        { type: 'document', text: 'z' },
+        'perdu',
+        { type: 'text', text: 'b' },
+      ]),
+    ).toEqual({ text: 'a\nb', images: [{ mediaType: 'image/png', data: 'AAAA' }, { mediaType: 'image/jpeg', data: 'BBBB' }] })
+  })
+
+  it('tronqué à ~20 000 caractères par champ', () => {
+    expect(clip('court')).toBe('court')
+    const long = 'x'.repeat(MAX_TOOL_TEXT + 500)
+    expect(clip(long)).toBe(`${'x'.repeat(MAX_TOOL_TEXT)}${TRUNCATED}`)
+    expect(TRUNCATED).toContain('(tronqué)')
+    expect(toolOutput(long).text).toHaveLength(MAX_TOOL_TEXT + TRUNCATED.length)
+    expect(toolInput('Bash', { command: long })).toHaveLength(MAX_TOOL_TEXT + TRUNCATED.length)
   })
 })
 

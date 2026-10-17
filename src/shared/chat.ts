@@ -1,9 +1,25 @@
 /** Chat avec Claude (Claude Code lancé par l'app) : ce qui circule entre le principal et la fenêtre. */
 
+/**
+ * Vignette d'une image du chat (jointe par l'utilisateur ou vue par Claude), enregistrée par le principal
+ * dans userData/chat-images/<hash>.jpg et servie par chatImageUrl(hash).
+ */
+export interface ChatImageRef { hash: string; width: number; height: number }
+
+export const CHAT_IMAGE_SCHEME = 'maquette-chat'
+/** Empreinte d'une vignette : SHA-256 en hexadécimal. */
+export const CHAT_IMAGE_HASH = /^[0-9a-f]{64}$/
+export const chatImageUrl = (hash: string): string => `${CHAT_IMAGE_SCHEME}://img/${hash}.jpg`
+
 export type ChatItem =
-  | { kind: 'user'; id: string; text: string; images: number }
+  /** images : nombre d'images jointes ; thumbs : leurs vignettes (absentes dans l'ancien historique, ou format illisible). */
+  | { kind: 'user'; id: string; text: string; images: number; thumbs?: ChatImageRef[] }
   | { kind: 'assistant'; id: string; text: string }
-  | { kind: 'tool'; id: string; name: string; summary: string; status: 'running' | 'done' | 'error' }
+  /**
+   * input : ce que Claude a envoyé à l'outil, lisible ; output : texte du résultat ; images : images du résultat.
+   * Champs absents dans l'ancien historique (la ligne ne se déplie alors pas). Textes tronqués à ~20 000 caractères.
+   */
+  | { kind: 'tool'; id: string; name: string; summary: string; status: 'running' | 'done' | 'error'; input?: string; output?: string; images?: ChatImageRef[] }
   | { kind: 'permission'; id: string; requestId: string; tool: string; summary: string; status: 'asking' | 'allowed' | 'denied' }
   | { kind: 'error'; id: string; text: string }
 
