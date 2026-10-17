@@ -5,6 +5,7 @@ import { chatStore } from './chat/chatStore'
 import { startExportView } from './export/ExportView'
 import { docStore } from './state/store'
 import { uiStore } from './state/ui'
+import '@fontsource-variable/inter/wght.css'
 import './app.css'
 
 const params = new URLSearchParams(location.search)
