@@ -14,7 +14,52 @@
   flex: none; display: flex; align-items: center; gap: 4px; height: var(--header-h); padding: 0 8px 0 var(--panel-pad);
   border-bottom: 1px solid var(--panel-border);
 }
-.chat-head h2 { flex: 1; margin: 0; font-size: var(--fs); font-weight: var(--fw-strong); }
+/* Titre de la conversation : un clic ouvre la liste (menu des conversations). */
+.chat-title {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 4px; height: var(--field-h); margin-left: -6px; padding: 0 6px;
+  border: 0; border-radius: var(--radius); background: transparent; color: var(--panel-text);
+  font: var(--fw-strong) var(--fs) / var(--lh) var(--font-ui); letter-spacing: var(--ls); text-align: left; cursor: pointer;
+}
+.chat-title > svg { flex: none; color: var(--icon-muted); }
+.chat-title:hover, .chat-title[aria-expanded='true'] { background: var(--panel-hover); }
+.chat-title-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ——— Menu des conversations (rangées des menus de l'app + date à droite, actions au survol) ——— */
+.conv-menu { width: 320px; max-width: calc(100vw - 16px); }
+.conv-row { position: relative; display: flex; align-items: center; flex: none; }
+.conv-row .conv-item { flex: 1; min-width: 0; }
+.conv-item:focus, .conv-item:hover { background: var(--accent, #0d99ff); color: #fff; }
+.conv-item:focus .menu-shortcut, .conv-item:hover .menu-shortcut { color: rgba(255, 255, 255, .8); }
+.conv-item[aria-disabled='true'] { opacity: .4; }
+.conv-item[aria-disabled='true']:focus, .conv-item[aria-disabled='true']:hover { background: rgba(255, 255, 255, .08); color: inherit; }
+.conv-check { flex: none; width: 12px; display: flex; justify-content: center; margin-left: -2px; }
+.conv-date { margin-left: 12px; }
+/* Actions : par-dessus la date, visibles au survol ou au clavier. */
+.conv-actions {
+  position: absolute; right: 4px; top: 0; bottom: 0; display: none; align-items: center; gap: 2px;
+}
+.conv-row:hover .conv-actions, .conv-row:focus-within .conv-actions { display: flex; }
+.conv-row:hover .conv-date, .conv-row:focus-within .conv-date { visibility: hidden; }
+.conv-action {
+  display: grid; place-items: center; width: 20px; height: 20px; padding: 0; border: 0; border-radius: 4px;
+  background: transparent; color: rgba(255, 255, 255, .85); cursor: default;
+}
+.conv-action:hover { background: rgba(0, 0, 0, .25); color: #fff; }
+.conv-action[aria-disabled='true'] { opacity: .45; }
+.conv-row.is-editing { gap: 8px; height: 24px; padding: 0 4px 0 8px; }
+.conv-rename {
+  flex: 1; min-width: 0; height: 22px; padding: 0 6px; box-sizing: border-box;
+  border: 1px solid var(--accent, #0d99ff); border-radius: 4px; outline: none;
+  background: #2c2c2c; color: #fff; font: inherit; letter-spacing: inherit;
+}
+.conv-section { margin: 0; padding: 4px 8px 4px 28px; color: rgba(255, 255, 255, .6); font-weight: var(--fw-strong, 550); }
+.conv-other { height: 36px; align-items: center; }
+.conv-other-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.conv-other-text .menu-label { white-space: nowrap; }
+.conv-file { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: rgba(255, 255, 255, .55); }
+.conv-other:focus .conv-file, .conv-other:hover .conv-file { color: rgba(255, 255, 255, .8); }
+.conv-other.is-missing .menu-label, .conv-other.is-missing .conv-file { text-decoration: line-through; text-decoration-color: rgba(255, 255, 255, .4); }
+.conv-notice { margin: 0 0 4px; padding: 6px 8px; border-radius: var(--radius, 5px); background: rgba(255, 255, 255, .06); color: rgba(255, 255, 255, .75); white-space: normal; }
 .chat-head-button {
   display: flex; align-items: center; gap: 4px; height: var(--field-h); padding: 0 8px; border: 0; border-radius: var(--radius);
   background: transparent; color: var(--panel-muted); font: var(--fw-strong) var(--fs) / var(--lh) var(--font-ui); letter-spacing: var(--ls);

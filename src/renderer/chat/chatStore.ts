@@ -1,5 +1,5 @@
 import { createStore, useStore } from 'zustand'
-import { DEFAULT_CHAT_OPTIONS, type ChatEvent, type ChatImage, type ChatImageRef, type ChatItem, type ChatOptions } from '../../shared/chat'
+import { DEFAULT_CHAT_OPTIONS, type ChatEvent, type ChatImage, type ChatImageRef, type ChatItem, type ChatOptions, type ConversationList } from '../../shared/chat'
 
 /** Image collée ou glissée, en attente d'envoi ; `url` sert à la vignette. */
 export interface PendingImage extends ChatImage {
@@ -25,6 +25,9 @@ interface ChatState {
   preview: ChatImageRef | null
   /** Réglages de la conversation ouverte (interrupteur taste-skill…). */
   options: ChatOptions
+  /** Conversations du fichier ouvert et des autres fichiers (null : pas encore lues). */
+  conversations: ConversationList | null
+  setConversations(conversations: ConversationList | null): void
   setOptions(options: ChatOptions): void
   setOpen(open: boolean): void
   toggle(): void
@@ -68,6 +71,8 @@ export const chatStore = createStore<ChatState>()((set, get) => ({
   focusRequest: 0,
   preview: null,
   options: DEFAULT_CHAT_OPTIONS,
+  conversations: null,
+  setConversations: (conversations) => set({ conversations }),
   setOptions: (options) => set({ options }),
   setOpen(open) {
     writeOpen(open)

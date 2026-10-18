@@ -1,13 +1,14 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ClipboardEvent, type DragEvent, type KeyboardEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { chatImageUrl, type ChatImageRef, type ChatItem, type PermissionDecision } from '../../shared/chat'
+import { chatImageUrl, NEW_CONVERSATION_TITLE, type ChatImageRef, type ChatItem, type PermissionDecision } from '../../shared/chat'
 import { nodeElement } from '../canvas/rects'
 import { shortcutKeys } from '../canvas/shortcuts'
 import { docStore, useDoc } from '../state/store'
 import { useUi } from '../state/ui'
 import { chatStore, MAX_IMAGES, useChat } from './chatStore'
 import { Checkbox } from '../ui/Checkbox'
-import { changeOptions, chatApi, selectionContext, selectionLabel } from './connect'
+import { BUSY_NOTICE, changeOptions, chatApi, newConversation, refreshConversations, selectionContext, selectionLabel } from './connect'
+import { ConversationMenu } from './ConversationMenu'
 import { imageFiles, readImage } from './images'
 import { MessageText } from './MessageText'
 import './chat.css'
@@ -36,6 +37,7 @@ const CLOSE = 'M6 6l12 12M18 6L6 18'
 const ARROW = 'M12 19V5M6 11l6-6 6 6'
 const NEW = 'M12 5v14M5 12h14'
 const CHEVRON = 'M9 6l6 6-6 6'
+const CHEVRON_DOWN = 'M6 9l6 6 6-6'
 
 // ——— Éléments de la conversation ———
 
@@ -442,6 +444,45 @@ function Composer() {
   )
 }
 
+// ——— Titre et menu des conversations ———
+
+/** Titre de la conversation ouverte ; un clic ouvre la liste des conversations. */
+function ConversationTitle() {
+  const list = useChat((s) => s.conversations)
+  const busy = useChat((s) => s.busy)
+  const button = useRef<HTMLButtonElement>(null)
+  const [open, setOpen] = useState(false)
+  const title = list?.conversations.find((c) => c.id === list.current)?.title ?? NEW_CONVERSATION_TITLE
+  return (
+    <>
+      <button
+        ref={button}
+        type="button"
+        className="chat-title"
+        data-testid="chat-title"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={`Conversation : ${title}`}
+        data-tooltip="Conversations"
+        onClick={() => {
+          if (open) {
+            setOpen(false)
+            return
+          }
+          refreshConversations()
+          setOpen(true)
+        }}
+      >
+        <span className="chat-title-text">{title}</span>
+        <Icon d={CHEVRON_DOWN} size={12} width={2} />
+      </button>
+      {open && list && button.current && (
+        <ConversationMenu anchor={button.current} list={list} busy={busy} onClose={() => setOpen(false)} />
+      )}
+    </>
+  )
+}
+
 // ——— Panneau ———
 
 export function ChatPanel() {
@@ -495,9 +536,13 @@ export function ChatPanel() {
   }
 
   const reset = async () => {
-    await chatApi()?.reset().catch(() => undefined)
-    chatStore.getState().setItems([])
+    if (!(await newConversation())) {
+      setNotice(BUSY_NOTICE)
+      return
+    }
+    setNotice(null)
     stuck.current = true
+    chatStore.setState((s) => ({ focusRequest: s.focusRequest + 1 }))
   }
 
   const lastBusyLine: ReactNode =
@@ -519,7 +564,7 @@ export function ChatPanel() {
       onDrop={onDrop}
     >
       <header className="chat-head">
-        <h2>Claude</h2>
+        <ConversationTitle />
         <span
           className="chat-taste"
           data-testid="chat-taste"
@@ -527,9 +572,15 @@ export function ChatPanel() {
         >
           <Checkbox checked={taste} onChange={(on) => changeOptions({ taste: on })}>taste-skill</Checkbox>
         </span>
-        <button type="button" className="chat-head-button" onClick={() => void reset()} disabled={items.length === 0 && !busy} data-tooltip="Nouvelle conversation">
+        <button
+          type="button"
+          className="chat-head-button"
+          aria-label="Nouvelle conversation"
+          onClick={() => void reset()}
+          disabled={items.length === 0 || busy}
+          data-tooltip={busy ? 'Nouvelle conversation (après la réponse en cours)' : 'Nouvelle conversation'}
+        >
           <Icon d={NEW} size={14} width={2} />
-          <span>Nouvelle conversation</span>
         </button>
         <button type="button" className="icon-button" aria-label="Fermer le chat" data-tooltip="Fermer le chat" data-shortcut={shortcutKeys('toggleChat')} onClick={() => chatStore.getState().setOpen(false)}>
           <Icon d={CLOSE} size={14} width={1.8} />

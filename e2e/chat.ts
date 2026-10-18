@@ -22,10 +22,13 @@ export async function fakeChat(app: ElectronApplication, history: ChatItem[]): P
       return items
     })
     ipcMain.removeHandler('chat:reset')
+    let options: Record<string, unknown> = { taste: false }
     ipcMain.handle('chat:reset', () => {
       g.__chatCalls.push(['chat:reset'])
+      return { items: [], options }
     })
-    let options: Record<string, unknown> = { taste: false }
+    ipcMain.removeHandler('chat:conversations')
+    ipcMain.handle('chat:conversations', () => ({ current: null, conversations: [], others: [] }))
     ipcMain.removeHandler('chat:options')
     ipcMain.handle('chat:options', () => options)
     ipcMain.removeHandler('chat:set-options')
