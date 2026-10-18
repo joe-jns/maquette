@@ -16,7 +16,7 @@ jamais l'API.
 | Droits | Tout ce que Claude Code sait faire ; chaque action sensible demande l'accord dans le chat |
 | Dossier de travail | Dossier du fichier `.maquette` ouvert ; dossier personnel pour un document sans titre |
 | Place | Panneau à droite du panneau Design, 360 px, Ctrl+L l'ouvre et le ferme |
-| Mémoire | Une conversation par fichier, reprise à l'ouverture ; « Nouvelle conversation » repart de zéro |
+| Mémoire | Plusieurs conversations par fichier (2026-10-18), la dernière ouverte reprend avec le fichier ; le titre du chat ouvre leur liste (plus récente d'abord, renommer, supprimer avec confirmation, « Autres fichiers » en bas) ; « Nouvelle conversation » garde l'ancienne ; pas de bascule pendant une réponse (Stop d'abord) |
 | V1 | Sélection jointe automatiquement, images collées/glissées, bouton Stop |
 | Hors v1 | Choix du modèle/effort, commandes rapides |
 
@@ -63,15 +63,18 @@ claude -p --input-format stream-json --output-format stream-json --verbose --inc
   événements à la fenêtre, garde l'ensemble des outils « toujours autorisés » de la conversation,
   relance avec `--resume` si le processus est mort au message suivant, tue le processus à la
   fermeture de la fenêtre ou au changement de conversation.
-- `chatStore.ts` — `userData/chats.json` : `{ [clé]: { sessionId, items } }`, clé = chemin du fichier
-  ou `"sans-titre"`. Écritures en série, 200 éléments max par conversation. Les images ne sont pas
+- `chatStore.ts` — `userData/chats.json` : `{ [clé]: { current, conversations: [{ id, title, createdAt,
+  updatedAt, sessionId, items, options }] } }`, clé = chemin du fichier ou `"sans-titre"` ; l'ancien
+  format (une conversation par clé) devient la première conversation du fichier. Écritures en série,
+  200 éléments max par conversation, 50 conversations max par fichier (les plus anciennes partent
+  avec leurs vignettes). Les images ne sont pas
   dans chats.json : seulement des références `{ hash, width, height }` (`thumbs` du message,
   `images` d'un outil) vers des vignettes.
 - `chatImages.ts` / `chatImageService.ts` — vignettes des images jointes et des images vues par
   Claude (blocs image d'un tool_result) : 640 px de large au plus, JPEG 80, dans
   `userData/chat-images/<sha256>.jpg`, servies par `maquette-chat://img/<hash>.jpg` (empreinte
-  validée, rien d'autre). « Nouvelle conversation » supprime les siennes ; au démarrage, les
-  orphelines de plus d'une minute partent.
+  validée, rien d'autre). Supprimer une conversation supprime les siennes ; au démarrage, les
+  orphelines (d'aucune conversation, tous fichiers confondus) de plus d'une minute partent.
 - Outils : l'élément garde `input` (lisible : opérations en JSON indenté, commande, chemin,
   ancien/nouveau texte, adresse, requête, sinon JSON) et `output` (texte du résultat), tronqués à
   20 000 caractères.
