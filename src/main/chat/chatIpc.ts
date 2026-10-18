@@ -2,6 +2,8 @@ import { app, ipcMain, type WebContents } from 'electron'
 import { existsSync } from 'node:fs'
 import { isAbsolute, join, normalize } from 'node:path'
 import type { ChatSend, ConversationList, PermissionDecision } from '../../shared/chat'
+import type { OpenedFile } from '../../shared/ipc'
+import { readForWindow } from '../openFiles'
 import { ChatImages } from './chatImages'
 import { chatImagesDir, nativeThumb } from './chatImageService'
 import { ChatSession } from './chatSession'
@@ -80,10 +82,12 @@ export function registerChatIpc(): void {
     const c = id(conv)
     return c ? session(event.sender).remove(c) : null
   })
-  ipcMain.handle('chat:prepare', async (_event, path: unknown, conv: unknown) => {
+  // Seulement un fichier qui a cette conversation : le chat n'ouvre rien d'autre.
+  ipcMain.handle('chat:open-file', async (_event, path: unknown, conv: unknown): Promise<OpenedFile | null> => {
     const p = cleanPath(path)
     const c = id(conv)
-    if (p && c) await store.select(chatKey(p), c)
+    if (!p || !c || !(await store.select(chatKey(p), c))) return null
+    return readForWindow(p).catch(() => null)
   })
   ipcMain.handle('chat:options', (event) => session(event.sender).options())
   ipcMain.handle('chat:set-options', (event, patch: unknown) => {

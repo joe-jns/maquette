@@ -1,4 +1,5 @@
 /** Chat avec Claude (Claude Code lancé par l'app) : ce qui circule entre le principal et la fenêtre. */
+import type { OpenedFile } from './ipc'
 
 /**
  * Vignette d'une image du chat (jointe par l'utilisateur ou vue par Claude), enregistrée par le principal
@@ -107,8 +108,11 @@ export interface ChatApi {
    * null : refusé (conversation ouverte pendant une réponse).
    */
   remove(id: string): Promise<ConversationSwitch>
-  /** Conversation à ouvrir avec ce fichier, au prochain open(path) (avant d'ouvrir le fichier). */
-  prepare(path: string, id: string): Promise<void>
+  /**
+   * Autre fichier qui a des conversations : choisit `id` pour son prochain open(path) et lit le fichier
+   * (à charger ensuite comme tout fichier ouvert). null : fichier ou conversation introuvable.
+   */
+  openFile(path: string, id: string): Promise<OpenedFile | null>
   /** Réglages de la conversation ouverte. */
   options(): Promise<ChatOptions>
   /** Change des réglages de la conversation ouverte ; renvoie les réglages à jour. */
