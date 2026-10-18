@@ -54,14 +54,14 @@ describe('consigne du chat', () => {
     }
     expect(taste).toContain('Reduce:')
     expect(taste).toContain('no gradients')
-    expect(taste).toContain('Pen styles are a complement, never a replacement')
+    expect(taste).toContain('Never use Pen style archetypes (the style tool) unless the user names one')
     expect(taste).toContain('(A) With references')
     expect(taste).toContain('capture({ids:[…]})')
     expect(taste).toContain('never move or delete them')
     expect(taste).toContain('(B) Without references, always taste-skill')
   })
 
-  it('taste-skill éteint (défaut) : méthode de Pen, style appliqué en entier, aucun interdit taste-skill', () => {
+  it('taste-skill éteint (défaut) : méthode de Pen, look tiré de la demande sans styles Pen, aucun interdit taste-skill', () => {
     // Flux et section Style de pen-dev (SKILL.md).
     for (const k of [
       'Verify each section immediately after you are done with it',
@@ -76,13 +76,12 @@ describe('consigne du chat', () => {
       'All Google fonts are available',
       'Never draw logos, illustrations or mascots',
     ]) expect(pen, k).toContain(k)
-    // Styles de Pen : choisi selon le sujet, appliqué entièrement.
-    expect(pen).toContain('choose the Pen style archetype that fits the subject')
-    expect(pen).toContain('style(nom, variante, appliquer:true)')
-    expect(pen).toContain('applied ENTIRELY')
-    for (const k of ['typefaces at their stated weights', 'palette', 'radii', 'elevation', 'imagery', 'composition rules']) expect(pen, k).toContain(k)
+    // Pas de styles Pen : le look vient de la demande de l'utilisateur (il ne veut pas que Claude dérive).
+    expect(pen).toContain('decide the look from the request itself')
+    expect(pen).toContain('Never use, apply or borrow from Pen style archetypes')
+    expect(pen).not.toContain('style(nom')
+    expect(pen).not.toContain('Use the following style')
     expect(pen).toContain('guide("qualite")')
-    expect(pen).toContain('Use the following style')
     expect(pen).toContain('Main headline 88–120 px on 1440 unless the source is bigger')
     // Sections distinctes de leurs voisines ; une section d'appel n'est pas un simple encadré.
     for (const k of ['distinct from its neighbours', 'alternate light, dark and colour grounds', 'never a plain outlined box']) expect(pen, k).toContain(k)
@@ -115,7 +114,7 @@ describe('consigne du chat', () => {
 
   it('instructions du serveur MCP : courtes et neutres (la consigne du chat décide de la méthode)', () => {
     expect(tokens(MCP_INSTRUCTIONS)).toBeLessThanOrEqual(700)
-    for (const k of ['style(', 'direction(', 'verifier_gout', 'appliquer:true', 'capture', 'guide("methode")', 'garde le style']) expect(MCP_INSTRUCTIONS).toContain(k)
+    for (const k of ['never use Pen archetypes (style) unless the user names one', 'direction(', 'verifier_gout', 'appliquer:true', 'capture', 'guide("methode")', 'garde le style']) expect(MCP_INSTRUCTIONS).toContain(k)
     for (const k of ['mandatory', 'always taste-skill', 'no eyebrow', 'House rules:']) expect(MCP_INSTRUCTIONS).not.toContain(k)
   })
 
