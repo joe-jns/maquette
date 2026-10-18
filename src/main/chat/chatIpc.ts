@@ -1,7 +1,6 @@
 import { app, ipcMain, type WebContents } from 'electron'
 import { isAbsolute, join, normalize } from 'node:path'
-import type { ChatOptions, ChatSend, PermissionDecision } from '../../shared/chat'
-import { cleanStyle } from '../../shared/chatStyle'
+import type { ChatSend, PermissionDecision } from '../../shared/chat'
 import { ChatImages } from './chatImages'
 import { chatImagesDir, nativeThumb } from './chatImageService'
 import { ChatSession } from './chatSession'
@@ -65,10 +64,7 @@ export function registerChatIpc(): void {
   ipcMain.handle('chat:options', (event) => session(event.sender).options())
   ipcMain.handle('chat:set-options', (event, patch: unknown) => {
     const p = patch && typeof patch === 'object' ? (patch as Record<string, unknown>) : {}
-    const clean: Partial<ChatOptions> = {}
-    if (typeof p.taste === 'boolean') clean.taste = p.taste
-    if ('style' in p) clean.style = cleanStyle(p.style)
-    return session(event.sender).setOptions(clean)
+    return session(event.sender).setOptions(typeof p.taste === 'boolean' ? { taste: p.taste } : {})
   })
 
   app.on('will-quit', () => {

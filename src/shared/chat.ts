@@ -1,5 +1,4 @@
 /** Chat avec Claude (Claude Code lancé par l'app) : ce qui circule entre le principal et la fenêtre. */
-import type { ChatStyle } from './chatStyle'
 
 /**
  * Vignette d'une image du chat (jointe par l'utilisateur ou vue par Claude), enregistrée par le principal
@@ -39,11 +38,10 @@ export type PermissionDecision = 'allow' | 'always' | 'deny'
 
 /**
  * Réglages d'une conversation, mémorisés avec elle (chats.json) : taste = méthode taste-skill
- * (sinon méthode de Pen ; un changement relance claude avec --resume au message suivant) ;
- * style = style de Pen choisi dans la saisie, joint à chaque message (null : le prompt décide).
+ * (sinon méthode de Pen). Un changement relance claude (avec --resume) au message suivant.
  */
-export interface ChatOptions { taste: boolean; style: ChatStyle | null }
-export const DEFAULT_CHAT_OPTIONS: ChatOptions = { taste: false, style: null }
+export interface ChatOptions { taste: boolean }
+export const DEFAULT_CHAT_OPTIONS: ChatOptions = { taste: false }
 
 export interface ChatApi {
   /** Conversation du fichier (null = sans titre) : arrête l'ancienne, renvoie l'historique de celle-ci. */

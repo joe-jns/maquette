@@ -1,7 +1,6 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
 import { DEFAULT_CHAT_OPTIONS, type ChatItem, type ChatOptions } from '../../shared/chat'
-import { cleanStyle } from '../../shared/chatStyle'
 import { imageHashes } from './chatImages'
 
 /** Clé de la conversation d'un document sans titre. */
@@ -14,7 +13,7 @@ export interface Conversation { sessionId: string | null; items: ChatItem[]; opt
 /** Réglages lus dans le fichier : seules les valeurs du bon type comptent, le reste prend la valeur par défaut. */
 export function cleanOptions(raw: unknown): ChatOptions {
   const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {}
-  return { taste: typeof o.taste === 'boolean' ? o.taste : DEFAULT_CHAT_OPTIONS.taste, style: cleanStyle(o.style) }
+  return { taste: typeof o.taste === 'boolean' ? o.taste : DEFAULT_CHAT_OPTIONS.taste }
 }
 type Data = Record<string, Conversation>
 

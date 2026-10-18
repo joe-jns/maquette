@@ -22,47 +22,6 @@
 }
 .chat-head-button:hover:not(:disabled) { background: var(--panel-hover); color: var(--panel-text); }
 .chat-head-button:disabled { opacity: 0.45; cursor: default; }
-/* ——— Sélecteur de style (comme « Choose a style » de Pen) ——— */
-.dialog.chat-style-picker {
-  width: min(880px, calc(100vw - 48px)); height: min(720px, calc(100vh - 64px)); max-height: none;
-  display: flex; flex-direction: column; gap: 12px; overflow: hidden; padding: 20px;
-}
-.chat-style-picker-head { display: flex; align-items: flex-start; gap: 12px; }
-.chat-style-picker-head > div { flex: 1; min-width: 0; }
-.dialog.chat-style-picker .chat-style-picker-close {
-  flex: none; display: grid; place-items: center; width: var(--row-h); padding: 0; border: 0; background: transparent; color: var(--icon-muted);
-}
-.dialog.chat-style-picker .chat-style-picker-close:hover { color: var(--icon); background: var(--panel-hover); }
-.chat-style-picker-grid {
-  flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  grid-auto-rows: 148px; align-content: start; gap: 12px; padding: 2px 4px 2px 2px; overscroll-behavior: contain;
-}
-.dialog.chat-style-picker .chat-style-picker-item,
-.dialog.chat-style-picker .chat-style-picker-none {
-  height: 100%; padding: 8px; border: 1px solid var(--panel-border); border-radius: var(--radius-lg); background: var(--panel-bg);
-  display: flex; flex-direction: column; gap: 8px; text-align: left; font-weight: var(--fw); min-width: 0;
-}
-.dialog.chat-style-picker .chat-style-picker-item:hover,
-.dialog.chat-style-picker .chat-style-picker-none:hover { border-color: var(--panel-faint); background: var(--panel-bg); }
-.dialog.chat-style-picker [aria-pressed='true'] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
-.dialog.chat-style-picker .chat-style-picker-none { align-items: center; justify-content: center; border-style: dashed; text-align: center; gap: 2px; }
-.chat-style-picker-none-title { font-weight: var(--fw-strong); }
-.chat-style-picker-none-detail { color: var(--panel-muted); }
-.chat-style-picker-thumbs {
-  flex: 1; min-height: 0; display: grid; grid-template-columns: 3fr 2fr; gap: 4px; overflow: hidden; border-radius: var(--radius);
-  background: var(--field-bg);
-}
-.chat-style-picker-thumbs img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; min-width: 0; }
-.chat-style-picker-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 2px; }
-
-/* Bouton « Style » de la saisie et pastille du style choisi. */
-.chat-style-button {
-  flex: none; display: flex; align-items: center; gap: 4px; height: 28px; padding: 0 8px; border: 0; border-radius: var(--radius-pill);
-  background: transparent; color: var(--panel-muted); font: var(--fw-strong) var(--fs) / var(--lh) var(--font-ui); letter-spacing: var(--ls); cursor: pointer;
-}
-.chat-style-button:hover { background: var(--panel-hover); color: var(--panel-text); }
-.chat-chip.is-style { background: var(--field-bg); }
-
 .chat-taste { display: flex; padding: 0 4px; color: var(--panel-muted); }
 .chat-taste .checkbox { gap: 6px; }
 .chat-head .icon-button { color: var(--icon-muted); }

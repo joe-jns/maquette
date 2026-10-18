@@ -10,8 +10,6 @@ import { Checkbox } from '../ui/Checkbox'
 import { changeOptions, chatApi, selectionContext, selectionLabel } from './connect'
 import { imageFiles, readImage } from './images'
 import { MessageText } from './MessageText'
-import { StylePicker } from './StylePicker'
-import { styleContext } from '../../shared/chatStyle'
 import './chat.css'
 
 /** Taille d'origine d'une image du canevas, lue sur l'élément affiché (null si pas encore chargée). */
@@ -38,8 +36,6 @@ const CLOSE = 'M6 6l12 12M18 6L6 18'
 const ARROW = 'M12 19V5M6 11l6-6 6 6'
 const NEW = 'M12 5v14M5 12h14'
 const CHEVRON = 'M9 6l6 6-6 6'
-/** Palette (Lucide « palette », simplifiée). */
-const STYLE = 'M12 3a9 9 0 1 0 0 18c1.1 0 1.5-.8 1.5-1.5 0-.9-.7-1.3-.7-2.1 0-.8.7-1.4 1.5-1.4H16a5 5 0 0 0 5-5c0-4.4-4-8-9-8zM7.5 11.5h.01M10.5 7.5h.01M15.5 8.5h.01'
 
 // ——— Éléments de la conversation ———
 
@@ -358,7 +354,6 @@ function Composer() {
   const doc = useDoc((s) => s.doc)
   const field = useRef<HTMLTextAreaElement>(null)
 
-  const style = useChat((s) => s.options.style)
   const showSelection = attached && selection.length > 0
   const canSend = !busy && (draft.trim().length > 0 || images.length > 0)
 
@@ -382,10 +377,7 @@ function Composer() {
     const api = chatApi()
     const s = chatStore.getState()
     if (!api || !canSend) return
-    // Joints pour Claude seulement : la sélection, puis le style choisi (comme Pen : « Use the following style »).
-    const context = [showSelection ? selectionContext(docStore.getState().doc, selection, naturalSize) : '', style ? styleContext(style) : '']
-      .filter(Boolean)
-      .join('\n\n')
+    const context = showSelection ? selectionContext(docStore.getState().doc, selection, naturalSize) : ''
     api.send({ text: s.draft.trim(), context, images: s.images.map(({ mediaType, data }) => ({ mediaType, data })) })
     s.clearComposer()
     field.current?.focus()
@@ -406,16 +398,8 @@ function Composer() {
         send()
       }}
     >
-      {(showSelection || images.length > 0 || style) && (
+      {(showSelection || images.length > 0) && (
         <div className="chat-attachments">
-          {style && (
-            <span className="chat-chip is-style" data-testid="chat-style" data-tooltip={`Style joint à chaque message : ${style.name}`}>
-              <span className="chat-chip-label">Style : {style.name}</span>
-              <button type="button" aria-label="Retirer le style" onClick={() => changeOptions({ style: null })}>
-                <Icon d={CLOSE} size={12} width={2} />
-              </button>
-            </span>
-          )}
           {showSelection && (
             <span className="chat-chip" data-testid="chat-selection">
               <span className="chat-chip-label">{selectionLabel(doc, selection)}</span>
@@ -444,16 +428,6 @@ function Composer() {
           onChange={(e) => chatStore.getState().setDraft(e.target.value)}
           onKeyDown={onKeyDown}
         />
-        <button
-          type="button"
-          className="chat-style-button"
-          aria-haspopup="dialog"
-          data-tooltip="Choisir un style de Pen pour cette conversation"
-          onClick={() => chatStore.getState().setStylePicker(true)}
-        >
-          <Icon d={STYLE} size={14} width={1.8} />
-          <span>Style</span>
-        </button>
         {busy ? (
           <button type="button" className="chat-send is-stop" aria-label="Arrêter" data-tooltip="Arrêter" onClick={() => chatApi()?.stop()}>
             <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden><rect x="5" y="5" width="14" height="14" rx="2" fill="currentColor" /></svg>
@@ -592,7 +566,6 @@ export function ChatPanel() {
       <Composer />
       {dropping && <div className="chat-drop" aria-hidden><span>Dépose l’image pour la joindre</span></div>}
       <Lightbox />
-      <StylePicker />
     </aside>
   )
 }

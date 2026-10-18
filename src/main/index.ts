@@ -12,7 +12,7 @@ import { registerImagePasteIpc } from './imagePaste'
 import { guardClose, registerSessionIpc } from './docSession'
 import { startMcp } from './mcpApp'
 import { registerTasteIpc } from './taste'
-import { designRoot, registerDesignIpc } from './design'
+import { registerDesignIpc } from './design'
 import { buildMenu, setRecentFiles } from './menu'
 import { initOpenFiles, openInWindow } from './openFiles'
 
@@ -102,7 +102,7 @@ app.whenReady().then(() => {
   if (!firstInstance) return
   handleAssets()
   handleFonts()
-  handleChatImages(chatImagesDir(), join(designRoot(), 'thumbs'))
+  handleChatImages(chatImagesDir())
   buildMenu()
   createWindow()
   initOpenFiles({ editorWindow: () => editorWindows()[0], onRecentChange: setRecentFiles })

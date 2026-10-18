@@ -29,69 +29,6 @@ async function say(page: Page, text: string, answer: string) {
   await expect(page.getByRole('button', { name: 'Envoyer' })).toBeVisible()
 }
 
-/** Textes des messages reçus par le faux claude. */
-const received = (s: EngineSetup) =>
-  readLog(s)
-    .filter((e) => e.line?.type === 'user')
-    .map((e) => (e.line.message.content as { type: string; text?: string }[]).filter((b) => b.type === 'text').map((b) => b.text).join('\n'))
-
-test('style comme Pen : dialogue de vignettes, pastille retirable, joint au message, mémorisé', async () => {
-  const s = engineSetup()
-  const { app, page } = await launch([s.file], s.env)
-  try {
-    const panel = await openChat(page)
-    await expect(panel.getByTestId('chat-style')).toHaveCount(0)
-    await panel.getByRole('button', { name: 'Style', exact: true }).click()
-    const dialog = page.getByTestId('chat-style-picker')
-    await expect(dialog).toBeVisible()
-    await expect(dialog.getByRole('heading', { name: 'Choisir un style' })).toBeVisible()
-    // « Aucun style » d'abord et choisi par défaut, puis les 52 styles de Pen.
-    const tiles = dialog.locator('.chat-style-picker-grid > button')
-    await expect(tiles).toHaveCount(53)
-    await expect(tiles.first()).toContainText('Aucun style')
-    await expect(tiles.first()).toContainText('Le prompt décide')
-    await expect(tiles.first()).toHaveAttribute('aria-pressed', 'true')
-    await expect(tiles.nth(1)).toContainText('Centered Serif List - Prismatic White')
-    // Les vignettes web et mobile se chargent (protocole maquette-chat://style).
-    const swiss = dialog.getByRole('button', { name: 'Swiss Type Atlas' })
-    await swiss.scrollIntoViewIfNeeded()
-    await expect.poll(() => swiss.locator('img').evaluateAll((imgs) => imgs.map((i) => (i as HTMLImageElement).naturalWidth))).toEqual([360, 220])
-
-    // Échap ferme sans rien changer.
-    await page.keyboard.press('Escape')
-    await expect(dialog).toHaveCount(0)
-    await panel.getByRole('button', { name: 'Style', exact: true }).click()
-    await dialog.getByRole('button', { name: 'Swiss Type Atlas' }).click()
-    await expect(dialog).toHaveCount(0)
-    await expect(panel.getByTestId('chat-style')).toHaveText('Style : Swiss Type Atlas')
-
-    // Joint au message pour Claude, pas dans la bulle.
-    await say(page, 'bonjour', 'Bonjour !')
-    await expect(panel.locator('.chat-bubble')).toHaveText(['bonjour'])
-    const [text] = received(s)
-    expect(text).toContain('Use the following style: Swiss Type Atlas\n- headings: ')
-    expect(text).toContain('- colorPalette: ')
-    expect(text).toContain('style("Swiss Type Atlas", "Swiss Type Atlas", appliquer:true)')
-    expect(text!.endsWith('\n\nbonjour')).toBe(true)
-
-    // Mémorisé avec la conversation ; le dialogue montre le choix.
-    const options = () => page.evaluate(() => (window as unknown as { maquette: { chat: { options(): Promise<{ style: { name: string } | null }> } } }).maquette.chat.options())
-    expect((await options()).style?.name).toBe('Swiss Type Atlas')
-    await panel.getByRole('button', { name: 'Style', exact: true }).click()
-    await expect(dialog.getByRole('button', { name: 'Swiss Type Atlas' })).toHaveAttribute('aria-pressed', 'true')
-    await dialog.getByRole('button', { name: 'Fermer' }).click()
-
-    // Retirer la pastille : plus de style, plus rien de joint.
-    await panel.getByRole('button', { name: 'Retirer le style' }).click()
-    await expect(panel.getByTestId('chat-style')).toHaveCount(0)
-    await expect.poll(async () => (await options()).style).toBeNull()
-    await say(page, 'encore', 'Reçu.')
-    expect(received(s)[1]).toBe('encore')
-  } finally {
-    await app.close()
-  }
-})
-
 test('interrupteur taste-skill : éteint par défaut, relance avec --resume et l’autre consigne, mémorisé', async () => {
   const s = engineSetup()
   const { app, page } = await launch([s.file], s.env)
@@ -109,7 +46,7 @@ test('interrupteur taste-skill : éteint par défaut, relance avec --resume et l
     // Allumé : rien ne se relance tout de suite…
     await box.click()
     await expect(box).toHaveAttribute('aria-checked', 'true')
-    await expect.poll(() => page.evaluate(() => (window as unknown as { maquette: { chat: { options(): Promise<unknown> } } }).maquette.chat.options())).toEqual({ taste: true, style: null })
+    await expect.poll(() => page.evaluate(() => (window as unknown as { maquette: { chat: { options(): Promise<{ taste: boolean }> } } }).maquette.chat.options())).toEqual({ taste: true })
     expect(launches(s)).toHaveLength(1)
 
     // …mais au message suivant : nouveau claude, même conversation, consigne taste-skill.
@@ -136,7 +73,7 @@ test('interrupteur taste-skill : éteint par défaut, relance avec --resume et l
       await chat.open(file)
       return [untitled, await chat.options()]
     }, s.file)
-    expect(reopened).toEqual([{ taste: false, style: null }, { taste: true, style: null }])
+    expect(reopened).toEqual([{ taste: false }, { taste: true }])
 
     // Éteint de nouveau : retour à la méthode de Pen au message suivant.
     await box.click()
