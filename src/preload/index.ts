@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
-import type { ChatEvent, ChatItem, ChatOptions } from '../shared/chat'
+import type { ChatEvent, ChatItem, ChatOptions, ConversationList, ConversationSwitch } from '../shared/chat'
 import type { ImageCredit, ImagePlace, ImageSearch } from '../shared/images'
 import type { ClipboardContent, DialogRequest, ExportJob, ExportMeasure, FontInfo, ImageImport, MaquetteApi, MenuCommand, OpenedFile, RenderedImage } from '../shared/ipc'
 
@@ -94,7 +94,12 @@ const api: MaquetteApi = {
     send: (message) => ipcRenderer.send('chat:send', message),
     stop: () => ipcRenderer.send('chat:stop'),
     permission: (requestId, decision) => ipcRenderer.send('chat:permission', requestId, decision),
-    reset: () => ipcRenderer.invoke('chat:reset') as Promise<void>,
+    reset: () => ipcRenderer.invoke('chat:reset') as Promise<ConversationSwitch>,
+    conversations: () => ipcRenderer.invoke('chat:conversations') as Promise<ConversationList>,
+    switchTo: (id) => ipcRenderer.invoke('chat:switch', id) as Promise<ConversationSwitch>,
+    rename: (id, title) => ipcRenderer.invoke('chat:rename', id, title) as Promise<void>,
+    remove: (id) => ipcRenderer.invoke('chat:remove', id) as Promise<ConversationSwitch>,
+    prepare: (path, id) => ipcRenderer.invoke('chat:prepare', path, id) as Promise<void>,
     options: () => ipcRenderer.invoke('chat:options') as Promise<ChatOptions>,
     setOptions: (patch) => ipcRenderer.invoke('chat:set-options', patch) as Promise<ChatOptions>,
     onEvent: (cb) => {
