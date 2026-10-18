@@ -41,7 +41,7 @@ test('interrupteur taste-skill : éteint par défaut, relance avec --resume et l
     expect(launches(s)).toHaveLength(1)
     const first = launches(s)[0]!.argv
     expect(flag(first, '--resume')).toBeUndefined()
-    expect(promptOf(first)).toContain('choose the Pen style archetype that fits the subject')
+    expect(promptOf(first)).toContain('decide the look from the request itself')
 
     // Allumé : rien ne se relance tout de suite…
     await box.click()
@@ -80,7 +80,7 @@ test('interrupteur taste-skill : éteint par défaut, relance avec --resume et l
     await expect(box).toHaveAttribute('aria-checked', 'false')
     await say(page, 'bonjour', 'Bonjour !')
     const last = launches(s).at(-1)!.argv
-    expect(promptOf(last)).toContain('choose the Pen style archetype that fits the subject')
+    expect(promptOf(last)).toContain('decide the look from the request itself')
   } finally {
     await app.close()
   }

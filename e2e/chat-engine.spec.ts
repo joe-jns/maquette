@@ -83,7 +83,7 @@ test.describe('chat : moteur', () => {
       const prompt = readFileSync(run!.argv[run!.argv.indexOf('--append-system-prompt-file') + 1]!, 'utf8')
       expect(prompt).toContain('scène chat.maquette')
       // Consigne permanente, taste-skill éteint par défaut : méthode de Pen.
-      expect(prompt).toContain('choose the Pen style archetype that fits the subject')
+      expect(prompt).toContain('decide the look from the request itself')
       expect(prompt).not.toContain('mandatory taste-skill method')
 
       // Le processus reste vivant entre les tours.
