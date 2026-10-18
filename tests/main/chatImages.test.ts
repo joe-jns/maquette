@@ -74,9 +74,14 @@ describe('vignettes du chat', () => {
 
   it('l’historique liste les vignettes utilisées, sauf celles d’une conversation donnée', async () => {
     const store = new ChatStore(join(fresh(), 'chats.json'))
-    await store.appendOrReplace('k1', { kind: 'user', id: 'u1', text: 'a', images: 1, thumbs: [{ hash: H('a'), width: 1, height: 1 }] })
-    await store.appendOrReplace('k2', { kind: 'tool', id: 't1', name: 'capture', summary: '', status: 'done', images: [{ hash: H('b'), width: 1, height: 1 }] })
-    expect([...(await store.images())].sort()).toEqual([H('a'), H('b')])
-    expect([...(await store.images('k1'))]).toEqual([H('b')])
+    const c1 = (await store.open('k1')).id
+    const c2 = (await store.open('k2')).id
+    await store.appendOrReplace('k1', c1, { kind: 'user', id: 'u1', text: 'a', images: 1, thumbs: [{ hash: H('a'), width: 1, height: 1 }] })
+    await store.appendOrReplace('k2', c2, { kind: 'tool', id: 't1', name: 'capture', summary: '', status: 'done', images: [{ hash: H('b'), width: 1, height: 1 }] })
+    // Une autre conversation du même fichier compte aussi.
+    const c3 = (await store.create('k1')).conversation.id
+    await store.appendOrReplace('k1', c3, { kind: 'user', id: 'u2', text: 'b', images: 1, thumbs: [{ hash: H('c'), width: 1, height: 1 }] })
+    expect([...(await store.images())].sort()).toEqual([H('a'), H('b'), H('c')].sort())
+    expect([...(await store.images({ key: 'k1', id: c1 }))].sort()).toEqual([H('b'), H('c')].sort())
   })
 })

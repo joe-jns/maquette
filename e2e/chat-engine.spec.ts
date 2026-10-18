@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
 import { readFileSync, writeFileSync, existsSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
-import type { ChatEvent, ChatItem, ChatSend } from '../src/shared/chat'
+import type { ChatApi, ChatEvent, ChatItem, ChatSend } from '../src/shared/chat'
 import { engineSetup as setup, type EngineSetup as Setup } from './chat'
 import { launch } from './launch'
 
@@ -53,7 +53,9 @@ const thumbFiles = (s: Setup) => {
     return []
   }
 }
-const reset = (page: Page) => page.evaluate(() => (window as unknown as { maquette: { chat: { reset(): Promise<void> } } }).maquette.chat.reset())
+const reset = (page: Page) => page.evaluate(() => (window as unknown as { maquette: { chat: { reset(): Promise<unknown> } } }).maquette.chat.reset())
+const conversations = (page: Page) => page.evaluate(() => (window as unknown as { maquette: { chat: ChatApi } }).maquette.chat.conversations())
+const removeConversation = (page: Page, id: string) => page.evaluate((i) => (window as unknown as { maquette: { chat: ChatApi } }).maquette.chat.remove(i), id)
 
 test.describe('chat : moteur', () => {
   test('texte au fil de l’eau, puis remplacé par le message complet ; dossier et arguments de claude', async () => {
@@ -239,7 +241,7 @@ test.describe('chat : moteur', () => {
     }
   })
 
-  test('Claude regarde : capture avec entrée, texte et image du résultat ; nouvelle conversation efface les vignettes', async () => {
+  test('Claude regarde : capture avec entrée, texte et image du résultat ; vignettes gardées par « nouvelle conversation », effacées avec la conversation', async () => {
     const s = setup()
     const { app, page } = await start(s)
     try {
@@ -254,9 +256,13 @@ test.describe('chat : moteur', () => {
       expect(thumbFiles(s)).toEqual([`${tool.images![0]!.hash}.jpg`])
       expect((await open(page, s.file)).find((i) => i.kind === 'tool')).toEqual(tool)
 
+      const { current } = await conversations(page)
       await reset(page)
-      expect(thumbFiles(s)).toEqual([])
+      // L'ancienne conversation reste : ses vignettes aussi.
+      expect(thumbFiles(s)).toEqual([`${tool.images![0]!.hash}.jpg`])
       expect(await open(page, s.file)).toEqual([])
+      await removeConversation(page, current!)
+      expect(thumbFiles(s)).toEqual([])
     } finally {
       await app.close()
     }
@@ -267,7 +273,7 @@ test.describe('chat : moteur', () => {
     let first = await start(s)
     const saved = () => {
       try {
-        return JSON.parse(readFileSync(join(s.userData, 'chats.json'), 'utf8'))[s.file] as { sessionId: string | null; items: ChatItem[] }
+        return JSON.parse(readFileSync(join(s.userData, 'chats.json'), 'utf8'))[s.file].conversations[0] as { sessionId: string | null; items: ChatItem[] }
       } catch {
         return null
       }

@@ -2,10 +2,10 @@ import { spawn, execFile, type ChildProcess } from 'node:child_process'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { basename, dirname, join } from 'node:path'
-import { DEFAULT_CHAT_OPTIONS, type ChatEvent, type ChatImage, type ChatItem, type ChatOptions, type ChatSend, type PermissionDecision } from '../../shared/chat'
+import { DEFAULT_CHAT_OPTIONS, type ChatEvent, type ChatImage, type ChatItem, type ChatOptions, type ChatSend, type ConversationSwitch, type PermissionDecision } from '../../shared/chat'
 import { createLineReader } from '../../mcp/pipe'
-import { imageHashes, type ChatImages } from './chatImages'
-import { chatKey, type ChatStore } from './chatStore'
+import type { ChatImages } from './chatImages'
+import { chatKey, type ChatStore, type Conversation } from './chatStore'
 import { claudeArgs, claudeCommand, NOT_FOUND_CODES, NOT_FOUND_TEXT } from './command'
 import { consigne } from './consigne'
 import { createDecoder, interruptLine, permissionLine, userLine, type ClaudeAction } from './protocol'
@@ -62,6 +62,8 @@ function killTree(proc: ChildProcess): void {
 /** Conversation avec `claude` pour une fenêtre de l'éditeur. */
 export class ChatSession {
   private key = chatKey(null)
+  /** Conversation ouverte (id dans le fichier) : toutes les écritures vont à elle. */
+  private conv = ''
   private path: string | null = null
   private sessionId: string | null = null
   private settings: ChatOptions = DEFAULT_CHAT_OPTIONS
@@ -80,16 +82,78 @@ export class ChatSession {
 
   constructor(private readonly deps: ChatSessionDeps) {}
 
-  /** Conversation du fichier : arrête l'autre s'il y en avait une, renvoie l'historique. */
+  /** Conversation ouverte avec le fichier : arrête l'autre s'il y en avait une, renvoie l'historique. */
   async open(path: string | null): Promise<ChatItem[]> {
     const key = chatKey(path)
-    if (key !== this.key) this.kill()
+    const conv = await this.deps.store.open(key)
+    if (key !== this.key || conv.id !== this.conv) this.kill()
     this.key = key
     this.path = path
-    const conv = await this.deps.store.get(key)
-    this.sessionId = conv.sessionId
-    this.settings = await this.deps.store.options(key)
+    this.use(conv)
     return conv.items
+  }
+
+  /** Clé du fichier et conversation ouverts. */
+  get current(): { key: string; id: string } {
+    return { key: this.key, id: this.conv }
+  }
+
+  get isBusy(): boolean {
+    return this.busy
+  }
+
+  private use(conv: Conversation): void {
+    this.conv = conv.id
+    this.sessionId = conv.sessionId
+    this.settings = { ...DEFAULT_CHAT_OPTIONS, ...conv.options }
+  }
+
+  private async opened(): Promise<ConversationSwitch> {
+    const items = (await this.deps.store.get(this.key, this.conv))?.items ?? []
+    return { items, options: this.settings }
+  }
+
+  /**
+   * Ouvre une autre conversation du fichier. Refusé pendant une réponse (Stop d'abord) : le claude de la
+   * conversation précédente est arrêté, la suite reprendra la session de celle-ci (--resume).
+   */
+  async switchTo(id: string): Promise<ConversationSwitch> {
+    if (this.busy) return null
+    if (id === this.conv) return this.opened()
+    const key = this.key
+    const conv = await this.deps.store.select(key, id)
+    if (!conv || key !== this.key || this.busy) return null
+    this.kill()
+    this.use(conv)
+    return { items: conv.items, options: this.settings }
+  }
+
+  /** Renomme une conversation du fichier ouvert. */
+  rename(id: string, title: string): Promise<void> {
+    return this.deps.store.rename(this.key, id, title)
+  }
+
+  /**
+   * Supprime une conversation du fichier ouvert et ses vignettes (sauf celles d'une autre conversation).
+   * La conversation ouverte ne se supprime pas pendant une réponse ; supprimée, la plus récente s'ouvre.
+   */
+  async remove(id: string): Promise<ConversationSwitch> {
+    const isOpen = id === this.conv
+    if (isOpen && this.busy) return null
+    const key = this.key
+    if (isOpen) this.kill()
+    const used = await this.deps.store.remove(key, id)
+    await this.dropImages(used)
+    if (isOpen && key === this.key) this.use(await this.deps.store.open(key))
+    return this.opened()
+  }
+
+  /** Supprime ces vignettes si plus aucune conversation ne s'en sert. */
+  private async dropImages(hashes: string[]): Promise<void> {
+    if (!hashes.length) return
+    const { store, images } = this.deps
+    const elsewhere = await store.images()
+    await images.remove(hashes.filter((h) => !elsewhere.has(h)))
   }
 
   send(message: ChatSend): void {
@@ -104,7 +168,7 @@ export class ChatSession {
 
   /** Réglages de la conversation ouverte. */
   async options(): Promise<ChatOptions> {
-    this.settings = await this.deps.store.options(this.key)
+    this.settings = await this.deps.store.options(this.key, this.conv)
     return this.settings
   }
 
@@ -113,9 +177,9 @@ export class ChatSession {
    * l'autre méthode est relancé (--resume) au prochain message, pas pendant un tour.
    */
   async setOptions(patch: Partial<ChatOptions>): Promise<ChatOptions> {
-    const key = this.key
-    const next = await this.deps.store.setOptions(key, patch)
-    if (key === this.key) this.settings = next
+    const { key, conv } = this
+    const next = await this.deps.store.setOptions(key, conv, patch)
+    if (key === this.key && conv === this.conv) this.settings = next
     return next
   }
 
@@ -139,16 +203,19 @@ export class ChatSession {
     this.item({ ...p.item, status: allow ? 'allowed' : 'denied' }, true)
   }
 
-  /** Nouvelle conversation pour le fichier courant : ses vignettes partent avec elle (sauf celles d'une autre conversation). */
-  async reset(): Promise<void> {
-    this.kill()
-    this.sessionId = null
-    const { store, images } = this.deps
-    const used = imageHashes((await store.get(this.key)).items)
-    await store.reset(this.key, true)
-    if (!used.length) return
-    const elsewhere = await store.images()
-    await images.remove(used.filter((h) => !elsewhere.has(h)))
+  /**
+   * Nouvelle conversation pour le fichier courant ; l'ancienne reste dans la liste. Refusée pendant une
+   * réponse. Les conversations trop anciennes (au-delà de la limite) partent avec leurs vignettes.
+   */
+  async reset(): Promise<ConversationSwitch> {
+    if (this.busy) return null
+    const key = this.key
+    const { conversation, removed } = await this.deps.store.create(key)
+    if (key !== this.key || this.busy) return null
+    if (conversation.id !== this.conv) this.kill()
+    this.use(conversation)
+    await this.dropImages(removed)
+    return { items: conversation.items, options: this.settings }
   }
 
   /**
@@ -252,7 +319,7 @@ export class ChatSession {
     if (run.resumeFailed && this.lastLine) {
       // La conversation demandée n'existe plus : on repart sans --resume avec le même message.
       this.sessionId = null
-      void this.deps.store.setSession(this.key, null)
+      void this.deps.store.setSession(this.key, this.conv, null)
       this.error(RESUME_LOST)
       void this.write(this.lastLine)
       return
@@ -268,7 +335,7 @@ export class ChatSession {
     switch (action.type) {
       case 'session':
         this.sessionId = action.sessionId
-        void this.deps.store.setSession(this.key, action.sessionId)
+        void this.deps.store.setSession(this.key, this.conv, action.sessionId)
         return
       case 'delta':
         this.partial.set(action.id, (this.partial.get(action.id) ?? '') + action.text)
@@ -299,7 +366,7 @@ export class ChatSession {
         }
         if (action.sessionId && action.sessionId !== this.sessionId) {
           this.sessionId = action.sessionId
-          void this.deps.store.setSession(this.key, action.sessionId)
+          void this.deps.store.setSession(this.key, this.conv, action.sessionId)
         }
         if (action.isError && !this.stopping) this.error(action.text)
         this.endTurn()
@@ -308,7 +375,7 @@ export class ChatSession {
 
   /** Fin du tour : textes partiels gardés, Stop terminé, état « attend un message ». */
   private endTurn(): void {
-    for (const [id, text] of this.partial) void this.deps.store.appendOrReplace(this.key, { kind: 'assistant', id, text })
+    for (const [id, text] of this.partial) void this.deps.store.appendOrReplace(this.key, this.conv, { kind: 'assistant', id, text })
     this.partial.clear()
     if (this.stopping) clearTimeout(this.stopping)
     this.stopping = null
@@ -330,7 +397,7 @@ export class ChatSession {
 
   private item(item: ChatItem, persist: boolean): void {
     this.deps.emit({ type: 'item', item })
-    if (persist) void this.deps.store.appendOrReplace(this.key, item)
+    if (persist) void this.deps.store.appendOrReplace(this.key, this.conv, item)
   }
 
   private setBusy(busy: boolean): void {

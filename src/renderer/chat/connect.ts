@@ -1,6 +1,9 @@
 import { findNode } from '../../core/tree'
 import type { MaquetteDocument } from '../../core/types'
-import { DEFAULT_CHAT_OPTIONS, type ChatApi, type ChatOptions } from '../../shared/chat'
+import { DEFAULT_CHAT_OPTIONS, type ChatApi, type ChatOptions, type ConversationSwitch, type OtherConversation } from '../../shared/chat'
+import { ask } from '../dialog/dialogStore'
+import { confirmDiscard } from '../state/commands'
+import { fileName, openDocument } from '../state/openDocument'
 import { docStore } from '../state/store'
 import { uiStore } from '../state/ui'
 import { chatStore } from './chatStore'
@@ -26,7 +29,10 @@ export function startChat(): () => void {
       () => {
         if (n === seq) chatStore.getState().setItems([])
       },
-    ).then(() => (n === seq ? api.options() : null)).then(
+    ).then(() => {
+      if (n === seq) refreshConversations()
+      return n === seq ? api.options() : null
+    }).then(
       (options) => {
         if (options && n === seq) chatStore.getState().setOptions({ ...DEFAULT_CHAT_OPTIONS, ...options })
       },
@@ -42,13 +48,85 @@ export function startChat(): () => void {
   const offSel = uiStore.subscribe((s, prev) => {
     if (s.selection !== prev.selection) chatStore.getState().setContextAttached(true)
   })
-  const offEvents = api.onEvent((event) => chatStore.getState().applyEvent(event))
+  const offEvents = api.onEvent((event) => {
+    chatStore.getState().applyEvent(event)
+    // Début et fin de tour : le titre (premier message) et l'ordre des conversations changent.
+    if (event.type === 'busy') refreshConversations()
+  })
   return () => {
     seq++
     offDoc()
     offSel()
     offEvents()
   }
+}
+
+/** Relit la liste des conversations (menu et titre du panneau). */
+export function refreshConversations(): void {
+  const api = chatApi()
+  if (!api?.conversations) return
+  const n = ++listSeq
+  api.conversations().then(
+    (list) => {
+      if (n === listSeq) chatStore.getState().setConversations(list)
+    },
+    () => undefined,
+  )
+}
+let listSeq = 0
+
+/** Affiche la conversation ouverte par le principal (null : refusé, rien ne change). */
+function show(result: ConversationSwitch): boolean {
+  if (!result) return false
+  const store = chatStore.getState()
+  store.setItems(result.items)
+  store.setOptions({ ...DEFAULT_CHAT_OPTIONS, ...result.options })
+  refreshConversations()
+  return true
+}
+
+/** Message affiché quand un changement de conversation est refusé pendant une réponse. */
+export const BUSY_NOTICE = 'Claude répond encore : arrête la réponse (Stop) pour changer de conversation.'
+
+/** Nouvelle conversation : l'ancienne reste dans la liste. */
+export async function newConversation(): Promise<boolean> {
+  return show((await chatApi()?.reset().catch(() => null)) ?? null)
+}
+
+/** Ouvre une autre conversation du fichier ; false si refusé (Claude répond encore). */
+export async function openConversation(id: string): Promise<boolean> {
+  return show((await chatApi()?.switchTo(id).catch(() => null)) ?? null)
+}
+
+export async function renameConversation(id: string, title: string): Promise<void> {
+  await chatApi()?.rename(id, title).catch(() => undefined)
+  refreshConversations()
+}
+
+/** Supprime une conversation après confirmation (fenêtre de question de l'app). */
+export async function removeConversation(id: string, title: string): Promise<boolean> {
+  const answer = await ask({
+    message: `Supprimer la conversation « ${title} » ?`,
+    detail: 'Ses messages et ses images seront effacés.',
+    buttons: [{ label: 'Annuler' }, { label: 'Supprimer', kind: 'danger' }],
+    cancelIndex: 0,
+    defaultIndex: 0,
+  })
+  if (answer !== 1) return false
+  return show((await chatApi()?.remove(id).catch(() => null)) ?? null)
+}
+
+/** Ouvre le fichier d'une autre conversation (avec la question habituelle), puis cette conversation. */
+export async function openOtherConversation(other: OtherConversation): Promise<boolean> {
+  const api = chatApi()
+  if (!api || other.missing || !(await confirmDiscard())) return false
+  const file = await api.openFile(other.path, other.id).catch(() => null)
+  if (!file) {
+    docStore.getState().showError(`${fileName(other.path)} est introuvable.`)
+    refreshConversations()
+    return false
+  }
+  return openDocument(file)
 }
 
 /** Change des réglages de la conversation : affiché tout de suite, enregistré par le principal. */
