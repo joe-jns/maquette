@@ -6,6 +6,7 @@ Décidée avec l'utilisateur le 2026-10-28. Le nouveau look passe en dernier et 
 - Interface en anglais (traduction de toute l'interface ; consignes de Claude inchangées).
 
 ## Chantiers, dans l'ordre
+0. **Enregistrement automatique** (demandé le 2026-10-29) : le fichier `.maquette` s'enregistre tout seul quelques secondes après chaque modification (aujourd'hui, seule une copie de secours est écrite toutes les 5 s ; le vrai fichier attend Ctrl+S). Fichier jamais enregistré : reste en copie de secours jusqu'au premier « Save as ».
 1. **Fenêtre Variables** : une vraie fenêtre (modal) au centre, couleurs à gauche, styles de texte à droite, à la place du petit panneau flottant.
 2. **Curseur de Claude** (comme Pen) : un curseur nommé glisse vers l'élément modifié et l'entoure un instant, depuis le chat intégré et depuis le MCP.
 3. **Maquette sans l'app ouverte** : Claude ouvre, modifie et enregistre un `.maquette` en mode sans fenêtre (captures par un rendu invisible) ; app ouverte = passage par l'app comme aujourd'hui.
