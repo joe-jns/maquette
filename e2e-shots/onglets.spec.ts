@@ -21,9 +21,17 @@ test('disposition à onglets', async () => {
   await page.getByRole('tab', { name: 'Claude' }).click()
   await page.waitForTimeout(300)
   await shot(page, 'b-claude')
+  await page.evaluate(() => (window as unknown as { __maquetteStore: { getState(): { dispatch(ops: unknown[], label: string): void } } }).__maquetteStore.getState().dispatch([
+    { op: 'style.color.set', name: 'Ground', value: '#F6F1E8' },
+    { op: 'style.color.set', name: 'Ink', value: '#1E1A16' },
+    { op: 'style.color.set', name: 'Accent', value: '#C2410C' },
+    { op: 'style.text.set', name: 'Heading 1', fontFamily: 'Inter', fontWeight: 700, fontStyle: 'normal', fontSize: 64, lineHeight: 1.1, letterSpacing: -0.02 },
+    { op: 'style.text.set', name: 'Body', fontFamily: 'Inter', fontWeight: 400, fontStyle: 'normal', fontSize: 18, lineHeight: 1.5, letterSpacing: 0 },
+  ], 'capture'))
   await page.getByRole('button', { name: 'Variables' }).click()
   await page.waitForTimeout(300)
   await shot(page, 'c-variables')
+  await page.keyboard.press('Escape')
   await page.getByRole('button', { name: 'Direction', exact: true }).click()
   await page.waitForTimeout(300)
   await shot(page, 'd-direction')
