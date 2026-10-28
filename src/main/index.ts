@@ -14,6 +14,7 @@ import { startMcp } from './mcpApp'
 import { registerTasteIpc } from './taste'
 import { registerDesignIpc } from './design'
 import { buildMenu, setRecentFiles } from './menu'
+import { isHidden, revealWindow, startedHeadless, watchIdle } from './headless'
 import { initOpenFiles, openInWindow } from './openFiles'
 
 // Dossier de données imposé (tests, relais MCP de test) : jeton, copies de secours, fichiers récents.
@@ -28,6 +29,8 @@ if (!firstInstance) app.quit()
 app.on('second-instance', (_event, argv) => {
   const path = maquetteArg(argv)
   const win = editorWindows()[0]
+  // Maquette tournait sans fenêtre pour Claude Code : l'utilisateur l'ouvre, elle devient sa fenêtre.
+  if (win && isHidden()) revealWindow(win)
   if (path) void openInWindow(path)
   else if (win) {
     if (win.isMinimized()) win.restore()
@@ -36,7 +39,9 @@ app.on('second-instance', (_event, argv) => {
 })
 
 /** Tests : fenêtre hors de l'écran, sans bouton dans la barre des tâches ni focus, pour laisser le PC utilisable. */
-const background = process.env.MAQUETTE_E2E === '1' || process.env.MAQUETTE_BACKGROUND === '1'
+const background = process.env.MAQUETTE_E2E === '1' || process.env.MAQUETTE_BACKGROUND === '1' || startedHeadless
+/** Fenêtre qui doit continuer à dessiner sans être vue (tests, mode sans fenêtre). */
+const unthrottled = process.env.MAQUETTE_E2E === '1' || startedHeadless
 
 function createWindow(): BrowserWindow {
   const win = new BrowserWindow({
@@ -51,7 +56,7 @@ function createWindow(): BrowserWindow {
       sandbox: true,
       nodeIntegration: false,
       // Tests en arrière-plan : la fenêtre cachée derrière d'autres doit continuer à dessiner.
-      backgroundThrottling: process.env.MAQUETTE_E2E !== '1',
+      backgroundThrottling: !unthrottled,
     },
   })
   win.once('ready-to-show', () => (background ? win.showInactive() : win.show()))
@@ -64,10 +69,12 @@ function createWindow(): BrowserWindow {
   win.webContents.on('will-navigate', (e) => e.preventDefault())
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
   const e2e = process.env.MAQUETTE_E2E === '1'
+  const query: Record<string, string> = { ...(e2e ? { e2e: '1' } : {}), ...(startedHeadless ? { headless: '1' } : {}) }
+  const search = new URLSearchParams(query).toString()
   if (process.env.ELECTRON_RENDERER_URL) {
-    void win.loadURL(process.env.ELECTRON_RENDERER_URL + (e2e ? '?e2e=1' : ''))
+    void win.loadURL(process.env.ELECTRON_RENDERER_URL + (search ? `?${search}` : ''))
   } else {
-    void win.loadFile(join(__dirname, '../renderer/index.html'), e2e ? { query: { e2e: '1' } } : undefined)
+    void win.loadFile(join(__dirname, '../renderer/index.html'), search ? { query } : undefined)
   }
   return win
 }
@@ -85,7 +92,7 @@ registerImagePasteIpc()
 registerChatIpc()
 registerSessionIpc()
 // Tests : la fenêtre reste derrière les autres ; Chromium ne doit pas la ralentir pour autant.
-if (process.env.MAQUETTE_E2E === '1') {
+if (unthrottled) {
   app.commandLine.appendSwitch('disable-renderer-backgrounding')
   app.commandLine.appendSwitch('disable-background-timer-throttling')
   app.commandLine.appendSwitch('disable-backgrounding-occluded-windows')
@@ -107,6 +114,7 @@ app.whenReady().then(() => {
   createWindow()
   initOpenFiles({ editorWindow: () => editorWindows()[0], onRecentChange: setRecentFiles })
   void startMcp(() => editorWindows()[0])
+  watchIdle(editorWindows)
   app.on('activate', () => {
     if (editorWindows().length === 0) createWindow()
   })
