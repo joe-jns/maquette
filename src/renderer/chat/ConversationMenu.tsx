@@ -192,16 +192,16 @@ export function ConversationMenu({ anchor, list, busy, onClose }: {
                 <span className="menu-shortcut conv-date">{relativeDate(c.updatedAt)}</span>
               </button>
               <span className="conv-actions">
-                <button type="button" tabIndex={-1} className="conv-action" aria-label={`Renommer « ${c.title} »`} data-tooltip="Renommer" data-shortcut="F2" onClick={() => setEditing(c.id)}>
+                <button type="button" tabIndex={-1} className="conv-action" aria-label={`Rename “${c.title}”`} data-tooltip="Rename" data-shortcut="F2" onClick={() => setEditing(c.id)}>
                   <Icon d={PENCIL} />
                 </button>
                 <button
                   type="button"
                   tabIndex={-1}
                   className="conv-action is-danger"
-                  aria-label={`Supprimer « ${c.title} »`}
-                  data-tooltip={busy && c.id === list.current ? 'Arrête d’abord la réponse en cours' : 'Supprimer'}
-                  data-shortcut={busy && c.id === list.current ? undefined : 'Suppr'}
+                  aria-label={`Delete “${c.title}”`}
+                  data-tooltip={busy && c.id === list.current ? 'Stop the current reply first' : 'Delete'}
+                  data-shortcut={busy && c.id === list.current ? undefined : 'Delete'}
                   aria-disabled={busy && c.id === list.current ? true : undefined}
                   onClick={() => remove(c)}
                 >
@@ -214,7 +214,7 @@ export function ConversationMenu({ anchor, list, busy, onClose }: {
         {list.others.length > 0 && (
           <>
             <div role="separator" className="menu-separator" />
-            <p className="conv-section" role="presentation">Autres fichiers</p>
+            <p className="conv-section" role="presentation">Other files</p>
             {list.others.map((o) => (
               <button
                 key={`${o.path}|${o.id}`}
@@ -223,7 +223,7 @@ export function ConversationMenu({ anchor, list, busy, onClose }: {
                 tabIndex={-1}
                 className={`menu-item conv-item conv-other${o.missing ? ' is-missing' : ''}`}
                 data-conv-row
-                data-tooltip={o.missing ? `Fichier introuvable : ${o.path}` : o.path}
+                data-tooltip={o.missing ? `File not found: ${o.path}` : o.path}
                 aria-disabled={o.missing || busy ? true : undefined}
                 onPointerEnter={(e) => e.currentTarget.focus({ preventScroll: true })}
                 onClick={() => openOther(o)}
@@ -231,7 +231,7 @@ export function ConversationMenu({ anchor, list, busy, onClose }: {
                 <span className="conv-check" />
                 <span className="conv-other-text">
                   <span className="menu-label">{o.title}</span>
-                  <span className="conv-file">{fileName(o.path).replace(/\.maquette$/i, '')}{o.missing ? ' · introuvable' : ''}</span>
+                  <span className="conv-file">{fileName(o.path).replace(/\.maquette$/i, '')}{o.missing ? ' · not found' : ''}</span>
                 </span>
                 <span className="menu-shortcut conv-date">{relativeDate(o.updatedAt)}</span>
               </button>
@@ -265,7 +265,7 @@ function RenameRow({ conversation, onDone }: { conversation: ConversationSummary
       <input
         ref={field}
         className="conv-rename"
-        aria-label="Nouveau titre de la conversation"
+        aria-label="New conversation title"
         value={value}
         maxLength={120}
         onChange={(e) => setValue(e.target.value)}

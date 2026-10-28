@@ -10,9 +10,9 @@ import { claudeArgs, claudeCommand, NOT_FOUND_CODES, NOT_FOUND_TEXT } from './co
 import { consigne } from './consigne'
 import { createDecoder, interruptLine, permissionLine, userLine, type ClaudeAction } from './protocol'
 
-const NOT_INSTALLED = 'Claude Code n’est pas installé sur cet ordinateur (commande « claude » introuvable). Installez-le puis réessayez.'
-const DIED = 'Claude Code s’est arrêté pendant la réponse. Votre prochain message reprendra la conversation.'
-const RESUME_LOST = 'La conversation précédente n’a pas pu être reprise ; nouvelle conversation.'
+const NOT_INSTALLED = 'Claude Code is not installed on this computer (the “claude” command was not found). Install it and try again.'
+const DIED = 'Claude Code stopped during the reply. Your next message will resume the conversation.'
+const RESUME_LOST = 'The previous conversation could not be resumed; starting a new one.'
 /** Sans `result` après un Stop, on coupe le processus. */
 const STOP_TIMEOUT_MS = 5000
 

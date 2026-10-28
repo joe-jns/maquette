@@ -86,7 +86,7 @@ function show(result: ConversationSwitch): boolean {
 }
 
 /** Message affiché quand un changement de conversation est refusé pendant une réponse. */
-export const BUSY_NOTICE = 'Claude répond encore : arrête la réponse (Stop) pour changer de conversation.'
+export const BUSY_NOTICE = 'Claude is still replying: stop the reply (Stop) to switch conversations.'
 
 /** Nouvelle conversation : l'ancienne reste dans la liste. */
 export async function newConversation(): Promise<boolean> {
@@ -106,9 +106,9 @@ export async function renameConversation(id: string, title: string): Promise<voi
 /** Supprime une conversation après confirmation (fenêtre de question de l'app). */
 export async function removeConversation(id: string, title: string): Promise<boolean> {
   const answer = await ask({
-    message: `Supprimer la conversation « ${title} » ?`,
-    detail: 'Ses messages et ses images seront effacés.',
-    buttons: [{ label: 'Annuler' }, { label: 'Supprimer', kind: 'danger' }],
+    message: `Delete the conversation “${title}”?`,
+    detail: 'Its messages and images will be erased.',
+    buttons: [{ label: 'Cancel' }, { label: 'Delete', kind: 'danger' }],
     cancelIndex: 0,
     defaultIndex: 0,
   })
@@ -122,7 +122,7 @@ export async function openOtherConversation(other: OtherConversation): Promise<b
   if (!api || other.missing || !(await confirmDiscard())) return false
   const file = await api.openFile(other.path, other.id).catch(() => null)
   if (!file) {
-    docStore.getState().showError(`${fileName(other.path)} est introuvable.`)
+    docStore.getState().showError(`${fileName(other.path)} could not be found.`)
     refreshConversations()
     return false
   }
@@ -139,7 +139,7 @@ export function changeOptions(patch: Partial<ChatOptions>): void {
   )
 }
 
-const TYPE_LABEL: Record<string, string> = { frame: 'cadre', text: 'texte', shape: 'forme', image: 'image', icon: 'icône' }
+const TYPE_LABEL: Record<string, string> = { frame: 'frame', text: 'text', shape: 'shape', image: 'image', icon: 'icon' }
 
 /** Les images de la sélection (références d'inspiration collées sur le canevas). */
 const imagesOf = (doc: MaquetteDocument, ids: string[]) =>
@@ -152,12 +152,12 @@ const imagesOf = (doc: MaquetteDocument, ids: string[]) =>
 export function selectionLabel(doc: MaquetteDocument, ids: string[]): string {
   if (ids.length === 1) {
     const node = findNode(doc, ids[0]!)?.node
-    return node ? node.name || TYPE_LABEL[node.type] || node.type : '1 élément sélectionné'
+    return node ? node.name || TYPE_LABEL[node.type] || node.type : '1 layer selected'
   }
   const images = imagesOf(doc, ids).length
   if (images === ids.length) return `${images} images`
-  if (images > 0) return `${ids.length} éléments dont ${images} image${images > 1 ? 's' : ''}`
-  return `${ids.length} éléments sélectionnés`
+  if (images > 0) return `${ids.length} layers, ${images} image${images > 1 ? 's' : ''}`
+  return `${ids.length} layers selected`
 }
 
 /** Taille d'origine d'une image affichée (px), si elle est chargée. */

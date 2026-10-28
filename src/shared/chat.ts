@@ -45,7 +45,7 @@ export interface ChatOptions { taste: boolean }
 export const DEFAULT_CHAT_OPTIONS: ChatOptions = { taste: false }
 
 /** Titre d'une conversation sans message ni titre choisi. */
-export const NEW_CONVERSATION_TITLE = 'Nouvelle conversation'
+export const NEW_CONVERSATION_TITLE = 'New conversation'
 /** Longueur du titre tiré du premier message. */
 export const TITLE_LENGTH = 60
 
@@ -54,7 +54,7 @@ export function autoTitle(items: ChatItem[]): string | null {
   const first = items.find((i): i is Extract<ChatItem, { kind: 'user' }> => i.kind === 'user')
   if (!first) return null
   const text = first.text.replace(/\s+/g, ' ').trim()
-  if (!text) return first.images > 1 ? 'Images jointes' : first.images === 1 ? 'Image jointe' : null
+  if (!text) return first.images > 1 ? 'Attached images' : first.images === 1 ? 'Attached image' : null
   return text.length > TITLE_LENGTH ? `${text.slice(0, TITLE_LENGTH - 1).trimEnd()}…` : text
 }
 

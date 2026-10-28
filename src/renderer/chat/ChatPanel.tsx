@@ -19,7 +19,7 @@ function naturalSize(id: string): { width: number; height: number } | null {
   return el instanceof HTMLImageElement && el.naturalWidth ? { width: el.naturalWidth, height: el.naturalHeight } : null
 }
 
-const EXAMPLES = ['Ajoute une section tarifs à 3 colonnes', 'Vérifie le goût de ce cadre', 'Propose un titre plus fort']
+const EXAMPLES = ['Add a 3-column pricing section', 'Check the taste of this frame', 'Suggest a stronger headline']
 
 /** Hauteur de ligne de la saisie (px) : la zone grandit de 1 à 8 lignes. */
 const LINE = 20
@@ -43,27 +43,27 @@ const CHEVRON_DOWN = 'M6 9l6 6 6-6'
 
 /** Noms lisibles des outils (Maquette et Claude Code) ; les autres restent tels quels. */
 const TOOL_LABELS: Record<string, string> = {
-  lire_document: 'Lit le document',
-  lire_elements: 'Lit des éléments',
-  chercher: 'Cherche dans le document',
-  appliquer: 'Modifie la maquette',
-  capture: 'Regarde le rendu',
-  selection: 'Lit la sélection',
-  verifier_gout: 'Vérifie le goût',
-  images: 'Cherche des photos',
-  ToolSearch: 'Prépare ses outils',
-  Read: 'Lit un fichier',
-  Write: 'Écrit un fichier',
-  Edit: 'Modifie un fichier',
-  Bash: 'Lance une commande',
-  PowerShell: 'Lance une commande',
-  Glob: 'Cherche des fichiers',
-  Grep: 'Cherche dans les fichiers',
-  WebFetch: 'Lit une page web',
-  WebSearch: 'Cherche sur le web',
-  TodoWrite: 'Note ses étapes',
-  Task: 'Lance un sous-agent',
-  Agent: 'Lance un sous-agent',
+  lire_document: 'Reading the document',
+  lire_elements: 'Reading layers',
+  chercher: 'Searching the document',
+  appliquer: 'Editing the design',
+  capture: 'Looking at the render',
+  selection: 'Reading the selection',
+  verifier_gout: 'Checking taste',
+  images: 'Searching photos',
+  ToolSearch: 'Preparing tools',
+  Read: 'Reading a file',
+  Write: 'Writing a file',
+  Edit: 'Editing a file',
+  Bash: 'Running a command',
+  PowerShell: 'Running a command',
+  Glob: 'Finding files',
+  Grep: 'Searching files',
+  WebFetch: 'Reading a web page',
+  WebSearch: 'Searching the web',
+  TodoWrite: 'Planning steps',
+  Task: 'Running a subagent',
+  Agent: 'Running a subagent',
 }
 const toolLabel = (name: string) => TOOL_LABELS[name] ?? name
 
@@ -78,7 +78,7 @@ function Thumbs({ refs, label, className = '' }: { refs: ChatImageRef[]; label: 
           key={`${ref.hash}-${i}`}
           type="button"
           className="chat-image"
-          aria-label={refs.length > 1 ? `Agrandir ${label} ${i + 1}` : `Agrandir ${label}`}
+          aria-label={refs.length > 1 ? `Enlarge ${label} ${i + 1}` : `Enlarge ${label}`}
           onClick={() => chatStore.getState().setPreview(ref)}
         >
           <img src={chatImageUrl(ref.hash)} alt="" width={ref.width} height={ref.height} draggable={false} />
@@ -126,7 +126,7 @@ function LightboxView({ image }: { image: ChatImageRef }) {
       className="chat-lightbox"
       role="dialog"
       aria-modal="true"
-      aria-label="Aperçu de l’image"
+      aria-label="Image preview"
       data-ui
       onClick={close}
       onPointerDown={(e) => e.stopPropagation()}
@@ -141,7 +141,7 @@ function LightboxView({ image }: { image: ChatImageRef }) {
         style={{ width: Math.round(image.width * Math.min(2, Math.max(1, 480 / image.width))) }}
         draggable={false}
       />
-      <button ref={closeButton} type="button" className="chat-lightbox-close" aria-label="Fermer l’aperçu" data-tooltip="Fermer" data-shortcut="Échap" onClick={close}>
+      <button ref={closeButton} type="button" className="chat-lightbox-close" aria-label="Close preview" data-tooltip="Close" data-shortcut="Esc" onClick={close}>
         <Icon d={CLOSE} size={16} width={2} />
       </button>
     </div>
@@ -167,12 +167,12 @@ function DetailBlock({ title, text, error, children }: { title: string; text: st
       <header className="chat-detail-head">
         <h3>{title}</h3>
         {text ? (
-          <button type="button" className="chat-detail-copy" aria-label={`Copier : ${title.toLowerCase()}`} data-tooltip={copied ? 'Copié' : 'Copier'} onClick={copy}>
-            {copied ? 'Copié' : 'Copier'}
+          <button type="button" className="chat-detail-copy" aria-label={`Copy ${title.toLowerCase()}`} data-tooltip={copied ? 'Copied' : 'Copy'} onClick={copy}>
+            {copied ? 'Copied' : 'Copy'}
           </button>
         ) : null}
       </header>
-      {text !== null && <pre className={`chat-detail-text${error ? ' is-error' : ''}`}>{text || '(vide)'}</pre>}
+      {text !== null && <pre className={`chat-detail-text${error ? ' is-error' : ''}`}>{text || '(empty)'}</pre>}
       {children}
     </section>
   )
@@ -182,12 +182,12 @@ function ToolDetail({ item }: { item: Extract<ChatItem, { kind: 'tool' }> }) {
   const images = item.images ?? []
   return (
     <div className="chat-tool-detail">
-      {item.input ? <DetailBlock title="Entrée" text={item.input} /> : null}
+      {item.input ? <DetailBlock title="Input" text={item.input} /> : null}
       {item.status === 'running' && item.output === undefined ? (
-        <p className="chat-detail-wait">En cours…</p>
+        <p className="chat-detail-wait">Running…</p>
       ) : (
-        <DetailBlock title="Résultat" text={item.output || !images.length ? (item.output ?? '') : null} error={item.status === 'error'}>
-          {images.length > 0 && <Thumbs refs={images} label="l’image vue par Claude" />}
+        <DetailBlock title="Result" text={item.output || !images.length ? (item.output ?? '') : null} error={item.status === 'error'}>
+          {images.length > 0 && <Thumbs refs={images} label="image seen by Claude" />}
         </DetailBlock>
       )}
     </div>
@@ -227,7 +227,7 @@ function ToolLine({ item }: { item: Extract<ChatItem, { kind: 'tool' }> }) {
       </span>
       <span className="chat-tool-name">{toolLabel(item.name)}</span>
       {item.summary && <span className="chat-tool-summary">{item.summary}</span>}
-      <span className="visually-hidden">{item.status === 'running' ? ' (en cours)' : item.status === 'error' ? ' (erreur)' : ' (fait)'}</span>
+      <span className="visually-hidden">{item.status === 'running' ? ' (running)' : item.status === 'error' ? ' (error)' : ' (done)'}</span>
       {first && !open && <img className="chat-tool-peek" src={chatImageUrl(first.hash)} alt="" draggable={false} />}
       {expandable && (
         <span className="chat-tool-chevron" aria-hidden>
@@ -250,7 +250,7 @@ function PermissionCard({ item }: { item: Extract<ChatItem, { kind: 'permission'
   const [sent, setSent] = useState(false)
   if (item.status !== 'asking') {
     const allowed = item.status === 'allowed'
-    const label = `${allowed ? 'Autorisé' : 'Refusé'} : ${toolLabel(item.tool)}`
+    const label = `${allowed ? 'Allowed' : 'Denied'}: ${toolLabel(item.tool)}`
     return (
       <div className={`chat-tool ${allowed ? 'is-done' : 'is-denied'}`} data-tooltip={`${label}${item.summary ? ` · ${item.summary}` : ''}`}>
         <span className="chat-tool-state" aria-hidden>{allowed ? '✓' : '×'}</span>
@@ -264,15 +264,15 @@ function PermissionCard({ item }: { item: Extract<ChatItem, { kind: 'permission'
     chatApi()?.permission(item.requestId, decision)
   }
   return (
-    <section className="chat-permission" aria-label={`Autorisation pour ${item.tool}`}>
+    <section className="chat-permission" aria-label={`Permission for ${item.tool}`}>
       <p className="chat-permission-title">
-        Claude veut utiliser <strong>{item.tool}</strong>
+        Claude wants to use <strong>{item.tool}</strong>
       </p>
       {item.summary && <pre className="chat-permission-summary">{item.summary}</pre>}
       <div className="chat-permission-actions">
-        <button type="button" className="chat-button is-primary" disabled={sent} onClick={() => answer('allow')}>Autoriser</button>
-        <button type="button" className="chat-button" disabled={sent} onClick={() => answer('deny')}>Refuser</button>
-        <button type="button" className="chat-button is-wide" disabled={sent} onClick={() => answer('always')}>Toujours pour cette conversation</button>
+        <button type="button" className="chat-button is-primary" disabled={sent} onClick={() => answer('allow')}>Allow</button>
+        <button type="button" className="chat-button" disabled={sent} onClick={() => answer('deny')}>Deny</button>
+        <button type="button" className="chat-button is-wide" disabled={sent} onClick={() => answer('always')}>Always allow in this conversation</button>
       </div>
     </section>
   )
@@ -294,7 +294,7 @@ function Item({ item, last, busy }: { item: ChatItem; last: boolean; busy: boole
               {missing > 0 && <span className="chat-bubble-note">+ {missing} image{missing > 1 ? 's' : ''}</span>}
             </div>
           )}
-          {thumbs.length > 0 && <Thumbs refs={thumbs} label="l’image jointe" className="chat-user-images" />}
+          {thumbs.length > 0 && <Thumbs refs={thumbs} label="attached image" className="chat-user-images" />}
         </div>
       )
     }
@@ -324,7 +324,7 @@ function groupItems(items: ChatItem[]): ChatItem[][] {
 function Welcome() {
   return (
     <div className="chat-welcome">
-      <p>Demande à Claude de dessiner, corriger ou vérifier ta maquette.</p>
+      <p>Ask Claude to design, fix or review your mockup.</p>
       <ul>
         {EXAMPLES.map((text) => (
           <li key={text}>
@@ -405,7 +405,7 @@ function Composer() {
           {showSelection && (
             <span className="chat-chip" data-testid="chat-selection">
               <span className="chat-chip-label">{selectionLabel(doc, selection)}</span>
-              <button type="button" aria-label="Ne pas joindre la sélection" onClick={() => chatStore.getState().setContextAttached(false)}>
+              <button type="button" aria-label="Don’t attach the selection" onClick={() => chatStore.getState().setContextAttached(false)}>
                 <Icon d={CLOSE} size={12} width={2} />
               </button>
             </span>
@@ -413,7 +413,7 @@ function Composer() {
           {images.map((img, i) => (
             <span key={img.id} className="chat-thumb">
               <img src={img.url} alt={`Image ${i + 1}`} />
-              <button type="button" aria-label={`Retirer l’image ${i + 1}`} onClick={() => chatStore.getState().removeImage(img.id)}>
+              <button type="button" aria-label={`Remove image ${i + 1}`} onClick={() => chatStore.getState().removeImage(img.id)}>
                 <Icon d={CLOSE} size={10} width={2.4} />
               </button>
             </span>
@@ -425,17 +425,17 @@ function Composer() {
           ref={field}
           rows={1}
           value={draft}
-          placeholder="Écris à Claude…"
-          aria-label="Message à Claude"
+          placeholder="Message Claude…"
+          aria-label="Message to Claude"
           onChange={(e) => chatStore.getState().setDraft(e.target.value)}
           onKeyDown={onKeyDown}
         />
         {busy ? (
-          <button type="button" className="chat-send is-stop" aria-label="Arrêter" data-tooltip="Arrêter" onClick={() => chatApi()?.stop()}>
+          <button type="button" className="chat-send is-stop" aria-label="Stop" data-tooltip="Stop" onClick={() => chatApi()?.stop()}>
             <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden><rect x="5" y="5" width="14" height="14" rx="2" fill="currentColor" /></svg>
           </button>
         ) : (
-          <button type="submit" className="chat-send" aria-label="Envoyer" data-tooltip="Envoyer" data-shortcut="Entrée" disabled={!canSend}>
+          <button type="submit" className="chat-send" aria-label="Send" data-tooltip="Send" data-shortcut="Enter" disabled={!canSend}>
             <Icon d={ARROW} size={16} width={2.2} />
           </button>
         )}
@@ -462,7 +462,7 @@ function ConversationTitle() {
         data-testid="chat-title"
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label={`Conversation : ${title}`}
+        aria-label={`Conversation: ${title}`}
         data-tooltip="Conversations"
         onClick={() => {
           if (open) {
@@ -504,14 +504,14 @@ export function ChatPanel() {
     let refused = 0
     for (const file of files) {
       if (chatStore.getState().images.length >= MAX_IMAGES) {
-        setNotice(`${MAX_IMAGES} images au plus par message.`)
+        setNotice(`${MAX_IMAGES} images max per message.`)
         return
       }
       const image = await readImage(file)
       if (image) chatStore.getState().addImage(image)
       else refused++
     }
-    setNotice(refused ? 'Image illisible ou trop lourde.' : null)
+    setNotice(refused ? 'Image unreadable or too large.' : null)
   }
 
   // Coller une image : elle va au message, jamais au canevas.
@@ -547,7 +547,7 @@ export function ChatPanel() {
 
   const lastBusyLine: ReactNode =
     busy && items[items.length - 1]?.kind !== 'assistant' && items[items.length - 1]?.kind !== 'permission' && items[items.length - 1]?.kind !== 'tool'
-      ? <div className="chat-assistant chat-thinking" aria-label="Claude réfléchit">{caret}</div>
+      ? <div className="chat-assistant chat-thinking" aria-label="Claude is thinking">{caret}</div>
       : null
 
   return (
@@ -568,17 +568,17 @@ export function ChatPanel() {
         <span
           className="chat-taste"
           data-testid="chat-taste"
-          data-tooltip={taste ? 'Méthode taste-skill (règles maison strictes)' : 'Méthode de Pen (styles appliqués en entier) ; cocher pour taste-skill'}
+          data-tooltip={taste ? 'taste-skill method (strict house rules)' : 'Pen method (styles applied in full); check for taste-skill'}
         >
           <Checkbox checked={taste} onChange={(on) => changeOptions({ taste: on })}>taste-skill</Checkbox>
         </span>
         <button
           type="button"
           className="chat-head-button"
-          aria-label="Nouvelle conversation"
+          aria-label="New conversation"
           onClick={() => void reset()}
           disabled={items.length === 0 || busy}
-          data-tooltip={busy ? 'Nouvelle conversation (après la réponse en cours)' : 'Nouvelle conversation'}
+          data-tooltip={busy ? 'New conversation (after the current reply)' : 'New conversation'}
         >
           <Icon d={NEW} size={14} width={2} />
         </button>
@@ -612,7 +612,7 @@ export function ChatPanel() {
       </div>
       {notice && <p className="chat-notice" role="status">{notice}</p>}
       <Composer />
-      {dropping && <div className="chat-drop" aria-hidden><span>Dépose l’image pour la joindre</span></div>}
+      {dropping && <div className="chat-drop" aria-hidden><span>Drop the image to attach it</span></div>}
       <Lightbox />
     </section>
   )

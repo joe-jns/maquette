@@ -36,7 +36,7 @@ export function toolSummary(name: string, input: unknown): string {
   const args = isObj(input) ? input : {}
   if (short === 'appliquer') {
     const ops = Array.isArray(args.operations) ? args.operations : Array.isArray(args.ops) ? args.ops : null
-    if (ops) return `${ops.length} opération${ops.length > 1 ? 's' : ''}`
+    if (ops) return `${ops.length} operation${ops.length > 1 ? 's' : ''}`
   }
   const first = (...keys: string[]) => keys.map((k) => str(args[k])).find((v) => v !== undefined)
   const detail =
@@ -51,7 +51,7 @@ export function toolSummary(name: string, input: unknown): string {
 
 /** Longueur gardée par champ d'un outil (entrée, résultat) : chats.json et l'IPC restent légers. */
 export const MAX_TOOL_TEXT = 20_000
-export const TRUNCATED = '\n… (tronqué)'
+export const TRUNCATED = '\n… (truncated)'
 
 export function clip(s: string, max = MAX_TOOL_TEXT): string {
   return s.length > max ? `${s.slice(0, max)}${TRUNCATED}` : s
@@ -78,13 +78,13 @@ export function toolInput(name: string, input: unknown): string {
   } else if (short === 'Bash' || short === 'PowerShell') text = s('command')
   else if (short === 'Read' && path !== undefined) {
     const range = [
-      args.offset !== undefined ? `à partir de la ligne ${String(args.offset)}` : '',
-      args.limit !== undefined ? `${String(args.limit)} lignes` : '',
+      args.offset !== undefined ? `from line ${String(args.offset)}` : '',
+      args.limit !== undefined ? `${String(args.limit)} lines` : '',
     ].filter(Boolean)
     text = range.length ? `${path}\n(${range.join(', ')})` : path
   } else if (short === 'Write' && path !== undefined) text = `${path}\n\n${s('content') ?? ''}`
   else if (short === 'Edit' && path !== undefined) {
-    text = `${path}\n\nAncien texte :\n${s('old_string') ?? ''}\n\nNouveau texte :\n${s('new_string') ?? ''}`
+    text = `${path}\n\nOld text:\n${s('old_string') ?? ''}\n\nNew text:\n${s('new_string') ?? ''}`
   } else if (short === 'WebFetch') {
     const url = s('url')
     if (url !== undefined) text = s('prompt') ? `${url}\n\n${s('prompt')}` : url
@@ -224,7 +224,7 @@ export function createDecoder(): (line: string) => ClaudeAction[] {
       case 'result': {
         const errors = Array.isArray(msg.errors) ? msg.errors.filter((e): e is string => typeof e === 'string') : []
         const isError = msg.is_error === true
-        const text = str(msg.result) || errors.join(' ') || (isError ? `Erreur de Claude Code (${str(msg.subtype) ?? 'inconnue'}).` : '')
+        const text = str(msg.result) || errors.join(' ') || (isError ? `Claude Code error (${str(msg.subtype) ?? 'unknown'}).` : '')
         messages.clear()
         current = null
         return [{ type: 'end', isError, text, sessionId: str(msg.session_id) ?? null, resumeFailed: isError && errors.some((e) => RESUME_FAILED.test(e)) }]
