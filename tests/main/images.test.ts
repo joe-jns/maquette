@@ -26,11 +26,11 @@ describe('importImage', () => {
   })
 
   it('refuse un format non pris en charge', async () => {
-    await expect(importImage(dir, 'image.bmp', PNG_1x1)).rejects.toThrow('Format d’image non pris en charge : .bmp')
-    await expect(importImage(dir, 'sans-extension', PNG_1x1)).rejects.toThrow('Format d’image non pris en charge')
+    await expect(importImage(dir, 'image.bmp', PNG_1x1)).rejects.toThrow('Unsupported image format: .bmp')
+    await expect(importImage(dir, 'sans-extension', PNG_1x1)).rejects.toThrow('Unsupported image format')
   })
 
   it('refuse une image de plus de 50 Mo', async () => {
-    await expect(importImage(dir, 'grosse.png', new Uint8Array(MAX_IMAGE_BYTES + 1))).rejects.toThrow('Image trop lourde')
+    await expect(importImage(dir, 'grosse.png', new Uint8Array(MAX_IMAGE_BYTES + 1))).rejects.toThrow('Image too large')
   })
 })

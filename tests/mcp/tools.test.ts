@@ -71,8 +71,8 @@ describe('outils MCP', () => {
   it('chercher par nom, type, texte', async () => {
     const h = host(scene())
     expect(JSON.parse((await runTool(h, 'chercher', { nom: 'her' })).text).resultats).toEqual([['F1', 'frame', 'Hero', null]])
-    expect(JSON.parse((await runTool(h, 'chercher', { texte: 'deuxième' })).text).resultats).toEqual([['T2', 'text', 'Texte', 'F1']])
-    expect(JSON.parse((await runTool(h, 'chercher', { type: 'text', limite: 1 })).text)).toMatchObject({ resultats: [['T1', 'text', 'Texte', 'F1']], plus: 1 })
+    expect(JSON.parse((await runTool(h, 'chercher', { texte: 'deuxième' })).text).resultats).toEqual([['T2', 'text', 'Text', 'F1']])
+    expect(JSON.parse((await runTool(h, 'chercher', { type: 'text', limite: 1 })).text)).toMatchObject({ resultats: [['T1', 'text', 'Text', 'F1']], plus: 1 })
   })
 
   it('appliquer : lot valide, réponse courte, libellé d’historique', async () => {

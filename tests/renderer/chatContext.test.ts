@@ -12,8 +12,8 @@ describe('contexte de la sélection pour Claude', () => {
 
   it('pastille : « 3 images », ou le nombre d’images parmi les éléments', () => {
     expect(selectionLabel(doc, ['i1', 'i2', 'i3'])).toBe('3 images')
-    expect(selectionLabel(doc, ['i1', 'R1'])).toBe('2 éléments dont 1 image')
-    expect(selectionLabel(doc, ['R1', 'R1'])).toBe('2 éléments sélectionnés')
+    expect(selectionLabel(doc, ['i1', 'R1'])).toBe('2 layers, 1 image')
+    expect(selectionLabel(doc, ['R1', 'R1'])).toBe('2 layers selected')
     expect(selectionLabel(doc, ['i2'])).toBe('Capture')
   })
 

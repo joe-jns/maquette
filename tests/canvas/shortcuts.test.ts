@@ -26,7 +26,7 @@ describe('raccourcis', () => {
   it('Ctrl+L ouvre ou ferme le chat ; L seul ne fait rien', () => {
     expect(matchShortcut(k('l', 'KeyL', { ctrlKey: true }))).toBe('toggleChat')
     expect(matchShortcut(k('l', 'KeyL'))).toBeNull()
-    expect(SHORTCUTS.find((s) => s.id === 'toggleChat')).toMatchObject({ keys: 'Ctrl+L', group: 'Affichage' })
+    expect(SHORTCUTS.find((s) => s.id === 'toggleChat')).toMatchObject({ keys: 'Ctrl+L', group: 'View' })
   })
 
   it('édition', () => {
@@ -59,7 +59,7 @@ describe('raccourcis', () => {
   it('chaque commande a une entrée lisible dans la table', () => {
     const ids = new Set(SHORTCUTS.map((s) => s.id))
     expect(ids.size).toBe(SHORTCUTS.length)
-    expect(SHORTCUTS.find((s) => s.id === 'duplicate')).toMatchObject({ keys: 'Ctrl+D', group: 'Édition' })
+    expect(SHORTCUTS.find((s) => s.id === 'duplicate')).toMatchObject({ keys: 'Ctrl+D', group: 'Edit' })
   })
 
   it('AZERTY : ] et [ arrivent par AltGr (= Ctrl+Alt), - est sur la touche 6', () => {

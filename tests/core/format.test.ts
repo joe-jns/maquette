@@ -15,19 +15,19 @@ describe('format .maquette', () => {
   it('JSON cassé : message clair', () => {
     const r = parseDocument('{ "format": ')
     expect(r.ok).toBe(false)
-    if (!r.ok) expect(r.errors[0]!.message).toMatch(/^JSON invalide/)
+    if (!r.ok) expect(r.errors[0]!.message).toMatch(/^invalid JSON/)
   })
 
   it('autre format : refusé', () => {
     const r = parseDocument('{"hello": 1}')
     expect(r.ok).toBe(false)
-    if (!r.ok) expect(r.errors[0]).toEqual({ path: 'format', message: 'ce fichier n’est pas un document Maquette' })
+    if (!r.ok) expect(r.errors[0]).toEqual({ path: 'format', message: 'this file is not a Maquette document' })
   })
 
   it('version future : refusée avec un message explicite', () => {
     const r = parseDocument(JSON.stringify({ format: 'maquette', version: 99, styles: { colors: [], text: [] }, pages: [] }))
     expect(r.ok).toBe(false)
-    if (!r.ok) expect(r.errors[0]!.message).toContain('plus récente')
+    if (!r.ok) expect(r.errors[0]!.message).toContain('newer version')
   })
 
   it('version absente : refusée', () => {

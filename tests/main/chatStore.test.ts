@@ -238,7 +238,7 @@ describe('historique des conversations', () => {
   it('titre automatique : premier message, espaces resserrés, images seules', () => {
     expect(autoTitle([])).toBeNull()
     expect(autoTitle([{ kind: 'assistant', id: 'a', text: 'x' }, user('u', '  Bonjour\n  le monde ')])).toBe('Bonjour le monde')
-    expect(autoTitle([user('u', '', { images: 1 })])).toBe('Image jointe')
-    expect(autoTitle([user('u', '', { images: 3 })])).toBe('Images jointes')
+    expect(autoTitle([user('u', '', { images: 1 })])).toBe('Attached image')
+    expect(autoTitle([user('u', '', { images: 3 })])).toBe('Attached images')
   })
 })
