@@ -1,10 +1,8 @@
 import { Fragment, useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react'
-import { createPortal } from 'react-dom'
-import { DocumentPanel } from '../panels/design/DocumentPanel'
 import { IconPicker } from '../panels/design/IconPicker'
-import { DirectionPanel } from '../panels/direction/DirectionPanel'
 import { uiStore, useUi, type Tool } from '../state/ui'
 import { Icon, type IconName } from '../ui/icons'
+import { modalStore, useModal } from '../ui/Modals'
 import { QuickMenu } from '../ui/QuickMenu'
 import { insertIcon } from './insertIcon'
 import { shortcutKeys } from './shortcuts'
@@ -116,110 +114,12 @@ export function keepButtonKeys(e: KeyboardEvent<HTMLElement>): void {
   if ((e.key === 'Enter' || e.key === ' ') && (e.target as HTMLElement).closest('button')) e.stopPropagation()
 }
 
-type Floating = 'variables' | 'direction'
-
-
-const FLOATING: { id: Floating; label: string; icon: IconName }[] = [
-  { id: 'variables', label: 'Variables', icon: 'variables' },
-  { id: 'direction', label: 'Direction', icon: 'direction' },
-]
-
-/**
- * Panneau flottant au-dessus de la barre (directions taste-skill).
- * Se ferme par Échap ou par un clic ailleurs que sur lui ou sur son bouton.
- */
-function FloatingPanel({ id, onClose }: { id: 'direction'; onClose(): void }) {
-  const box = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    const onDown = (e: PointerEvent) => {
-      const t = e.target as Element | null
-      if (!t || box.current?.contains(t) || t.closest(`[data-floating-button="${id}"]`)) return
-      // Menus, listes et infobulles ouverts depuis le panneau vivent hors de lui (portails) : on les laisse faire.
-      if (t.closest('[role="menu"], [role="listbox"], [role="dialog"], .quick-menu, .select-list')) return
-      onClose()
-    }
-    const onKey = (e: globalThis.KeyboardEvent) => {
-      if (e.key === 'Escape' && !e.defaultPrevented) onClose()
-    }
-    document.addEventListener('pointerdown', onDown, true)
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('pointerdown', onDown, true)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [id, onClose])
-  const label = FLOATING.find((f) => f.id === id)!.label
-  return (
-    <div ref={box} className="floating-panel panel" role="dialog" aria-label={label} data-testid={`floating-${id}`}>
-      <header className="floating-head">
-        <h2>{label}</h2>
-        <button type="button" className="icon-button" aria-label="Close" data-tooltip="Close" data-shortcut="Esc" onClick={onClose}>
-          {CLOSE_ICON}
-        </button>
-      </header>
-      <div className="floating-body">
-        <DirectionPanel />
-      </div>
-    </div>
-  )
-}
-
-const CLOSE_ICON = (
-  <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden>
-    <path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-  </svg>
-)
-
-/**
- * Fenêtre Variables, au centre de l'écran : couleurs à gauche, styles de texte à droite.
- * Rendue dans <body> (la barre est transformée, une position fixe y serait relative à elle).
- * Se ferme par Échap, la croix ou un clic sur le fond.
- */
-function VariablesModal({ onClose }: { onClose(): void }) {
-  const box = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    const previous = document.activeElement as HTMLElement | null
-    box.current?.focus()
-    const onKey = (e: globalThis.KeyboardEvent) => {
-      if (e.key === 'Escape' && !e.defaultPrevented) onClose()
-    }
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('keydown', onKey)
-      previous?.focus?.()
-    }
-  }, [onClose])
-  return createPortal(
-    <div
-      className="variables-backdrop"
-      data-ui
-      onPointerDown={(e) => {
-        if (e.target === e.currentTarget) onClose()
-      }}
-    >
-      <div ref={box} className="variables-modal panel" role="dialog" aria-modal="true" aria-label="Variables" data-testid="floating-variables" tabIndex={-1}>
-        <header className="variables-head">
-          <h2>Variables</h2>
-          <button type="button" className="icon-button" aria-label="Close" data-tooltip="Close" data-shortcut="Esc" onClick={onClose}>
-            {CLOSE_ICON}
-          </button>
-        </header>
-        <div className="variables-body">
-          <DocumentPanel />
-        </div>
-      </div>
-    </div>,
-    document.body,
-  )
-}
-
 /** Barre d'outils flottante en bas du canevas, centrée (Figma UI3). */
 export function Toolbar() {
   const current = useUi((s) => s.tool)
   const picking = useUi((s) => s.iconPicker)
   const close = useCallback(() => uiStore.getState().setIconPicker(false), [])
-  const [floating, setFloating] = useState<Floating | null>(null)
-  const closeFloating = useCallback(() => setFloating(null), [])
+  const modal = useModal()
   return (
     <div className="toolbar" role="toolbar" aria-label="Tools" data-ui data-tooltip-side="top" onKeyDown={keepButtonKeys}>
       {GROUPS.map((group, g) => (
@@ -231,24 +131,18 @@ export function Toolbar() {
         </Fragment>
       ))}
       <span className="toolbar-separator" aria-hidden />
-      {FLOATING.map((f) => (
-        <button
-          key={f.id}
-          type="button"
-          className="tool-button"
-          data-floating-button={f.id}
-          aria-pressed={floating === f.id}
-          aria-haspopup="dialog"
-          aria-expanded={floating === f.id}
-          data-tooltip={f.label}
-          onClick={() => setFloating((cur) => (cur === f.id ? null : f.id))}
-        >
-          <Icon name={f.icon} />
-          <span className="visually-hidden">{f.label}</span>
-        </button>
-      ))}
-      {floating === 'direction' && <FloatingPanel id="direction" onClose={closeFloating} />}
-      {floating === 'variables' && <VariablesModal onClose={closeFloating} />}
+      <button
+        type="button"
+        className="tool-button"
+        data-floating-button="variables"
+        aria-pressed={modal === 'variables'}
+        aria-haspopup="dialog"
+        data-tooltip="Variables"
+        onClick={() => modalStore.getState().toggle('variables')}
+      >
+        <Icon name="variables" />
+        <span className="visually-hidden">Variables</span>
+      </button>
       {picking && (
         <IconPicker
           className="is-floating"

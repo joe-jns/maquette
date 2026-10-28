@@ -16,6 +16,7 @@ import { startAutosave } from './state/autosave'
 import { confirmDiscard, runCommand } from './state/commands'
 import { fileName, openDocument } from './state/openDocument'
 import { docStore, useDoc } from './state/store'
+import { Modals } from './ui/Modals'
 import { TooltipLayer } from './ui/Tooltip'
 
 export function App() {
@@ -85,6 +86,7 @@ export function App() {
         <RightPanel />
       </div>
       {homeOpen && <Home />}
+      <Modals />
       <Dialog />
       <TooltipLayer />
     </div>

@@ -7,7 +7,8 @@ const shots = process.env.MAQUETTE_SHOTS
 test('onglet Direction : tirer, choisir, appliquer, annuler en une fois', async () => {
   const { app, page } = await launch([scene])
   try {
-    await page.getByRole('button', { name: 'Direction', exact: true }).click()
+    await page.getByTestId('file-header').getByRole('button').click()
+    await page.getByRole('menuitem', { name: /Art direction/ }).click()
     await page.getByRole('combobox', { name: 'Sector' }).click()
     await page.getByRole('option', { name: 'Restaurant', exact: true }).click()
     await expect(page.getByRole('combobox', { name: 'Sector' })).toHaveText('Restaurant')
@@ -27,6 +28,8 @@ test('onglet Direction : tirer, choisir, appliquer, annuler en une fois', async 
     expect(after.colors.map((c) => c.name)).toEqual(expect.arrayContaining(['Fond', 'Accent']))
     expect(after.text.map((t) => t.name)).toContain('Titre 1')
 
+    // La fenêtre Direction couvre le canevas : on la ferme avant d'y revenir.
+    await page.keyboard.press('Escape')
     await page.locator('.canvas').click({ position: { x: 5, y: 5 } })
     await page.keyboard.press('Control+z')
     const undone = await styles()
