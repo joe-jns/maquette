@@ -551,11 +551,11 @@ export function ChatPanel() {
       : null
 
   return (
-    <aside
-      className={`panel chat${dropping ? ' is-dropping' : ''}`}
+    <section
+      className={`chat${dropping ? ' is-dropping' : ''}`}
       data-testid="chat-panel"
       data-ui
-      aria-label="Chat avec Claude"
+      aria-label="Chat with Claude"
       onPaste={onPaste}
       onDragOver={onDragOver}
       onDragLeave={(e) => {
@@ -581,9 +581,6 @@ export function ChatPanel() {
           data-tooltip={busy ? 'Nouvelle conversation (après la réponse en cours)' : 'Nouvelle conversation'}
         >
           <Icon d={NEW} size={14} width={2} />
-        </button>
-        <button type="button" className="icon-button" aria-label="Fermer le chat" data-tooltip="Fermer le chat" data-shortcut={shortcutKeys('toggleChat')} onClick={() => chatStore.getState().setOpen(false)}>
-          <Icon d={CLOSE} size={14} width={1.8} />
         </button>
       </header>
       <div
@@ -617,6 +614,6 @@ export function ChatPanel() {
       <Composer />
       {dropping && <div className="chat-drop" aria-hidden><span>Dépose l’image pour la joindre</span></div>}
       <Lightbox />
-    </aside>
+    </section>
   )
 }

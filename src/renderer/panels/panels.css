@@ -68,7 +68,7 @@
   --row-h: 32px;
   --header-h: 40px;
   --panel-pad: 16px;
-  --panel-left-w: 240px;
+  --panel-left-w: 320px;
   --panel-right-w: 240px;
 }
 
@@ -78,7 +78,10 @@
   overflow: hidden auto; display: flex; flex-direction: column; min-height: 0;
 }
 .panel, .panel *, .panel *::before, .panel *::after { box-sizing: border-box; }
-.panel-left { border-right: 1px solid var(--panel-border); }
+.panel-left { position: relative; overflow: hidden; border-right: 1px solid var(--panel-border); }
+/* Poignée de largeur : 6 px sur le bord droit, trait bleu au survol et pendant le glisser. */
+.panel-resize { position: absolute; top: 0; right: -3px; bottom: 0; width: 6px; z-index: 3; cursor: col-resize; touch-action: none; }
+.panel-resize:hover, .panel-resize:active { background: linear-gradient(var(--accent), var(--accent)) center / 2px 100% no-repeat; }
 .panel-right { border-left: 1px solid var(--panel-border); }
 /* En-tête du panneau gauche : nom du fichier en 13 px fort, point discret s'il est modifié, menu Fichier. */
 .file-header { flex: none; display: flex; align-items: center; height: var(--header-h); padding: 0 8px; border-bottom: 1px solid var(--panel-border); }
@@ -163,12 +166,14 @@
 .empty-note { margin: 0; padding: 4px 8px; color: var(--panel-muted); }
 .design-section .empty-note { padding: 0; }
 
-/* En-tête du panneau droit : 40 px, onglets en pilule (actif = fond gris, texte fort). */
+/* Barre d'onglets (gauche) ou titre (droite) : 40 px, onglets en pilule (actif = fond gris, texte fort). */
 .panel-tabs {
   flex: none; display: flex; align-items: center; gap: 4px; height: var(--header-h); padding: 0 8px;
   border-bottom: 1px solid var(--panel-border);
 }
 .panel-tablist { display: flex; gap: 4px; }
+.panel-title { margin: 0; padding: 0 8px; font: var(--fw-strong) var(--fs) / var(--lh) var(--font-ui); letter-spacing: var(--ls); color: var(--panel-text); }
+.panel-empty { padding: 12px var(--panel-pad); }
 .panel-tablist button {
   height: var(--field-h); padding: 0 8px; border: 0; border-radius: var(--radius); background: transparent;
   font: var(--fw-strong) var(--fs) / var(--lh) var(--font-ui); letter-spacing: var(--ls); color: var(--panel-muted); cursor: pointer;

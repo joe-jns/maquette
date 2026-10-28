@@ -79,7 +79,7 @@ test('taper dans le chat ne touche pas au document ; Entrée envoie avec la sél
     await expect(page.locator(node('rBleu1'))).toBeVisible()
     await fakeChat(app, [])
     await reopen(page)
-    await page.getByRole('button', { name: 'Claude' }).click()
+    await page.getByRole('tab', { name: 'Claude' }).click()
     const panel = page.getByTestId('chat-panel')
     await expect(panel.getByText('Demande à Claude de dessiner')).toBeVisible()
 
