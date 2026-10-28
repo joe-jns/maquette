@@ -196,3 +196,15 @@ export function selectionContext(doc: MaquetteDocument, ids: string[], natural: 
   }
   return lines.join('\n')
 }
+
+/**
+ * Envoie une demande à Claude depuis l'éditeur (ex. « corrige ces fautes ») : ouvre l'onglet Claude et
+ * joint les éléments concernés comme contexte. Refusé (false) pendant une réponse en cours.
+ */
+export function askClaude(text: string, ids: string[]): boolean {
+  const api = chatApi()
+  if (!api || chatStore.getState().busy) return false
+  chatStore.getState().setOpen(true)
+  api.send({ text, context: selectionContext(docStore.getState().doc, ids), images: [] })
+  return true
+}

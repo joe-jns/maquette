@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { docNode, scene } from './canvas'
+import { calls, fakeChat, reopen } from './chat'
 import { launch } from './launch'
 
 const shots = process.env.MAQUETTE_SHOTS
@@ -44,6 +45,8 @@ test('contrôle qualité : fautes listées, épingles sur le canevas, clic = sé
   const { app, page } = await launch([scene])
   try {
     await expect(page.getByTestId('canvas')).toBeVisible()
+    await fakeChat(app, [])
+    await reopen(page)
     const id = await page.evaluate(() => {
       const store = (window as unknown as { __maquetteStore: { getState(): { doc: { pages: { id: string }[] }; dispatch(ops: unknown[], label: string): { ids: Record<string, string> } } } }).__maquetteStore
       const r = store.getState().dispatch(
@@ -63,6 +66,18 @@ test('contrôle qualité : fautes listées, épingles sur le canevas, clic = sé
     await expect(page.locator('.finding strong', { hasText: 'headline-lines' })).toBeVisible()
     await expect(page.getByTestId('taste-pins').locator('button').first()).toBeVisible()
     if (shots) await page.screenshot({ path: `${shots}/controle.png` })
+
+    // Cocher une faute puis « Fix 1 selected with Claude » : le chat reçoit la demande, le cadre en contexte.
+    const row = page.locator('.finding-row', { hasText: 'headline-lines' })
+    const n = Number(await row.locator('.pin-number').textContent())
+    await row.getByRole('checkbox').check()
+    await page.getByRole('button', { name: 'Fix 1 selected with Claude' }).click()
+    await expect.poll(async () => (await calls(app)).find((c) => c[0] === 'chat:send')).toBeTruthy()
+    const sent = (await calls(app)).find((c) => c[0] === 'chat:send')![1] as { text: string; context: string }
+    expect(sent.text).toContain(`${n}. [headline-lines]`)
+    expect(sent.text).toContain(`verifier_gout sur ${id}`)
+    expect(sent.context).toContain(id)
+    await expect(page.getByRole('tab', { name: 'Claude' })).toHaveAttribute('aria-selected', 'true')
 
     await page.locator('.finding', { hasText: 'headline-lines' }).click()
     const selected = await page.evaluate(() => (window as unknown as { __maquetteUi: { getState(): { selection: string[] } } }).__maquetteUi.getState().selection)

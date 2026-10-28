@@ -46,6 +46,14 @@
 .check-badge {
   padding: 0 8px; border-radius: var(--radius-pill); background: var(--warning-soft); color: var(--warning-text); font-weight: var(--fw-strong);
 }
+.finding-row { display: flex; align-items: flex-start; gap: 6px; }
+.finding-pick { flex: none; margin: 10px 0 0; accent-color: var(--accent); cursor: pointer; }
+.fix-with-claude {
+  width: 100%; height: var(--row-h); margin: 4px 0 8px; border: 0; border-radius: var(--radius); background: #D97757; color: #fff;
+  font: var(--fw-strong) var(--fs) / var(--lh) var(--font-ui); letter-spacing: var(--ls); cursor: pointer;
+}
+.fix-with-claude:hover:not(:disabled) { background: #C4643F; }
+.fix-with-claude:disabled { opacity: 0.5; cursor: default; }
 .findings { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 .finding {
   display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 0 8px; padding: 8px; border-radius: var(--radius); background: var(--field-bg);
