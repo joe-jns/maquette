@@ -41,7 +41,7 @@ test('lancement sans fichier : l’accueil liste les récents, le plus récent d
     await expect(home.getByRole('heading', { name: 'Maquette' })).toBeVisible()
     await expect(page.getByTestId('canvas')).toBeHidden()
     await expect(cards(page).locator('.home-card-name')).toHaveText(['Studio Été', 'Boulangerie', 'Disparu'])
-    await expect(card(page, 'Studio Été')).toContainText('Edited 2 hours ago')
+    await expect(card(page, 'Studio Été')).toContainText(/Edited (2 hours ago|yesterday)/) // « hier » juste après minuit
     await expect(card(page, 'Boulangerie')).toContainText(/Edited [A-Z][a-z]+ \d/)
     await expect(home.locator('.home-section-count')).toHaveText('3')
 
