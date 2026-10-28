@@ -27,6 +27,9 @@
 }
 @keyframes agent-target { 0% { opacity: 0; } 12%, 55% { opacity: 1; } 100% { opacity: 0; } }
 
+/* Élément dévoilé par l'apparition progressive (reveal.ts). */
+@keyframes agent-reveal { from { opacity: 0; } }
+
 @media (prefers-reduced-motion: reduce) {
   .agent-cursor, .agent-target, .agent-thinking i { animation: none; }
   .agent-target { opacity: 0; }

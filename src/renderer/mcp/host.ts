@@ -4,6 +4,7 @@ import type { FullSheet } from '../../mcp/design/direction'
 import type { TasteDraw } from '../../shared/ipc'
 import { runTool, type ToolHost, type ToolResult } from '../../mcp/tools'
 import { agentStore, CLAUDE } from '../agents/agentStore'
+import { revealCreated } from '../agents/reveal'
 import { ensureFont } from '../fonts/fontLoader'
 import { docStore } from '../state/store'
 import { uiStore } from '../state/ui'
@@ -46,13 +47,14 @@ const host: ToolHost = {
     const result = docStore.getState().dispatch(ops, label)
     if (result.ok) {
       const touched = ops.flatMap((op) => ('id' in op && typeof op.id === 'string' ? [result.ids[op.id] ?? op.id] : []))
-      // Éléments créés sans identifiant temporaire : on les retrouve dans les patchs d'ajout.
+      // Éléments créés (avec ou sans identifiant temporaire) : les patchs d'ajout, au plus haut niveau.
       const added = result.patches.flatMap((p) => {
         const v = p.op === 'add' ? (p.value as { id?: unknown } | undefined) : undefined
         return typeof v?.id === 'string' ? [v.id] : []
       })
-      // Le curseur de Claude glisse vers ce qu'il vient de créer ou de modifier.
-      agentStore.getState().activity(CLAUDE.id, [...new Set([...Object.values(result.ids), ...touched, ...added])])
+      // Ce qu'il crée apparaît pièce par pièce, son curseur passant de l'une à l'autre ; sinon le curseur va à ce qu'il modifie.
+      if (added.length) revealCreated(added, CLAUDE.id)
+      else agentStore.getState().activity(CLAUDE.id, [...new Set([...Object.values(result.ids), ...touched])])
     }
     return result
   },
