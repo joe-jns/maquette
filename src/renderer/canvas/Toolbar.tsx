@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { createPortal } from 'react-dom'
 import { DocumentPanel } from '../panels/design/DocumentPanel'
 import { IconPicker } from '../panels/design/IconPicker'
 import { DirectionPanel } from '../panels/direction/DirectionPanel'
@@ -117,16 +118,17 @@ export function keepButtonKeys(e: KeyboardEvent<HTMLElement>): void {
 
 type Floating = 'variables' | 'direction'
 
+
 const FLOATING: { id: Floating; label: string; icon: IconName }[] = [
   { id: 'variables', label: 'Variables', icon: 'variables' },
   { id: 'direction', label: 'Direction', icon: 'direction' },
 ]
 
 /**
- * Panneau flottant au-dessus de la barre (variables du document, directions taste-skill).
+ * Panneau flottant au-dessus de la barre (directions taste-skill).
  * Se ferme par Échap ou par un clic ailleurs que sur lui ou sur son bouton.
  */
-function FloatingPanel({ id, onClose }: { id: Floating; onClose(): void }) {
+function FloatingPanel({ id, onClose }: { id: 'direction'; onClose(): void }) {
   const box = useRef<HTMLDivElement>(null)
   useEffect(() => {
     const onDown = (e: PointerEvent) => {
@@ -152,13 +154,62 @@ function FloatingPanel({ id, onClose }: { id: Floating; onClose(): void }) {
       <header className="floating-head">
         <h2>{label}</h2>
         <button type="button" className="icon-button" aria-label="Close" data-tooltip="Close" data-shortcut="Esc" onClick={onClose}>
-          <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden>
-            <path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-          </svg>
+          {CLOSE_ICON}
         </button>
       </header>
-      <div className="floating-body">{id === 'variables' ? <DocumentPanel /> : <DirectionPanel />}</div>
+      <div className="floating-body">
+        <DirectionPanel />
+      </div>
     </div>
+  )
+}
+
+const CLOSE_ICON = (
+  <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden>
+    <path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+  </svg>
+)
+
+/**
+ * Fenêtre Variables, au centre de l'écran : couleurs à gauche, styles de texte à droite.
+ * Rendue dans <body> (la barre est transformée, une position fixe y serait relative à elle).
+ * Se ferme par Échap, la croix ou un clic sur le fond.
+ */
+function VariablesModal({ onClose }: { onClose(): void }) {
+  const box = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const previous = document.activeElement as HTMLElement | null
+    box.current?.focus()
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.key === 'Escape' && !e.defaultPrevented) onClose()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      previous?.focus?.()
+    }
+  }, [onClose])
+  return createPortal(
+    <div
+      className="variables-backdrop"
+      data-ui
+      onPointerDown={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
+    >
+      <div ref={box} className="variables-modal panel" role="dialog" aria-modal="true" aria-label="Variables" data-testid="floating-variables" tabIndex={-1}>
+        <header className="variables-head">
+          <h2>Variables</h2>
+          <button type="button" className="icon-button" aria-label="Close" data-tooltip="Close" data-shortcut="Esc" onClick={onClose}>
+            {CLOSE_ICON}
+          </button>
+        </header>
+        <div className="variables-body">
+          <DocumentPanel />
+        </div>
+      </div>
+    </div>,
+    document.body,
   )
 }
 
@@ -188,6 +239,7 @@ export function Toolbar() {
           data-floating-button={f.id}
           aria-pressed={floating === f.id}
           aria-haspopup="dialog"
+          aria-expanded={floating === f.id}
           data-tooltip={f.label}
           onClick={() => setFloating((cur) => (cur === f.id ? null : f.id))}
         >
@@ -195,7 +247,8 @@ export function Toolbar() {
           <span className="visually-hidden">{f.label}</span>
         </button>
       ))}
-      {floating && <FloatingPanel id={floating} onClose={closeFloating} />}
+      {floating === 'direction' && <FloatingPanel id="direction" onClose={closeFloating} />}
+      {floating === 'variables' && <VariablesModal onClose={closeFloating} />}
       {picking && (
         <IconPicker
           className="is-floating"

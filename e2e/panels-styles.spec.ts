@@ -30,6 +30,9 @@ test('couleurs nommées : créer, renommer, modifier (les éléments suivent), s
   await typeInto(page, 'Color 1 name', 'Marque', variables(page))
   await typeInto(page, 'Color 1', 'c2410c', variables(page))
   expect((await styles(page)).colors[0]).toMatchObject({ name: 'Marque', value: '#C2410C' })
+  // La fenêtre Variables couvre le canevas : on la ferme avant de sélectionner.
+  await page.keyboard.press('Escape')
+  await expect(variables(page)).toBeHidden()
 
   await clickOn(page, 'rBleu1')
   await panel(page).getByRole('button', { name: 'Color variable for fill 1' }).click()
