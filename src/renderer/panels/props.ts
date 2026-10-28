@@ -99,10 +99,10 @@ export function mixed<T>(values: T[]): T | 'mixed' | null {
 export type SizeChoice = 'fixed' | 'hug' | 'fill'
 export interface ChoiceState { ok: boolean; reason?: string }
 
-const HUG_REASON = 'S’adapter au contenu : réservé aux textes et aux cadres en mise en page automatique'
-const FILL_REASON = 'Remplir : réservé aux enfants d’un cadre en mise en page automatique'
-const HUG_FILL_CHILD_REASON = 'S’adapter au contenu : impossible, un enfant remplit déjà ce cadre sur cet axe'
-const FILL_HUG_PARENT_REASON = 'Remplir : impossible, le cadre parent s’adapte déjà à son contenu sur cet axe'
+const HUG_REASON = 'Hug contents: only for text and auto layout frames'
+const FILL_REASON = 'Fill container: only for children of an auto layout frame'
+const HUG_FILL_CHILD_REASON = 'Hug contents: not possible, a child already fills this frame on this axis'
+const FILL_HUG_PARENT_REASON = 'Fill container: not possible, the parent frame already hugs its contents on this axis'
 
 const inFlow = (loc: NodeLocation): boolean => loc.parent?.layout.mode === 'auto' && loc.node.position === 'flow'
 

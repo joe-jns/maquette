@@ -12,9 +12,9 @@ import { uiStore } from './ui'
 export const confirmDiscard = async (): Promise<boolean> =>
   !docStore.getState().dirty ||
   (await ask({
-    message: 'Abandonner les modifications non enregistrées ?',
-    detail: 'Elles seront perdues.',
-    buttons: [{ label: 'Annuler' }, { label: 'Abandonner', kind: 'danger' }],
+    message: 'Discard unsaved changes?',
+    detail: 'They will be lost.',
+    buttons: [{ label: 'Cancel' }, { label: 'Discard', kind: 'danger' }],
     cancelIndex: 0,
     defaultIndex: 0,
   })) === 1
@@ -29,7 +29,7 @@ async function save(asNew: boolean): Promise<boolean> {
     docStore.getState().markSaved(path)
     return true
   } catch (e) {
-    docStore.getState().showError(`Enregistrement impossible : ${(e as Error).message}`)
+    docStore.getState().showError(`Could not save: ${(e as Error).message}`)
     return false
   }
 }
@@ -41,7 +41,7 @@ const remoteMessage = (e: unknown) =>
 async function exportSelection(scale: number): Promise<void> {
   const id = uiStore.getState().selection[0]
   if (!id) {
-    docStore.getState().showError('Sélectionnez un élément à exporter')
+    docStore.getState().showError('Select a layer to export')
     return
   }
   // Un texte en cours d'édition n'est dans le document qu'à sa fermeture : on le valide d'abord.
@@ -49,7 +49,7 @@ async function exportSelection(scale: number): Promise<void> {
   try {
     await window.maquette.exportPng(docStore.getState().doc, id, scale)
   } catch (e) {
-    docStore.getState().showError(`Export impossible : ${remoteMessage(e)}`)
+    docStore.getState().showError(`Could not export: ${remoteMessage(e)}`)
   }
 }
 

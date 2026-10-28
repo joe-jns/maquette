@@ -16,7 +16,7 @@ const TYPE_GLYPH = {
   mixed: 'M5.5 5.5h8v8h-8zM2.5 10.5v-8h8',
 } as const
 
-const TYPE_NAME = { frame: 'Cadre', column: 'Cadre automatique', row: 'Cadre automatique', text: 'Texte', rectangle: 'Rectangle', ellipse: 'Ellipse', image: 'Image', icon: 'Icône', mixed: 'Éléments' } as const
+const TYPE_NAME = { frame: 'Frame', column: 'Auto layout frame', row: 'Auto layout frame', text: 'Text', rectangle: 'Rectangle', ellipse: 'Ellipse', image: 'Image', icon: 'Icon', mixed: 'Layers' } as const
 
 function kindOf(n: Node): keyof typeof TYPE_GLYPH {
   if (n.type === 'frame') return n.layout.mode === 'auto' ? n.layout.direction : 'frame'
@@ -25,17 +25,17 @@ function kindOf(n: Node): keyof typeof TYPE_GLYPH {
 }
 
 const ALIGN: { edge: AlignEdge; label: string; d: string }[] = [
-  { edge: 'left', label: 'Aligner à gauche', d: 'M2.5 2.5v11M5 4.5h7.5V7H5zM5 9h4.5v2.5H5z' },
-  { edge: 'hcenter', label: 'Centrer horizontalement', d: 'M8 2.5v11M4 4.5h8V7H4zM5.5 9h5v2.5h-5z' },
-  { edge: 'right', label: 'Aligner à droite', d: 'M13.5 2.5v11M3.5 4.5H11V7H3.5zM6.5 9H11v2.5H6.5z' },
-  { edge: 'top', label: 'Aligner en haut', d: 'M2.5 2.5h11M4.5 5H7v7.5H4.5zM9 5h2.5v4.5H9z' },
-  { edge: 'vcenter', label: 'Centrer verticalement', d: 'M2.5 8h11M4.5 4H7v8H4.5zM9 5.5h2.5v5H9z' },
-  { edge: 'bottom', label: 'Aligner en bas', d: 'M2.5 13.5h11M4.5 3.5H7V11H4.5zM9 6.5h2.5V11H9z' },
+  { edge: 'left', label: 'Align left', d: 'M2.5 2.5v11M5 4.5h7.5V7H5zM5 9h4.5v2.5H5z' },
+  { edge: 'hcenter', label: 'Align horizontal centers', d: 'M8 2.5v11M4 4.5h8V7H4zM5.5 9h5v2.5h-5z' },
+  { edge: 'right', label: 'Align right', d: 'M13.5 2.5v11M3.5 4.5H11V7H3.5zM6.5 9H11v2.5H6.5z' },
+  { edge: 'top', label: 'Align top', d: 'M2.5 2.5h11M4.5 5H7v7.5H4.5zM9 5h2.5v4.5H9z' },
+  { edge: 'vcenter', label: 'Align vertical centers', d: 'M2.5 8h11M4.5 4H7v8H4.5zM9 5.5h2.5v5H9z' },
+  { edge: 'bottom', label: 'Align bottom', d: 'M2.5 13.5h11M4.5 3.5H7V11H4.5zM9 6.5h2.5V11H9z' },
 ]
 
 const DISTRIBUTE: { axis: DistributeAxis; label: string; d: string }[] = [
-  { axis: 'horizontal', label: 'Répartir horizontalement', d: 'M2.5 2.5v11M13.5 2.5v11M6.5 5h3v6h-3z' },
-  { axis: 'vertical', label: 'Répartir verticalement', d: 'M2.5 2.5h11M2.5 13.5h11M5 6.5h6v3H5z' },
+  { axis: 'horizontal', label: 'Distribute horizontal spacing', d: 'M2.5 2.5v11M13.5 2.5v11M6.5 5h3v6h-3z' },
+  { axis: 'vertical', label: 'Distribute vertical spacing', d: 'M2.5 2.5h11M2.5 13.5h11M5 6.5h6v3H5z' },
 ]
 
 /**
@@ -47,20 +47,20 @@ export function SelectionHeader() {
   if (nodes.length === 0) return null
   const kinds = [...new Set(nodes.map(kindOf))]
   const kind = kinds.length === 1 ? kinds[0]! : 'mixed'
-  const name = nodes.length === 1 ? nodes[0]!.name : `${nodes.length} éléments`
+  const name = nodes.length === 1 ? nodes[0]!.name : `${nodes.length} layers`
   const doc = docStore.getState().doc
   const alignable = canAlign(doc, ids)
   const distributable = canDistribute(doc, ids)
 
   return (
-    <section className="selection-header" aria-label="Sélection">
+    <section className="selection-header" aria-label="Selection">
       <div className="selection-title">
         <span className="selection-icon" role="img" aria-label={TYPE_NAME[kind]}>
           <Glyph d={TYPE_GLYPH[kind]} />
         </span>
         <h2 className="selection-name">{name}</h2>
       </div>
-      <div className="align-row" role="toolbar" aria-label="Alignement de la sélection">
+      <div className="align-row" role="toolbar" aria-label="Align selection">
         {[ALIGN.slice(0, 3), ALIGN.slice(3)].map((group, g) => (
           <div key={g} className="align-group">
             {group.map((a) => (

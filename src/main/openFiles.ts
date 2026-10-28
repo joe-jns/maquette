@@ -93,8 +93,8 @@ export async function openInWindow(path: string): Promise<void> {
     // Retiré des récents sans attendre la réponse : la question n'a qu'un bouton.
     await removeRecent(path)
     await askWindow(win, {
-      message: `${basename(path)} est introuvable.`,
-      detail: `${path}\nIl est retiré des fichiers récents.`,
+      message: `${basename(path)} could not be found.`,
+      detail: `${path}\nIt has been removed from recent files.`,
       buttons: [{ label: 'OK', kind: 'primary' }],
       cancelIndex: 0,
       defaultIndex: 0,

@@ -67,7 +67,7 @@ test('? ouvre l’aide, Échap la ferme', async () => {
   await settled(page, 'rBleu1')
   await resetCamera(page)
   await page.keyboard.press('Shift+?')
-  const help = page.getByRole('dialog', { name: 'Raccourcis clavier' })
+  const help = page.getByRole('dialog', { name: 'Keyboard shortcuts' })
   await expect(help).toBeVisible()
   await expect(help).toContainText('Ctrl+D')
   await page.keyboard.press('Escape')

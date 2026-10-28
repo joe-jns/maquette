@@ -88,14 +88,14 @@ body { font: var(--panel-font); letter-spacing: var(--ls); background: var(--can
   display: flex; align-items: center; gap: 8px; height: 48px; padding: 8px; border-radius: var(--radius-lg);
   background: var(--panel-bg); box-shadow: var(--elevation-toolbar);
 }
-.toolbar button {
+.toolbar > button, .tool-split > button {
   display: grid; place-items: center; height: 32px; padding: 0; border: 0; border-radius: var(--radius);
   background: transparent; color: var(--icon); cursor: pointer;
 }
 .toolbar .tool-button { width: 32px; }
-.toolbar button:hover { background: var(--panel-hover); }
-.toolbar button:active { background: var(--pressed); }
-.toolbar button[aria-pressed='true'] { background: var(--accent); color: #fff; }
+.toolbar > button:hover, .tool-split > button:hover { background: var(--panel-hover); }
+.toolbar > button:active, .tool-split > button:active { background: var(--pressed); }
+.toolbar > button[aria-pressed='true'], .tool-split > button[aria-pressed='true'] { background: var(--accent); color: #fff; }
 .toolbar-separator { align-self: stretch; width: 1px; margin: -8px 0; background: var(--panel-border); }
 /* Outil + chevron collés : le chevron (16 x 32) ouvre la liste du groupe. */
 .tool-split { display: flex; }
@@ -103,6 +103,14 @@ body { font: var(--panel-font); letter-spacing: var(--ls); background: var(--can
 .toolbar .tool-chevron:hover, .toolbar .tool-chevron[aria-expanded='true'] { color: var(--icon); }
 /* Sélecteur d'icône ouvert depuis la barre (Maj+I) : au-dessus d'elle, centré. */
 .toolbar .icon-picker.is-floating { top: auto; bottom: calc(100% + 8px); left: 50%; right: auto; width: 212px; margin: 0; transform: translateX(-50%); }
+/* Panneau flottant (Variables, Direction) : au-dessus de la barre, défile s'il est long. */
+.floating-panel {
+  position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); width: 300px; max-height: min(560px, 70vh);
+  border-radius: var(--radius-lg); box-shadow: var(--elevation-toolbar); overflow: hidden; cursor: default;
+}
+.floating-head { flex: none; display: flex; align-items: center; justify-content: space-between; height: var(--header-h); padding: 0 8px 0 var(--panel-pad); border-bottom: 1px solid var(--panel-border); }
+.floating-head h2 { margin: 0; font-size: var(--fs); font-weight: var(--fw-strong); }
+.floating-body { flex: 1; min-height: 0; overflow: hidden auto; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* Aide « ? » : même carte que les dialogues, voile sur toute la fenêtre. */
@@ -142,3 +150,18 @@ body { font: var(--panel-font); letter-spacing: var(--ls); background: var(--can
   0%, 60% { outline-color: #f97316; }
   100% { outline-color: transparent; }
 }
+/* Variables / Direction ouverts : fond gris, le bleu reste réservé à l'outil actif. */
+.toolbar > button[data-floating-button][aria-pressed='true'] { background: var(--field-bg); color: var(--icon); }
+/* Fenêtre Variables : centrée, deux colonnes (couleurs | styles de texte), fond assombri. */
+.variables-backdrop { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: rgba(0, 0, 0, 0.32); }
+.variables-modal {
+  width: min(880px, calc(100vw - 64px)); height: min(640px, calc(100vh - 96px)); border-radius: var(--radius-lg);
+  box-shadow: var(--elevation-500); overflow: hidden; outline: none; animation: variables-in 140ms ease-out;
+}
+@keyframes variables-in { from { opacity: 0; transform: translateY(8px) scale(0.99); } }
+.variables-head { flex: none; display: flex; align-items: center; justify-content: space-between; height: 48px; padding: 0 12px 0 21px; border-bottom: 1px solid var(--panel-border); }
+.variables-head h2 { margin: 0; font-size: var(--fs-large); font-weight: var(--fw-strong); }
+.variables-body { flex: 1; min-height: 0; overflow: hidden; }
+.variables-body > .design { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); height: 100%; }
+.variables-body > .design > .design-section { overflow: hidden auto; padding: 8px 12px 16px; border-bottom: 0; }
+.variables-body > .design > .design-section + .design-section { border-left: 1px solid var(--panel-border); }

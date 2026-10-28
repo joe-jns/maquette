@@ -31,7 +31,7 @@ function Thumb({ entry }: { entry: RecentEntry }) {
   return (
     <div className="home-thumb" aria-hidden>
       {entry.missing ? (
-        <span className="home-thumb-label">Introuvable</span>
+        <span className="home-thumb-label">Not found</span>
       ) : src ? (
         <img src={src} alt="" draggable={false} />
       ) : (
@@ -53,7 +53,7 @@ interface CardProps {
 
 function Card({ entry, now, active, menuOpen, onOpen, onMenu, onFocus }: CardProps) {
   const more = useRef<HTMLButtonElement>(null)
-  const state = entry.missing ? 'Déplacé ou supprimé' : entry.modified !== null ? relativeDate(entry.modified, now) : ''
+  const state = entry.missing ? 'Moved or deleted' : entry.modified !== null ? relativeDate(entry.modified, now) : ''
   const fromButton = () => {
     const r = more.current!.getBoundingClientRect()
     onMenu(r.left, r.bottom + 4)
@@ -65,7 +65,7 @@ function Card({ entry, now, active, menuOpen, onOpen, onMenu, onFocus }: CardPro
         className="home-card-open"
         data-home-card
         tabIndex={active ? 0 : -1}
-        aria-label={`${entry.name}, ${entry.missing ? `introuvable (${state})` : state}, ${entry.folder}`}
+        aria-label={`${entry.name}, ${entry.missing ? `not found (${state})` : state}, ${entry.folder}`}
         onClick={() => (entry.missing ? fromButton() : onOpen())}
         onFocus={onFocus}
         onContextMenu={(e: MouseEvent) => {
@@ -91,7 +91,7 @@ function Card({ entry, now, active, menuOpen, onOpen, onMenu, onFocus }: CardPro
         type="button"
         className="home-card-more"
         tabIndex={-1}
-        aria-label={`Actions pour ${entry.name}`}
+        aria-label={`Actions for ${entry.name}`}
         aria-haspopup="menu"
         aria-expanded={menuOpen}
         data-tooltip="Actions"
@@ -155,7 +155,7 @@ export function Home() {
     if (!(await confirmDiscard())) return
     const file = await window.maquette.home.open(entry.path)
     if (!file) {
-      docStore.getState().showError(`${entry.name} est introuvable.`)
+      docStore.getState().showError(`${entry.name} could not be found.`)
       void refresh()
       return
     }
@@ -211,36 +211,36 @@ export function Home() {
   const menuEntry = menu ? shown.find((x) => x.path === menu.path) : undefined
   const menuItems: MenuEntry[] = menuEntry
     ? [
-        { label: 'Ouvrir', disabled: menuEntry.missing, onSelect: () => void open(menuEntry) },
-        { label: 'Afficher dans l’Explorateur', disabled: menuEntry.missing, onSelect: () => void window.maquette.home.reveal(menuEntry.path) },
+        { label: 'Open', disabled: menuEntry.missing, onSelect: () => void open(menuEntry) },
+        { label: 'Show in Explorer', disabled: menuEntry.missing, onSelect: () => void window.maquette.home.reveal(menuEntry.path) },
         SEPARATOR,
-        { label: 'Retirer de la liste', onSelect: () => void remove(menuEntry.path) },
+        { label: 'Remove from recents', onSelect: () => void remove(menuEntry.path) },
       ]
     : []
 
   const actions = (
     <>
       <button type="button" className="home-button" onClick={() => void runCommand('open')}>
-        Ouvrir…
+        Open…
       </button>
       <button type="button" className="home-button is-primary" onClick={() => void runCommand('new')}>
         <Icon name="plus" size={16} />
-        Nouvelle maquette
+        New design
       </button>
     </>
   )
 
   return (
-    <section ref={root} tabIndex={-1} className="home" data-home data-ui data-testid="home" aria-label="Accueil" onKeyDown={onKeyDown}>
+    <section ref={root} tabIndex={-1} className="home" data-home data-ui data-testid="home" aria-label="Home" onKeyDown={onKeyDown}>
       <header className="home-bar">
         <div className="home-brand">
           {hasDocument && (
             <button
               type="button"
               className="home-back"
-              aria-label="Retour au document"
-              data-tooltip="Retour au document"
-              data-shortcut="Échap"
+              aria-label="Back to document"
+              data-tooltip="Back to document"
+              data-shortcut="Esc"
               onClick={() => homeStore.getState().back()}
             >
               <Icon name="chevronLeft" size={16} />
@@ -253,8 +253,8 @@ export function Home() {
           <input
             ref={search}
             type="search"
-            placeholder="Rechercher un fichier"
-            aria-label="Rechercher un fichier"
+            placeholder="Search files"
+            aria-label="Search files"
             value={query}
             spellCheck={false}
             onChange={(e) => {
@@ -269,21 +269,21 @@ export function Home() {
       <div className="home-body">
         {entries && entries.length === 0 && (
           <div className="home-empty" data-testid="home-empty">
-            <p className="home-empty-title">Aucun fichier récent</p>
-            <p className="home-empty-text">Créez une maquette ou ouvrez un fichier existant.</p>
+            <p className="home-empty-title">No recent files</p>
+            <p className="home-empty-text">Create a new design or open an existing file.</p>
             <div className="home-actions">{actions}</div>
           </div>
         )}
         {entries && entries.length > 0 && (
           <>
             <div className="home-section">
-              <h2 className="home-section-title">Fichiers récents</h2>
-              <span className="home-section-count">{shown.length === entries.length ? entries.length : `${shown.length} sur ${entries.length}`}</span>
+              <h2 className="home-section-title">Recent files</h2>
+              <span className="home-section-count">{shown.length === entries.length ? entries.length : `${shown.length} of ${entries.length}`}</span>
             </div>
             {shown.length === 0 ? (
-              <p className="home-none" role="status">Aucun fichier ne correspond à « {query.trim()} ».</p>
+              <p className="home-none" role="status">No files match “{query.trim()}”.</p>
             ) : (
-              <ul ref={grid} className="home-grid" aria-label="Fichiers récents">
+              <ul ref={grid} className="home-grid" aria-label="Recent files">
                 {shown.map((entry, i) => (
                   <Card
                     key={entry.path}

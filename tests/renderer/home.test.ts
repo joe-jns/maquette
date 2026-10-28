@@ -6,27 +6,27 @@ const now = at(2026, 10, 17, 15, 30)
 
 describe('relativeDate', () => {
   it('moins d’une minute : à l’instant', () => {
-    expect(relativeDate(now - 20_000, now)).toBe('modifié à l’instant')
+    expect(relativeDate(now - 20_000, now)).toBe('Edited just now')
     // Horloge en avance (fichier daté du futur) : pas de « il y a -3 min ».
-    expect(relativeDate(now + 180_000, now)).toBe('modifié à l’instant')
+    expect(relativeDate(now + 180_000, now)).toBe('Edited just now')
   })
   it('minutes, puis heures le même jour', () => {
-    expect(relativeDate(now - 12 * 60_000, now)).toBe('modifié il y a 12 min')
-    expect(relativeDate(now - 59 * 60_000, now)).toBe('modifié il y a 59 min')
-    expect(relativeDate(now - 2 * 3_600_000, now)).toBe('modifié il y a 2 h')
-    expect(relativeDate(at(2026, 10, 17, 0, 5), now)).toBe('modifié il y a 15 h')
+    expect(relativeDate(now - 12 * 60_000, now)).toBe('Edited 12 min ago')
+    expect(relativeDate(now - 59 * 60_000, now)).toBe('Edited 59 min ago')
+    expect(relativeDate(now - 2 * 3_600_000, now)).toBe('Edited 2 hours ago')
+    expect(relativeDate(at(2026, 10, 17, 0, 5), now)).toBe('Edited 15 hours ago')
   })
   it('la veille : hier (même à moins de 24 h)', () => {
-    expect(relativeDate(at(2026, 10, 16, 23, 0), now)).toBe('modifié hier')
-    expect(relativeDate(at(2026, 10, 16, 0, 1), now)).toBe('modifié hier')
+    expect(relativeDate(at(2026, 10, 16, 23, 0), now)).toBe('Edited yesterday')
+    expect(relativeDate(at(2026, 10, 16, 0, 1), now)).toBe('Edited yesterday')
   })
   it('juste après minuit : les minutes d’abord', () => {
-    expect(relativeDate(at(2026, 10, 16, 23, 50), at(2026, 10, 17, 0, 10))).toBe('modifié il y a 20 min')
+    expect(relativeDate(at(2026, 10, 16, 23, 50), at(2026, 10, 17, 0, 10))).toBe('Edited 20 min ago')
   })
   it('plus ancien : la date, avec l’année si elle diffère', () => {
-    expect(relativeDate(at(2026, 10, 3), now)).toBe('modifié le 3 octobre')
-    expect(relativeDate(at(2026, 8, 1), now)).toBe('modifié le 1er août')
-    expect(relativeDate(at(2025, 12, 24), now)).toBe('modifié le 24 décembre 2025')
+    expect(relativeDate(at(2026, 10, 3), now)).toBe('Edited October 3')
+    expect(relativeDate(at(2026, 8, 1), now)).toBe('Edited August 1')
+    expect(relativeDate(at(2025, 12, 24), now)).toBe('Edited December 24, 2025')
   })
 })
 

@@ -1,5 +1,8 @@
 import { Fragment, useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { createPortal } from 'react-dom'
+import { DocumentPanel } from '../panels/design/DocumentPanel'
 import { IconPicker } from '../panels/design/IconPicker'
+import { DirectionPanel } from '../panels/direction/DirectionPanel'
 import { uiStore, useUi, type Tool } from '../state/ui'
 import { Icon, type IconName } from '../ui/icons'
 import { QuickMenu } from '../ui/QuickMenu'
@@ -8,13 +11,13 @@ import { shortcutKeys } from './shortcuts'
 
 interface ToolDef { tool: Tool; label: string; key: string; icon: IconName }
 
-const MOVE: ToolDef = { tool: 'move', label: 'Déplacer', key: 'V', icon: 'move' }
-const FRAME: ToolDef = { tool: 'frame', label: 'Cadre', key: 'F', icon: 'frame' }
+const MOVE: ToolDef = { tool: 'move', label: 'Move', key: 'V', icon: 'move' }
+const FRAME: ToolDef = { tool: 'frame', label: 'Frame', key: 'F', icon: 'frame' }
 const SHAPES: ToolDef[] = [
   { tool: 'rect', label: 'Rectangle', key: 'R', icon: 'rect' },
   { tool: 'ellipse', label: 'Ellipse', key: 'O', icon: 'ellipse' },
 ]
-const TEXT: ToolDef = { tool: 'text', label: 'Texte', key: 'T', icon: 'text' }
+const TEXT: ToolDef = { tool: 'text', label: 'Text', key: 'T', icon: 'text' }
 
 /** Groupes séparés par un trait : sélection | création (cadre, formes, texte). */
 const GROUPS: (ToolDef | 'shapes')[][] = [[MOVE], [FRAME, 'shapes', TEXT]]
@@ -56,10 +59,10 @@ function ShapeGroup({ current }: { current: Tool }) {
         ref={chevron}
         type="button"
         className="tool-chevron"
-        aria-label="Formes"
+        aria-label="Shapes"
         aria-haspopup="menu"
         aria-expanded={open}
-        data-tooltip="Formes"
+        data-tooltip="Shapes"
         onClick={() => setOpen((o) => !o)}
         onKeyDown={(e) => {
           if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
@@ -75,7 +78,7 @@ function ShapeGroup({ current }: { current: Tool }) {
         <QuickMenu
           anchor={chevron}
           alignTo={group}
-          label="Formes"
+          label="Shapes"
           placement="above"
           onClose={() => setOpen(false)}
           entries={[
@@ -93,7 +96,7 @@ function ShapeGroup({ current }: { current: Tool }) {
             'separator' as const,
             {
               id: 'icon',
-              label: 'Icône…',
+              label: 'Icon…',
               icon: 'icon' as const,
               shortcut: shortcutKeys('insertIcon'),
               onSelect: () => uiStore.getState().setIconPicker(true),
@@ -113,13 +116,112 @@ export function keepButtonKeys(e: KeyboardEvent<HTMLElement>): void {
   if ((e.key === 'Enter' || e.key === ' ') && (e.target as HTMLElement).closest('button')) e.stopPropagation()
 }
 
+type Floating = 'variables' | 'direction'
+
+
+const FLOATING: { id: Floating; label: string; icon: IconName }[] = [
+  { id: 'variables', label: 'Variables', icon: 'variables' },
+  { id: 'direction', label: 'Direction', icon: 'direction' },
+]
+
+/**
+ * Panneau flottant au-dessus de la barre (directions taste-skill).
+ * Se ferme par Échap ou par un clic ailleurs que sur lui ou sur son bouton.
+ */
+function FloatingPanel({ id, onClose }: { id: 'direction'; onClose(): void }) {
+  const box = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const onDown = (e: PointerEvent) => {
+      const t = e.target as Element | null
+      if (!t || box.current?.contains(t) || t.closest(`[data-floating-button="${id}"]`)) return
+      // Menus, listes et infobulles ouverts depuis le panneau vivent hors de lui (portails) : on les laisse faire.
+      if (t.closest('[role="menu"], [role="listbox"], [role="dialog"], .quick-menu, .select-list')) return
+      onClose()
+    }
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.key === 'Escape' && !e.defaultPrevented) onClose()
+    }
+    document.addEventListener('pointerdown', onDown, true)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('pointerdown', onDown, true)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [id, onClose])
+  const label = FLOATING.find((f) => f.id === id)!.label
+  return (
+    <div ref={box} className="floating-panel panel" role="dialog" aria-label={label} data-testid={`floating-${id}`}>
+      <header className="floating-head">
+        <h2>{label}</h2>
+        <button type="button" className="icon-button" aria-label="Close" data-tooltip="Close" data-shortcut="Esc" onClick={onClose}>
+          {CLOSE_ICON}
+        </button>
+      </header>
+      <div className="floating-body">
+        <DirectionPanel />
+      </div>
+    </div>
+  )
+}
+
+const CLOSE_ICON = (
+  <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden>
+    <path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+  </svg>
+)
+
+/**
+ * Fenêtre Variables, au centre de l'écran : couleurs à gauche, styles de texte à droite.
+ * Rendue dans <body> (la barre est transformée, une position fixe y serait relative à elle).
+ * Se ferme par Échap, la croix ou un clic sur le fond.
+ */
+function VariablesModal({ onClose }: { onClose(): void }) {
+  const box = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const previous = document.activeElement as HTMLElement | null
+    box.current?.focus()
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.key === 'Escape' && !e.defaultPrevented) onClose()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      previous?.focus?.()
+    }
+  }, [onClose])
+  return createPortal(
+    <div
+      className="variables-backdrop"
+      data-ui
+      onPointerDown={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
+    >
+      <div ref={box} className="variables-modal panel" role="dialog" aria-modal="true" aria-label="Variables" data-testid="floating-variables" tabIndex={-1}>
+        <header className="variables-head">
+          <h2>Variables</h2>
+          <button type="button" className="icon-button" aria-label="Close" data-tooltip="Close" data-shortcut="Esc" onClick={onClose}>
+            {CLOSE_ICON}
+          </button>
+        </header>
+        <div className="variables-body">
+          <DocumentPanel />
+        </div>
+      </div>
+    </div>,
+    document.body,
+  )
+}
+
 /** Barre d'outils flottante en bas du canevas, centrée (Figma UI3). */
 export function Toolbar() {
   const current = useUi((s) => s.tool)
   const picking = useUi((s) => s.iconPicker)
   const close = useCallback(() => uiStore.getState().setIconPicker(false), [])
+  const [floating, setFloating] = useState<Floating | null>(null)
+  const closeFloating = useCallback(() => setFloating(null), [])
   return (
-    <div className="toolbar" role="toolbar" aria-label="Outils" data-ui data-tooltip-side="top" onKeyDown={keepButtonKeys}>
+    <div className="toolbar" role="toolbar" aria-label="Tools" data-ui data-tooltip-side="top" onKeyDown={keepButtonKeys}>
       {GROUPS.map((group, g) => (
         <Fragment key={g}>
           {g > 0 && <span className="toolbar-separator" aria-hidden />}
@@ -128,10 +230,29 @@ export function Toolbar() {
           )}
         </Fragment>
       ))}
+      <span className="toolbar-separator" aria-hidden />
+      {FLOATING.map((f) => (
+        <button
+          key={f.id}
+          type="button"
+          className="tool-button"
+          data-floating-button={f.id}
+          aria-pressed={floating === f.id}
+          aria-haspopup="dialog"
+          aria-expanded={floating === f.id}
+          data-tooltip={f.label}
+          onClick={() => setFloating((cur) => (cur === f.id ? null : f.id))}
+        >
+          <Icon name={f.icon} />
+          <span className="visually-hidden">{f.label}</span>
+        </button>
+      ))}
+      {floating === 'direction' && <FloatingPanel id="direction" onClose={closeFloating} />}
+      {floating === 'variables' && <VariablesModal onClose={closeFloating} />}
       {picking && (
         <IconPicker
           className="is-floating"
-          label="Insérer une icône"
+          label="Insert icon"
           onClose={close}
           onPick={(name) => {
             close()

@@ -102,7 +102,7 @@ const LayerRowView = memo(
         <button
           type="button"
           className="twisty"
-          aria-label={row.expanded ? 'Replier' : 'Déplier'}
+          aria-label={row.expanded ? 'Collapse' : 'Expand'}
           tabIndex={-1}
           style={{ visibility: row.hasChildren ? 'visible' : 'hidden' }}
           onClick={(e) => {
@@ -126,8 +126,8 @@ const LayerRowView = memo(
           <button
             type="button"
             className={`layer-action${row.locked ? ' is-on' : ''}`}
-            aria-label={row.locked ? 'Déverrouiller' : 'Verrouiller'}
-            data-tooltip={row.locked ? 'Déverrouiller' : 'Verrouiller'}
+            aria-label={row.locked ? 'Unlock' : 'Lock'}
+            data-tooltip={row.locked ? 'Unlock' : 'Lock'}
             onClick={(e) => {
               e.stopPropagation()
               docStore.getState().dispatch([{ op: 'update', id: row.id, set: { locked: !row.locked } }], row.locked ? 'Déverrouiller' : 'Verrouiller')
@@ -138,8 +138,8 @@ const LayerRowView = memo(
           <button
             type="button"
             className={`layer-action${!row.visible ? ' is-on' : ''}`}
-            aria-label={row.visible ? 'Masquer' : 'Afficher'}
-            data-tooltip={row.visible ? 'Masquer' : 'Afficher'}
+            aria-label={row.visible ? 'Hide' : 'Show'}
+            data-tooltip={row.visible ? 'Hide' : 'Show'}
             onClick={(e) => {
               e.stopPropagation()
               docStore.getState().dispatch([{ op: 'update', id: row.id, set: { visible: !row.visible } }], row.visible ? 'Masquer' : 'Afficher')
@@ -258,9 +258,9 @@ export function LayersPanel() {
   }), [])
 
   return (
-    <section className="panel-section layers" aria-label="Calques">
+    <section className="panel-section layers" aria-label="Layers">
       <header className="panel-heading">
-        <h2>Calques</h2>
+        <h2>Layers</h2>
       </header>
       <ul className="layer-list" role="tree" ref={listRef}>
         {rows.map((row, index) => (
@@ -274,11 +274,11 @@ export function LayersPanel() {
             actions={actions}
           />
         ))}
-        {rows.length === 0 && <li className="empty-note">Aucun élément sur cette page.</li>}
+        {rows.length === 0 && <li className="empty-note">No layers on this page.</li>}
       </ul>
       {menu && (
         <Menu
-          label="Calque"
+          label="Layer"
           x={menu.x}
           y={menu.y}
           items={selectionMenu({ rename: () => setRenaming(menu.id) })}

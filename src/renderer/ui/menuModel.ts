@@ -44,11 +44,11 @@ export const firstIndex = (items: MenuEntry[]) => stepIndex(items, -1, 1)
 export const lastIndex = (items: MenuEntry[]) => stepIndex(items, -1, -1)
 
 const ARIA_KEYS: Record<string, string> = {
-  Ctrl: 'Control', Maj: 'Shift', Alt: 'Alt', Suppr: 'Delete', Échap: 'Escape', Entrée: 'Enter',
+  Ctrl: 'Control', Shift: 'Shift', Alt: 'Alt', Delete: 'Delete', Del: 'Delete', Esc: 'Escape', Enter: 'Enter',
   '←': 'ArrowLeft', '→': 'ArrowRight', '↑': 'ArrowUp', '↓': 'ArrowDown',
 }
 
-/** Raccourci affiché (« Ctrl+Maj+] ») → valeur de `aria-keyshortcuts` (« Control+Shift+] »). */
+/** Raccourci affiché (« Ctrl+Shift+] ») → valeur de `aria-keyshortcuts` (« Control+Shift+] »). */
 export const ariaKeys = (shortcut: string): string =>
   shortcut.split('+').map((k) => ARIA_KEYS[k] ?? k).join('+')
 

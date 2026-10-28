@@ -6,8 +6,6 @@ import type { DirectionOption, DirectionSheet } from '../../taste/direction'
 import { PAGE_RULES } from '../../taste/rules'
 import { docStore } from '../state/store'
 
-export type PanelTab = 'design' | 'direction'
-
 /** Résultat d'un contrôle, attaché à l'état du cadre au moment du contrôle. */
 export interface CheckRun {
   frameId: string
@@ -17,11 +15,10 @@ export interface CheckRun {
 }
 
 interface TasteState {
-  tab: PanelTab
   input: TasteInput
   options: DirectionOption[] | null
   sheet: (DirectionSheet & { direction?: { id: string; name: string; idea: string }; hero?: { name: string; blueprint: string } }) | null
-  /** Tirage en cours (onglet Direction). */
+  /** Tirage en cours (panneau Direction). */
   drawing: 'options' | 'direction' | null
   drawError: string | null
   /** Contrôle en cours (section du panneau Design). */
@@ -30,7 +27,6 @@ interface TasteState {
   check: CheckRun | null
   /** Règles ignorées par l'utilisateur (en plus de celles sans objet sur une maquette fixe). */
   allow: string[]
-  setTab(tab: PanelTab): void
   setInput(patch: Partial<TasteInput>): void
   drawOptions(): Promise<void>
   choose(direction: string): Promise<void>
@@ -43,7 +39,6 @@ interface TasteState {
 let checkSeq = 0
 
 export const tasteStore = createStore<TasteState>()((set, get) => ({
-  tab: 'design',
   input: { sector: 'restaurant', brief: '', tone: undefined },
   options: null,
   sheet: null,
@@ -53,7 +48,6 @@ export const tasteStore = createStore<TasteState>()((set, get) => ({
   checkError: null,
   check: null,
   allow: [],
-  setTab: (tab) => set({ tab }),
   setInput: (patch) => set({ input: { ...get().input, ...patch } }),
   async drawOptions() {
     if (get().drawing) return
@@ -93,7 +87,7 @@ export const tasteStore = createStore<TasteState>()((set, get) => ({
     }
     if (seq !== checkSeq) return
     if (result) set({ checking: false, check: { frameId, node, result } })
-    else set({ checking: false, checkError: 'Contrôle impossible : cadre masqué, ou rendu trop long (polices encore en téléchargement ?). Réessayez.' })
+    else set({ checking: false, checkError: 'Check failed: the frame is hidden, or rendering took too long (fonts still downloading?). Try again.' })
   },
   toggleRule(id) {
     const allow = get().allow

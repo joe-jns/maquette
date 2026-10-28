@@ -42,8 +42,8 @@ test('copie de secours : l’app plante, au lancement suivant le travail est res
   const second = await launch([], { MAQUETTE_USER_DATA: userData })
   try {
     const banner = second.page.getByTestId('recovery')
-    await expect(banner).toContainText('Sans titre')
-    await banner.getByRole('button', { name: 'Restaurer' }).click()
+    await expect(banner).toContainText('Untitled')
+    await banner.getByRole('button', { name: 'Restore' }).click()
     await expect(banner).toHaveCount(0)
     expect(await names(second.page)).toContain('Travail perdu ?')
     await expect(second.page).toHaveTitle(/•/)
@@ -54,8 +54,8 @@ test('copie de secours : l’app plante, au lancement suivant le travail est res
   // Restaurée mais jamais enregistrée : elle est recopiée tout de suite, donc reproposée au lancement suivant.
   const third = await launch([], { MAQUETTE_USER_DATA: userData })
   try {
-    await expect(third.page.getByTestId('recovery')).toContainText('Sans titre')
-    await third.page.getByTestId('recovery').getByRole('button', { name: 'Ignorer' }).click()
+    await expect(third.page.getByTestId('recovery')).toContainText('Untitled')
+    await third.page.getByTestId('recovery').getByRole('button', { name: 'Dismiss' }).click()
     await expect(third.page.getByTestId('recovery')).toHaveCount(0)
   } finally {
     await third.app.close()
@@ -79,14 +79,14 @@ test('fermeture avec changements : question ; Annuler garde la fenêtre, Ne pas 
   await expect(page).toHaveTitle(/•/)
 
   await closeWindow(app)
-  await answerDialog(page, 'Enregistrer les modifications de Sans titre ?', 'Annuler')
+  await answerDialog(page, 'Save changes to Untitled?', 'Cancel')
   await expect(page.getByRole('dialog')).toHaveCount(0)
   await page.waitForTimeout(300)
   expect(page.isClosed()).toBe(false)
 
   await closeWindow(app)
   const closed = app.waitForEvent('close')
-  await answerDialog(page, 'Enregistrer les modifications de Sans titre ?', 'Ne pas enregistrer')
+  await answerDialog(page, 'Save changes to Untitled?', 'Don’t save')
   await closed
 })
 
@@ -99,10 +99,10 @@ test('fermeture pendant la saisie d’un texte : la question est posée', async 
   await page.keyboard.type(' !')
   await expect.poll(() => page.evaluate(() => (window as unknown as { __maquetteUi: { getState(): { editingTextId: string | null } } }).__maquetteUi.getState().editingTextId)).toBe('tTitre')
   await closeWindow(app)
-  await answerDialog(page, 'Enregistrer les modifications de scene.maquette ?', 'Annuler')
+  await answerDialog(page, 'Save changes to scene.maquette?', 'Cancel')
   await expect(page.getByRole('dialog')).toHaveCount(0)
   await closeWindow(app)
   const closed = app.waitForEvent('close')
-  await answerDialog(page, 'Enregistrer les modifications de scene.maquette ?', 'Ne pas enregistrer')
+  await answerDialog(page, 'Save changes to scene.maquette?', 'Don’t save')
   await closed
 })

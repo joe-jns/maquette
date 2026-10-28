@@ -110,7 +110,7 @@ export function NumberField({ name, label, value, onCommit, scrub, step = 1, min
         inputMode="decimal"
         aria-label={name}
         value={draft}
-        placeholder={value === 'mixed' ? 'Mixte' : value === null ? (placeholder ?? (disabled ? 'Auto' : undefined)) : undefined}
+        placeholder={value === 'mixed' ? 'Mixed' : value === null ? (placeholder ?? (disabled ? 'Auto' : undefined)) : undefined}
         disabled={disabled}
         spellCheck={false}
         onFocus={(e) => e.currentTarget.select()}

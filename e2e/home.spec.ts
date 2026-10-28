@@ -41,27 +41,27 @@ test('lancement sans fichier : l’accueil liste les récents, le plus récent d
     await expect(home.getByRole('heading', { name: 'Maquette' })).toBeVisible()
     await expect(page.getByTestId('canvas')).toBeHidden()
     await expect(cards(page).locator('.home-card-name')).toHaveText(['Studio Été', 'Boulangerie', 'Disparu'])
-    await expect(card(page, 'Studio Été')).toContainText('modifié il y a 2 h')
-    await expect(card(page, 'Boulangerie')).toContainText(/modifié le \d/)
+    await expect(card(page, 'Studio Été')).toContainText('Edited 2 hours ago')
+    await expect(card(page, 'Boulangerie')).toContainText(/Edited [A-Z][a-z]+ \d/)
     await expect(home.locator('.home-section-count')).toHaveText('3')
 
     const lost = card(page, 'Disparu')
     await expect(lost).toHaveClass(/is-missing/)
-    await expect(lost).toContainText('Introuvable')
+    await expect(lost).toContainText('Not found')
     await expect(lost).toHaveAttribute('data-path', missing)
     // Le cliquer n'ouvre rien : seul son menu (Retirer) s'ouvre.
     await lost.locator('.home-card-open').click()
     const actions = page.getByRole('menu')
-    await expect(actions.getByRole('menuitem', { name: 'Ouvrir' })).toBeDisabled()
-    await expect(actions.getByRole('menuitem', { name: 'Retirer de la liste' })).toBeEnabled()
+    await expect(actions.getByRole('menuitem', { name: 'Open' })).toBeDisabled()
+    await expect(actions.getByRole('menuitem', { name: 'Remove from recents' })).toBeEnabled()
     await page.keyboard.press('Escape')
     await expect(actions).toHaveCount(0)
 
     // Aucun document derrière : Échap ne quitte pas l'accueil, et pas de bouton « Retour ».
-    await page.getByRole('searchbox', { name: 'Rechercher un fichier' }).focus()
+    await page.getByRole('searchbox', { name: 'Search files' }).focus()
     await page.keyboard.press('Escape')
     await expect(home).toBeVisible()
-    await expect(home.getByRole('button', { name: 'Retour au document' })).toHaveCount(0)
+    await expect(home.getByRole('button', { name: 'Back to document' })).toHaveCount(0)
     expect(await filePath(page)).toBeNull()
   } finally {
     await app.close()
@@ -72,7 +72,7 @@ test('recherche : filtre par nom, sans accents ; aucun résultat expliqué', asy
   const { userData } = await prepare()
   const { app, page } = await launch([], { MAQUETTE_USER_DATA: userData }, { home: true })
   try {
-    const search = page.getByRole('searchbox', { name: 'Rechercher un fichier' })
+    const search = page.getByRole('searchbox', { name: 'Search files' })
     await expect(cards(page)).toHaveCount(3)
     // Le focus est sur l'accueil ; taper cherche directement.
     await expect(page.getByTestId('home')).toBeFocused()
@@ -80,10 +80,10 @@ test('recherche : filtre par nom, sans accents ; aucun résultat expliqué', asy
     await expect(search).toBeFocused()
     await expect(search).toHaveValue('ete')
     await expect(cards(page).locator('.home-card-name')).toHaveText(['Studio Été'])
-    await expect(page.locator('.home-section-count')).toHaveText('1 sur 3')
+    await expect(page.locator('.home-section-count')).toHaveText('1 of 3')
     await search.fill('zzz')
     await expect(cards(page)).toHaveCount(0)
-    await expect(page.getByRole('status')).toHaveText('Aucun fichier ne correspond à « zzz ».')
+    await expect(page.getByRole('status')).toHaveText('No files match “zzz”.')
     // Échap dans la recherche : la vide d'abord.
     await page.keyboard.press('Escape')
     await expect(search).toHaveValue('')
@@ -139,7 +139,7 @@ test('Fichier → Accueil puis Échap revient au document ; menu ▾ ; document 
       const first = Menu.getApplicationMenu()!.items[0]!.submenu!.items[0]!
       return { label: first.label, accelerator: first.accelerator }
     })
-    expect(item).toEqual({ label: 'Accueil', accelerator: 'CmdOrCtrl+Shift+H' })
+    expect(item).toEqual({ label: 'Home', accelerator: 'CmdOrCtrl+Shift+H' })
 
     await menu(app, 'home')
     const home = page.getByTestId('home')
@@ -152,21 +152,21 @@ test('Fichier → Accueil puis Échap revient au document ; menu ▾ ; document 
 
     // Menu ▾ de l'en-tête, puis le bouton « Retour ».
     await page.getByTestId('file-header').getByRole('button').click()
-    await page.getByRole('menuitem', { name: 'Accueil' }).click()
+    await page.getByRole('menuitem', { name: 'Home' }).click()
     await expect(home).toBeVisible()
-    await home.getByRole('button', { name: 'Retour au document' }).click()
+    await home.getByRole('button', { name: 'Back to document' }).click()
     await expect(home).toHaveCount(0)
 
     // Document modifié : ouvrir une carte demande d'abord ; Annuler garde tout, accueil compris.
     await page.evaluate(() => {
       const store = (window as unknown as { __maquetteStore: { getState(): { doc: { pages: { id: string }[] }; dispatch(ops: unknown[], label: string): unknown } } }).__maquetteStore
-      store.getState().dispatch([{ op: 'create', parent: store.getState().doc.pages[0]!.id, node: { type: 'shape', shape: 'rectangle', name: 'Nouveau', x: 0, y: 0, width: 10, height: 10 } }], 'test')
+      store.getState().dispatch([{ op: 'create', parent: store.getState().doc.pages[0]!.id, node: { type: 'shape', shape: 'rectangle', name: 'New', x: 0, y: 0, width: 10, height: 10 } }], 'test')
     })
     await menu(app, 'home')
     await card(page, 'Studio Été').locator('.home-card-open').click()
-    const dialog = page.getByRole('dialog', { name: 'Abandonner les modifications non enregistrées ?' })
+    const dialog = page.getByRole('dialog', { name: 'Discard unsaved changes?' })
     await expect(dialog).toBeVisible()
-    await dialog.getByRole('button', { name: 'Annuler' }).click()
+    await dialog.getByRole('button', { name: 'Cancel' }).click()
     await expect(dialog).toHaveCount(0)
     await expect(home).toBeVisible()
     expect(await filePath(page)).toBe(older)
@@ -189,20 +189,20 @@ test('menu d’une carte : Afficher dans l’Explorateur, Retirer de la liste', 
       shell.showItemInFolder = (path: string) => void calls.push(path)
     })
     await card(page, 'Studio Été').hover()
-    await card(page, 'Studio Été').getByRole('button', { name: 'Actions pour Studio Été' }).click()
-    await page.getByRole('menuitem', { name: 'Afficher dans l’Explorateur' }).click()
+    await card(page, 'Studio Été').getByRole('button', { name: 'Actions for Studio Été' }).click()
+    await page.getByRole('menuitem', { name: 'Show in Explorer' }).click()
     await expect.poll(() => app.evaluate(() => (globalThis as unknown as { __shown: string[] }).__shown)).toEqual([newer])
 
     // Clic droit sur la carte introuvable : Retirer.
     await card(page, 'Disparu').locator('.home-card-open').click({ button: 'right' })
-    await page.getByRole('menuitem', { name: 'Retirer de la liste' }).click()
+    await page.getByRole('menuitem', { name: 'Remove from recents' }).click()
     await expect(cards(page).locator('.home-card-name')).toHaveText(['Studio Été', 'Boulangerie'])
     const recent = JSON.parse(await readFile(join(userData, 'recent.json'), 'utf8')) as string[]
     expect(recent).not.toContain(missing)
     expect(recent).toHaveLength(2)
     // Le menu Fichier → Ouvrir un fichier récent suit.
     const labels = await app.evaluate(({ Menu }) => {
-      const recentMenu = Menu.getApplicationMenu()!.items[0]!.submenu!.items.find((i) => i.label === 'Ouvrir un fichier récent')!
+      const recentMenu = Menu.getApplicationMenu()!.items[0]!.submenu!.items.find((i) => i.label === 'Open recent')!
       return recentMenu.submenu!.items.map((i) => i.label)
     })
     expect(labels).toHaveLength(2)
@@ -215,9 +215,9 @@ test('aucun récent : l’accueil le dit et propose les deux boutons', async () 
   const { app, page } = await launch([], {}, { home: true })
   try {
     const empty = page.getByTestId('home-empty')
-    await expect(empty).toContainText('Aucun fichier récent')
-    await expect(empty.getByRole('button', { name: 'Nouvelle maquette' })).toBeVisible()
-    await expect(empty.getByRole('button', { name: 'Ouvrir…' })).toBeVisible()
+    await expect(empty).toContainText('No recent files')
+    await expect(empty.getByRole('button', { name: 'New design' })).toBeVisible()
+    await expect(empty.getByRole('button', { name: 'Open…' })).toBeVisible()
     await expect(cards(page)).toHaveCount(0)
   } finally {
     await app.close()

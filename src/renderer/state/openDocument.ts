@@ -4,14 +4,14 @@ import { homeStore } from '../home/homeStore'
 import { docStore } from './store'
 import { uiStore } from './ui'
 
-export const fileName = (path: string | null) => (path ? (path.split(/[\\/]/).pop() ?? path) : 'Sans titre')
+export const fileName = (path: string | null) => (path ? (path.split(/[\\/]/).pop() ?? path) : 'Untitled')
 
 /** Charge un fichier lu sur disque : refus expliqué, ou ouverture avec les réparations signalées. */
 export async function openDocument(file: OpenedFile): Promise<boolean> {
   const store = docStore.getState()
   const parsed = parseDocument(file.text)
   if (!parsed.ok) {
-    store.showError(`Impossible d’ouvrir ${fileName(file.path)} : ${parsed.errors[0]!.message}`)
+    store.showError(`Could not open ${fileName(file.path)}: ${parsed.errors[0]!.message}`)
     return false
   }
   // D'abord le principal (dossier des images), ensuite l'affichage : sinon les images partent trop tôt.
@@ -26,7 +26,7 @@ export async function openDocument(file: OpenedFile): Promise<boolean> {
     // Le document réparé diffère du fichier : il reste à enregistrer.
     docStore.setState({ dirty: true })
     store.showError(
-      `${fileName(file.path)} ouvert avec ${n} réparation${n > 1 ? 's' : ''} : ${parsed.warnings[0]!.message}`,
+      `${fileName(file.path)} opened with ${n} repair${n > 1 ? 's' : ''}: ${parsed.warnings[0]!.message}`,
     )
   }
   return true

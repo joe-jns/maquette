@@ -47,7 +47,7 @@ test('infobulle d’outil : après 500 ms, avec le raccourci, au-dessus ; puis i
 
   // D'un outil à l'autre : aussitôt.
   await tool(page, 'frame').hover()
-  await expect(tooltip(page).locator('.tooltip-label')).toHaveText('Cadre', { timeout: 150 })
+  await expect(tooltip(page).locator('.tooltip-label')).toHaveText('Frame', { timeout: 150 })
   await expect(tooltip(page).locator('.tooltip-shortcut')).toHaveText('F')
 
   // Échap et le clic la cachent ; elle ne revient pas tant qu'on reste sur le bouton.
@@ -61,9 +61,9 @@ test('infobulle d’outil : après 500 ms, avec le raccourci, au-dessus ; puis i
   await expect(tooltip(page)).toHaveCount(0)
 
   // Dans un panneau : dessous par défaut.
-  await page.getByRole('button', { name: 'Ajouter une page' }).hover()
-  await expect(tooltip(page)).toHaveText('Ajouter une page')
-  const add = (await page.getByRole('button', { name: 'Ajouter une page' }).boundingBox())!
+  await page.getByRole('button', { name: 'Add page' }).hover()
+  await expect(tooltip(page)).toHaveText('Add page')
+  const add = (await page.getByRole('button', { name: 'Add page' }).boundingBox())!
   expect(Math.round((await tooltip(page).boundingBox())!.y - (add.y + add.height))).toBe(6)
   await app.close()
 })
@@ -72,28 +72,28 @@ test('menu contextuel du canevas : raccourcis, séparateurs, sous-menu Export, s
   const { app, page } = await launch([scene])
   await settled(page, 'rBleu1')
   await rightClickOn(page, 'rBleu1')
-  const m = menu(page, 'Canevas')
+  const m = menu(page, 'Canvas')
   await expect(m).toBeVisible()
   expect(await selection(page)).toEqual(['rBleu1'])
 
   const shortcut = (name: string) => item(page, name).locator('.menu-shortcut')
-  await expect(shortcut('Copier')).toHaveText('Ctrl+C')
-  await expect(shortcut('Dupliquer')).toHaveText('Ctrl+D')
-  await expect(shortcut('Mettre au premier plan')).toHaveText('Ctrl+Maj+]')
-  await expect(shortcut('Mettre dans un cadre')).toHaveText('Ctrl+Alt+G')
-  await expect(shortcut('Supprimer')).toHaveText('Suppr')
-  await expect(item(page, 'Dupliquer')).toHaveAttribute('aria-keyshortcuts', 'Control+D')
+  await expect(shortcut('Copy')).toHaveText('Ctrl+C')
+  await expect(shortcut('Duplicate')).toHaveText('Ctrl+D')
+  await expect(shortcut('Bring to front')).toHaveText('Ctrl+Shift+]')
+  await expect(shortcut('Frame selection')).toHaveText('Ctrl+Alt+G')
+  await expect(shortcut('Delete')).toHaveText('Delete')
+  await expect(item(page, 'Duplicate')).toHaveAttribute('aria-keyshortcuts', 'Control+D')
   await expect(m.locator(':scope > [role="separator"]')).toHaveCount(5)
   // Un rectangle n'est pas un cadre : pas de contrôle taste-skill.
-  await expect(item(page, 'Vérifier avec taste-skill')).toHaveCount(0)
+  await expect(item(page, 'Check with taste-skill')).toHaveCount(0)
 
   const style = await m.evaluate((el) => {
     const s = getComputedStyle(el)
     return { bg: s.backgroundColor, radius: s.borderRadius, border: s.borderTopColor, pad: s.paddingTop }
   })
   expect(style).toEqual({ bg: 'rgb(30, 30, 30)', radius: '13px', border: 'rgb(56, 56, 56)', pad: '8px' })
-  expect((await item(page, 'Copier').boundingBox())!.height).toBe(24)
-  const shortcutRight = await item(page, 'Copier').evaluate((row) => {
+  expect((await item(page, 'Copy').boundingBox())!.height).toBe(24)
+  const shortcutRight = await item(page, 'Copy').evaluate((row) => {
     const r = row.getBoundingClientRect()
     const k = row.querySelector('.menu-shortcut')!.getBoundingClientRect()
     return Math.round(r.right - k.right)
@@ -101,14 +101,14 @@ test('menu contextuel du canevas : raccourcis, séparateurs, sous-menu Export, s
   expect(shortcutRight).toBe(8) // aligné à droite, dans la marge de la rangée
 
   // Sous-menu au survol, à droite du menu.
-  await item(page, 'Exporter en PNG').hover()
-  const sub = menu(page, 'Exporter en PNG')
+  await item(page, 'Export as PNG').hover()
+  const sub = menu(page, 'Export as PNG')
   await expect(sub).toBeVisible()
-  await expect(item(page, 'Exporter en PNG')).toHaveAttribute('aria-expanded', 'true')
-  await expect(sub.getByRole('menuitem')).toHaveText(['1×', '2×Ctrl+Maj+E', '3×'])
+  await expect(item(page, 'Export as PNG')).toHaveAttribute('aria-expanded', 'true')
+  await expect(sub.getByRole('menuitem')).toHaveText(['1×', '2×Ctrl+Shift+E', '3×'])
   expect((await sub.boundingBox())!.x).toBeGreaterThan((await m.boundingBox())!.x + (await m.boundingBox())!.width - 4)
   // Survoler une autre rangée le referme.
-  await item(page, 'Dupliquer').hover()
+  await item(page, 'Duplicate').hover()
   await expect(sub).toHaveCount(0)
 
   // Clic ailleurs : fermé.
@@ -121,9 +121,9 @@ test('menu contextuel du canevas : raccourcis, séparateurs, sous-menu Export, s
     dialog.showSaveDialog = (async () => ({ canceled: false, filePath: target })) as typeof dialog.showSaveDialog
   }, target)
   await rightClickOn(page, 'rBleu1')
-  await item(page, 'Exporter en PNG').hover()
+  await item(page, 'Export as PNG').hover()
   await item(page, '2×').click()
-  await expect(menu(page, 'Canevas')).toHaveCount(0)
+  await expect(menu(page, 'Canvas')).toHaveCount(0)
   await expect.poll(async () => (await readFile(target).catch(() => null))?.length ?? 0).toBeGreaterThan(0)
   const size = await app.evaluate(({ nativeImage }, target) => nativeImage.createFromPath(target).getSize(), target)
   expect(size).toEqual({ width: 200, height: 200 })
@@ -134,23 +134,23 @@ test('menu contextuel au clavier : ↑ ↓ sautent les séparateurs, → ← le 
   const { app, page } = await launch([scene])
   await settled(page, 'rBleu1')
   await rightClickOn(page, 'rBleu1')
-  const m = menu(page, 'Canevas')
+  const m = menu(page, 'Canvas')
   await expect(m).toBeFocused()
 
   await page.keyboard.press('ArrowDown')
-  await expect(item(page, 'Copier')).toBeFocused()
-  await expect(item(page, 'Copier')).toHaveClass(/is-active/)
+  await expect(item(page, 'Copy')).toBeFocused()
+  await expect(item(page, 'Copy')).toHaveClass(/is-active/)
   await page.keyboard.press('ArrowUp')
-  await expect(item(page, 'Supprimer')).toBeFocused()
+  await expect(item(page, 'Delete')).toBeFocused()
   await page.keyboard.press('ArrowUp')
-  await expect(item(page, 'Exporter en PNG')).toBeFocused()
+  await expect(item(page, 'Export as PNG')).toBeFocused()
   await page.keyboard.press('ArrowRight')
   await expect(item(page, '1×')).toBeFocused()
   await page.keyboard.press('ArrowDown')
   await expect(item(page, '2×')).toBeFocused()
   await page.keyboard.press('ArrowLeft')
-  await expect(menu(page, 'Exporter en PNG')).toHaveCount(0)
-  await expect(item(page, 'Exporter en PNG')).toBeFocused()
+  await expect(menu(page, 'Export as PNG')).toHaveCount(0)
+  await expect(item(page, 'Export as PNG')).toBeFocused()
 
   // Échap ferme le menu sans toucher au canevas (qui remonterait au parent).
   await page.keyboard.press('Escape')
@@ -160,9 +160,9 @@ test('menu contextuel au clavier : ↑ ↓ sautent les séparateurs, → ← le 
   // Entrée lance la rangée active : Dupliquer.
   await rightClickOn(page, 'rBleu1')
   for (let i = 0; i < 4; i++) await page.keyboard.press('ArrowDown')
-  await expect(item(page, 'Dupliquer')).toBeFocused()
+  await expect(item(page, 'Duplicate')).toBeFocused()
   await page.keyboard.press('Enter')
-  await expect(menu(page, 'Canevas')).toHaveCount(0)
+  await expect(menu(page, 'Canvas')).toHaveCount(0)
   const [copy] = await selection(page)
   expect(copy).not.toBe('rBleu1')
   expect(await docNode(page, copy!)).not.toBeNull()
@@ -173,28 +173,28 @@ test('menu contextuel des calques et du vide', async () => {
   const { app, page } = await launch([scene])
   await settled(page, 'rBleu1')
   await page.locator('[data-layer-id="rVert1"]').click({ button: 'right' })
-  await expect(menu(page, 'Calque')).toBeVisible()
+  await expect(menu(page, 'Layer')).toBeVisible()
   expect(await selection(page)).toEqual(['rVert1'])
-  await expect(item(page, 'Renommer')).toBeVisible()
-  await expect(item(page, 'Coller')).toBeVisible()
-  await item(page, 'Masquer').click()
+  await expect(item(page, 'Rename')).toBeVisible()
+  await expect(item(page, 'Paste')).toBeVisible()
+  await item(page, 'Hide').click()
   expect(await docNode(page, 'rVert1')).toMatchObject({ visible: false })
   await page.locator('[data-layer-id="rVert1"]').click({ button: 'right' })
-  await item(page, 'Afficher').click()
+  await item(page, 'Show').click()
   expect(await docNode(page, 'rVert1')).toMatchObject({ visible: true })
 
   await page.locator('[data-layer-id="rVert1"]').click({ button: 'right' })
-  await item(page, 'Renommer').click()
-  await expect(page.getByRole('textbox', { name: 'Nouveau nom' })).toBeFocused()
+  await item(page, 'Rename').click()
+  await expect(page.getByRole('textbox', { name: 'New name' })).toBeFocused()
   await page.keyboard.press('Escape')
 
   // Dans le vide : la sélection se vide, menu du canevas.
   const canvas = (await page.getByTestId('canvas').boundingBox())!
   await page.mouse.click(canvas.x + canvas.width - 40, canvas.y + 40, { button: 'right' })
   expect(await selection(page)).toEqual([])
-  await expect(item(page, 'Coller ici')).toBeVisible()
-  await expect(item(page, 'Tout sélectionner').locator('.menu-shortcut')).toHaveText('Ctrl+A')
-  await item(page, 'Tout sélectionner').click()
+  await expect(item(page, 'Paste here')).toBeVisible()
+  await expect(item(page, 'Select all').locator('.menu-shortcut')).toHaveText('Ctrl+A')
+  await item(page, 'Select all').click()
   expect((await selection(page)).length).toBe(4)
   await app.close()
 })

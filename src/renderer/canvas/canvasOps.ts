@@ -179,7 +179,7 @@ export function wrapInFrameOps(
     }
     ops.push({
       op: 'create', parent, index,
-      node: { id: wrapper, type: 'frame', name: 'Cadre', fills: [], width: sizeFor('width'), height: sizeFor('height'), layout: { mode: 'auto', direction } },
+      node: { id: wrapper, type: 'frame', name: 'Frame', fills: [], width: sizeFor('width'), height: sizeFor('height'), layout: { mode: 'auto', direction } },
     })
     for (const loc of locs) {
       ops.push({ op: 'move', id: loc.node.id, parent: wrapper })
@@ -198,7 +198,7 @@ export function wrapInFrameOps(
   ops.push({
     op: 'create', parent, index,
     node: {
-      id: wrapper, type: 'frame', name: 'Cadre', fills: [],
+      id: wrapper, type: 'frame', name: 'Frame', fills: [],
       x: Math.round(minX), y: Math.round(minY),
       width: Math.round(maxX - minX), height: Math.round(maxY - minY),
       ...(absolute ? { position: 'absolute' as const } : {}),

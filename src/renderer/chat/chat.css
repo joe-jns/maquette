@@ -1,13 +1,5 @@
-/* ——— Chat avec Claude : quatrième colonne, à droite du panneau Design ——— */
-.layout.has-chat { grid-template-columns: var(--panel-left-w) minmax(0, 1fr) var(--panel-right-w) 360px; }
-
-.chat {
-  position: relative; overflow: hidden; border-left: 1px solid var(--panel-border);
-  animation: chat-in 140ms ease-out;
-}
-@keyframes chat-in {
-  from { opacity: 0; transform: translateX(8px); }
-}
+/* ——— Chat avec Claude : onglet Claude du panneau gauche ——— */
+.chat { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
 
 /* En-tête : même hauteur que la barre d'onglets du panneau voisin (40 px). */
 .chat-head {

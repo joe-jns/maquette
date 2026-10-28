@@ -27,10 +27,10 @@ export function CheckSection() {
 
   return (
     <Section
-      title="Contrôle taste-skill"
+      title="taste-skill check"
       actions={
-        <button type="button" className="text-button" disabled={checking} data-tooltip="Vérifier le cadre avec taste-skill" data-shortcut={shortcutKeys('tasteCheck')} onClick={() => void runCheck(frame.id)}>
-          {checking ? 'Vérification…' : run ? 'Revérifier' : 'Vérifier'}
+        <button type="button" className="text-button" disabled={checking} data-tooltip="Check this frame with taste-skill" data-shortcut={shortcutKeys('tasteCheck')} onClick={() => void runCheck(frame.id)}>
+          {checking ? 'Checking…' : run ? 'Check again' : 'Check'}
         </button>
       }
     >
@@ -40,15 +40,15 @@ export function CheckSection() {
           <div className="check-summary">
             <span>
               {run.result.findings.length === 0
-                ? 'Aucune faute.'
-                : `${run.result.findings.length} faute${run.result.findings.length > 1 ? 's' : ''}`}
+                ? 'No issues.'
+                : `${run.result.findings.length} issue${run.result.findings.length > 1 ? 's' : ''}`}
             </span>
-            {!fresh && <span className="check-badge">à revérifier</span>}
+            {!fresh && <span className="check-badge">outdated</span>}
           </div>
           {!run.result.isPage && (
             <p className="muted small">
-              Ce cadre n’est pas une page entière : certaines règles parlent du premier écran.{' '}
-              <button type="button" className="text-button" onClick={ignorePageRules}>Ignorer les règles de page</button>
+              This frame is not a full page: some rules are about the first screen.{' '}
+              <button type="button" className="text-button" onClick={ignorePageRules}>Ignore page rules</button>
             </p>
           )}
           <ol className="findings">
@@ -66,7 +66,7 @@ export function CheckSection() {
         </>
       )}
       <details>
-        <summary className="muted">Règles ignorées ({allow.length})</summary>
+        <summary className="muted">Ignored rules ({allow.length})</summary>
         <div className="rule-list">
           {RULES.map((id) => (
             <button key={id} type="button" aria-pressed={allow.includes(id)} onClick={() => toggleRule(id)}>{id}</button>

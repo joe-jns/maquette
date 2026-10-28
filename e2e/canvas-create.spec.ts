@@ -71,7 +71,7 @@ test('T + clic crée un texte et l’ouvre en édition', async () => {
   const p = await screenOf(page, 100, 420)
   await page.mouse.click(p.x, p.y)
   const created = (await pageChildren(page)).at(-1)!
-  expect(created).toMatchObject({ type: 'text', content: 'Texte' })
+  expect(created).toMatchObject({ type: 'text', content: 'Text' })
   expect((await uiState(page)).editing).toBe(created.id)
   await app.close()
 })
@@ -94,7 +94,9 @@ test('déposer une image : copiée dans assets/ et affichée à sa taille', asyn
   }, { b64: PNG_1x1, x: p.x, y: p.y })
   await expect.poll(async () => (await pageChildren(page)).at(-1)!.type).toBe('image')
   const img = (await pageChildren(page)).at(-1)!
-  expect(img).toMatchObject({ width: 1, height: 1, x: 120, y: 320 })
+  // Centrée sur le point de dépôt : à un pixel près selon l'arrondi de la caméra.
+  expect(img).toMatchObject({ width: 1, height: 1, y: 320 })
+  expect(Math.abs(Number(img.x) - 120)).toBeLessThanOrEqual(1)
   expect(String(img.src)).toMatch(/^assets\/[0-9a-f]{16}\.png$/)
   expect(await readdir(join(dir, 'assets'))).toHaveLength(1)
   await expect.poll(() => page.locator(`img[data-node-id="${img.id}"]`).evaluate((el: HTMLImageElement) => el.naturalWidth)).toBe(1)
@@ -108,7 +110,7 @@ test('la barre d’outils change l’outil au clic', async () => {
   await page.locator('[data-tool-button="text"]').click()
   expect((await uiState(page)).tool).toBe('text')
   // L'ellipse est dans le groupe des formes : chevron, puis choix dans la liste.
-  await page.getByRole('button', { name: 'Formes' }).click()
+  await page.getByRole('button', { name: 'Shapes' }).click()
   await page.getByRole('menuitemradio', { name: 'Ellipse' }).click()
   expect((await uiState(page)).tool).toBe('ellipse')
   await expect(page.locator('[data-tool-button="ellipse"]')).toHaveAttribute('aria-pressed', 'true')

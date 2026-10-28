@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react'
 import { Canvas } from './canvas/Canvas'
-import { ChatPanel } from './chat/ChatPanel'
-import { useChat } from './chat/chatStore'
 import { startChat } from './chat/connect'
 import { LeftPanel } from './panels/LeftPanel'
 import { RightPanel } from './panels/RightPanel'
@@ -24,7 +22,6 @@ export function App() {
   const notice = useDoc((s) => s.notice)
   const filePath = useDoc((s) => s.filePath)
   const dirty = useDoc((s) => s.dirty)
-  const chatOpen = useChat((s) => s.open)
   const homeOpen = useHome((s) => s.open)
   const [started, setStarted] = useState(false)
 
@@ -75,18 +72,17 @@ export function App() {
         {notice && (
           <div role="alert" className="notice is-error">
             <span>{notice}</span>
-            <button type="button" onClick={() => docStore.setState({ notice: null })}>Fermer</button>
+            <button type="button" onClick={() => docStore.setState({ notice: null })}>Close</button>
           </div>
         )}
       </div>
       <div
-        className={['layout', chatOpen && 'has-chat', (homeOpen || !started) && 'is-hidden'].filter(Boolean).join(' ')}
+        className={['layout', (homeOpen || !started) && 'is-hidden'].filter(Boolean).join(' ')}
         inert={homeOpen || !started}
       >
         <LeftPanel />
         <Canvas />
         <RightPanel />
-        {chatOpen && <ChatPanel />}
       </div>
       {homeOpen && <Home />}
       <Dialog />

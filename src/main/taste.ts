@@ -25,7 +25,7 @@ export interface DrawInput { sector: string; brief: string; tone?: string; secti
 /** Lance draw.mjs avec l'exécutable d'Electron en mode Node : aucun Node installé n'est requis. */
 function draw(args: string[]): Promise<string> {
   const script = join(tasteRoot(), 'scripts', 'draw.mjs')
-  if (!existsSync(script)) return Promise.reject(new Error('la copie de taste-skill est introuvable (réinstallez Maquette)'))
+  if (!existsSync(script)) return Promise.reject(new Error('the taste-skill copy is missing (reinstall Maquette)'))
   return new Promise((resolve, reject) => {
     execFile(
       process.execPath,
@@ -40,8 +40,8 @@ function draw(args: string[]): Promise<string> {
       (error, stdout, stderr) => {
         if (!error) return resolve(stdout)
         // Jamais la ligne de commande dans le message : seulement ce que draw.mjs a dit.
-        if (error.killed) return reject(new Error('le tirage a pris trop de temps'))
-        reject(new Error(stderr.trim().split('\n')[0] || 'tirage impossible'))
+        if (error.killed) return reject(new Error('the draw took too long'))
+        reject(new Error(stderr.trim().split('\n')[0] || 'draw failed'))
       },
     )
   })
@@ -59,7 +59,7 @@ export async function drawOptions(input: DrawInput): Promise<DirectionOption[]> 
   const out = await mkdtemp(join(tmpdir(), 'maquette-taste-'))
   try {
     const options = parseOptions(await draw([...baseArgs(input), '--options', '3', '--out', out]))
-    if (!options.length) throw new Error('aucune direction ne correspond à ce brief')
+    if (!options.length) throw new Error('no direction matches this brief')
     return options
   } finally {
     await rm(out, { recursive: true, force: true })

@@ -26,6 +26,6 @@ test('une image du dossier assets s’affiche ; une image absente est signalée'
   const img = page.locator('img[data-node-id="iPoint"]')
   await expect(img).toBeVisible()
   await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBe(1)
-  await expect(page.locator('[data-node-id="iAbsen"]')).toHaveText('Image introuvable')
+  await expect(page.locator('[data-node-id="iAbsen"]')).toHaveText('Image not found')
   await app.close()
 })

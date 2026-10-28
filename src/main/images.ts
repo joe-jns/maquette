@@ -12,9 +12,9 @@ const EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'avif'])
 export async function importImage(docDir: string, name: string, bytes: Uint8Array): Promise<{ src: string }> {
   const ext = extname(name).slice(1).toLowerCase()
   if (!EXTENSIONS.has(ext)) {
-    throw new Error(`Format d’image non pris en charge : ${ext ? `.${ext}` : 'aucune extension'}`)
+    throw new Error(`Unsupported image format: ${ext ? `.${ext}` : 'no extension'}`)
   }
-  if (bytes.byteLength > MAX_IMAGE_BYTES) throw new Error('Image trop lourde (50 Mo au plus)')
+  if (bytes.byteLength > MAX_IMAGE_BYTES) throw new Error('Image too large (50 MB max)')
 
   const hash = createHash('sha256').update(bytes).digest('hex').slice(0, 16)
   const file = `${hash}.${ext}`

@@ -10,7 +10,7 @@ import { launch } from './launch'
  * directement, sans le panneau.
  */
 
-const NOT_INSTALLED = 'Claude Code n’est pas installé sur cet ordinateur (commande « claude » introuvable). Installez-le puis réessayez.'
+const NOT_INSTALLED = 'Claude Code is not installed on this computer (the “claude” command was not found). Install it and try again.'
 
 async function start(s: Setup) {
   const { app, page } = await launch([s.file], s.env)
@@ -106,8 +106,8 @@ test.describe('chat : moteur', () => {
       await idle(page)
       const tool = (await events(page)).filter((e) => e.type === 'item' && e.item.kind === 'tool').map((e) => e.type === 'item' && e.item)
       expect(tool).toMatchObject([
-        { kind: 'tool', id: 'toolu_dessin', name: 'appliquer', summary: '1 opération', status: 'running' },
-        { kind: 'tool', id: 'toolu_dessin', name: 'appliquer', summary: '1 opération', status: 'done' },
+        { kind: 'tool', id: 'toolu_dessin', name: 'appliquer', summary: '1 operation', status: 'running' },
+        { kind: 'tool', id: 'toolu_dessin', name: 'appliquer', summary: '1 operation', status: 'done' },
       ])
       // Le détail : les opérations envoyées (JSON indenté) et la réponse de Maquette.
       const done = tool[1] as Extract<ChatItem, { kind: 'tool' }>
@@ -311,7 +311,7 @@ test.describe('chat : moteur', () => {
       await open(page, s.file)
       await send(page, 'meurs')
       await idle(page)
-      expect((await texts(page, 'error'))[0]).toContain('s’est arrêté pendant la réponse')
+      expect((await texts(page, 'error'))[0]).toContain('stopped during the reply')
       await clear(page)
       await send(page, 'bonjour')
       await idle(page)
@@ -334,7 +334,7 @@ test.describe('chat : moteur', () => {
       await open(page, s.file)
       await send(page, 'bonjour')
       await idle(page)
-      expect(await texts(page, 'error')).toEqual(['La conversation précédente n’a pas pu être reprise ; nouvelle conversation.'])
+      expect(await texts(page, 'error')).toEqual(['The previous conversation could not be resumed; starting a new one.'])
       expect(await texts(page, 'assistant')).toEqual(['Bonjour !'])
       const runs = launches(s)
       expect(runs.map((r) => r.argv.includes('--resume'))).toEqual([true, false])

@@ -76,9 +76,9 @@ test('Ctrl+0 revient à 100 %, Maj+1 recadre tout', async () => {
   await page.keyboard.down('Control')
   await page.mouse.wheel(0, -300)
   await page.keyboard.up('Control')
-  await expect(page.getByTestId('zoom')).not.toHaveText('100 %')
+  await expect(page.getByTestId('zoom')).not.toHaveText('100%')
   await page.keyboard.press('Control+0')
-  await expect(page.getByTestId('zoom')).toHaveText('100 %')
+  await expect(page.getByTestId('zoom')).toHaveText('100%')
   await page.mouse.wheel(0, 2000)
   await page.keyboard.press('Shift+!')
   await expect.poll(async () => {

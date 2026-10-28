@@ -11,20 +11,20 @@ import { commit, FIELD_GLYPH, Icon, IconButton, scrubWith, Section, useSelection
 const isFrame = (n: Node): n is FrameNode => n.type === 'frame'
 type SelfAlign = 'auto' | 'start' | 'center' | 'end' | 'stretch'
 const SELF_OPTIONS: { value: SelfAlign; label: string }[] = [
-  { value: 'auto', label: 'Comme le cadre' },
-  { value: 'start', label: 'Début' },
-  { value: 'center', label: 'Centre' },
-  { value: 'end', label: 'Fin' },
-  { value: 'stretch', label: 'Étirer' },
+  { value: 'auto', label: 'Auto' },
+  { value: 'start', label: 'Start' },
+  { value: 'center', label: 'Center' },
+  { value: 'end', label: 'End' },
+  { value: 'stretch', label: 'Stretch' },
 ]
 const ALIGN_VALUES = ['start', 'center', 'end'] as const
-const ROW_NAMES = ['en haut', '', 'en bas']
-const COL_NAMES = ['à gauche', '', 'à droite']
+const ROW_NAMES = ['top', '', 'bottom']
+const COL_NAMES = ['left', '', 'right']
 
 function cellLabel(r: number, c: number): string {
-  if (r === 1 && c === 1) return 'Aligner au centre'
+  if (r === 1 && c === 1) return 'Align center'
   const parts = [ROW_NAMES[r], COL_NAMES[c]].filter(Boolean)
-  return `Aligner ${parts.join(' ')}`
+  return `Align ${parts.join(' ')}`
 }
 
 /** Mise en page automatique d'un cadre, et réglages d'un enfant placé par elle. */
@@ -76,16 +76,16 @@ export function AutoLayoutSection() {
     <>
       {allFrames && (
         <Section
-          title="Mise en page automatique"
+          title="Auto layout"
           actions={
             allAuto ? (
-              <IconButton label="Retirer la mise en page automatique" onClick={() => commit(setOps(ids, { layout: { mode: 'free' } }), 'Placement libre')}>
+              <IconButton label="Remove auto layout" onClick={() => commit(setOps(ids, { layout: { mode: 'free' } }), 'Placement libre')}>
                 <Icon d="M4 8h8" />
               </IconButton>
             ) : (
               <IconButton
-                label="Ajouter la mise en page automatique"
-                tooltip="Ajouter la mise en page automatique" shortcut="Maj+A"
+                label="Add auto layout"
+                tooltip="Add auto layout" shortcut="Shift+A"
                 onClick={() =>
                   commit(
                     frames.length === 1 ? addAutoLayoutOps(doc, ids, domMeasure).ops : setOps(ids, { layout: { mode: 'auto' } }),
@@ -104,15 +104,15 @@ export function AutoLayoutSection() {
               <div className="auto-layout-top">
                 <div className="auto-layout-left">
                   <div className="segmented" role="group" aria-label="Direction">
-                    <button type="button" aria-label="Direction : colonne" data-tooltip="Colonne" aria-pressed={direction === 'column'} onClick={() => commit(setLayout({ direction: 'column' }), 'Direction')}>
+                    <button type="button" aria-label="Direction: vertical" data-tooltip="Vertical" aria-pressed={direction === 'column'} onClick={() => commit(setLayout({ direction: 'column' }), 'Direction')}>
                       <Icon d="M8 3v10M5 10l3 3 3-3" />
                     </button>
-                    <button type="button" aria-label="Direction : ligne" data-tooltip="Ligne" aria-pressed={direction === 'row'} onClick={() => commit(setLayout({ direction: 'row' }), 'Direction')}>
+                    <button type="button" aria-label="Direction: horizontal" data-tooltip="Horizontal" aria-pressed={direction === 'row'} onClick={() => commit(setLayout({ direction: 'row' }), 'Direction')}>
                       <Icon d="M3 8h10M10 5l3 3-3 3" />
                     </button>
                   </div>
                   <NumberField
-                    name="Espacement"
+                    name="Gap"
                     label={<Icon d="M3.5 3v10M12.5 3v10M6.5 8h3" />}
                     min={0}
                     value={gap === 'auto' ? null : gap}
@@ -123,8 +123,8 @@ export function AutoLayoutSection() {
                       <button
                         type="button"
                         className={`field-toggle${gap === 'auto' ? ' is-pressed' : ''}`}
-                        aria-label="Espacement automatique"
-                        title="Espacement automatique (répartir)"
+                        aria-label="Auto gap"
+                        title="Auto gap (space between)"
                         aria-pressed={gap === 'auto'}
                         onClick={() => commit(setLayout({ gap: gap === 'auto' ? 0 : 'auto' }), 'Espacement')}
                       >
@@ -133,7 +133,7 @@ export function AutoLayoutSection() {
                     }
                   />
                 </div>
-                <div className="align-grid" role="group" aria-label="Alignement">
+                <div className="align-grid" role="group" aria-label="Alignment">
                   {[0, 1, 2].map((r) =>
                     [0, 1, 2].map((c) => (
                       <button
@@ -152,7 +152,7 @@ export function AutoLayoutSection() {
               </div>
               <div className="field-grid">
                 <NumberField
-                  name="Marge horizontale"
+                  name="Horizontal padding"
                   label={<Icon d={FIELD_GLYPH.padH} />}
                   min={0}
                   value={mixed(padding.flatMap((p) => [p[1], p[3]]))}
@@ -160,7 +160,7 @@ export function AutoLayoutSection() {
                   scrub={scrubWith('Marges', (v) => padOps('h', Math.max(0, v)))}
                 />
                 <NumberField
-                  name="Marge verticale"
+                  name="Vertical padding"
                   label={<Icon d={FIELD_GLYPH.padV} />}
                   min={0}
                   value={mixed(padding.flatMap((p) => [p[0], p[2]]))}
@@ -169,27 +169,27 @@ export function AutoLayoutSection() {
                 />
               </div>
               <Checkbox checked={wrap === 'mixed' ? 'mixed' : wrap === true} onChange={(on) => commit(setLayout({ wrap: on }), 'Retour à la ligne')}>
-                Retour à la ligne
+                Wrap
               </Checkbox>
             </div>
           )}
         </Section>
       )}
       {allChildren && (
-        <Section title="Dans la mise en page">
+        <Section title="Auto layout child">
           <div className="child-layout">
             <div className="select-field">
-              <span aria-hidden>Alignement</span>
+              <span aria-hidden>Align</span>
               <Select
-                label="Alignement propre"
+                label="Align self"
                 value={mixed(children.map((l) => l.node.alignSelf ?? 'auto')) === 'mixed' ? null : (children[0]!.node.alignSelf ?? 'auto')}
                 options={SELF_OPTIONS}
                 onChange={(v) => commit(setOps(ids, { alignSelf: v === 'auto' ? null : v }), 'Alignement propre')}
               />
             </div>
             <IconButton
-              label="Position absolue"
-              tooltip="Ignorer la mise en page automatique (position absolue)"
+              label="Absolute position"
+              tooltip="Ignore auto layout (absolute position)"
               pressed={children.every((l) => l.node.position === 'absolute')}
               onClick={() => {
                 const absolute = children.every((l) => l.node.position === 'absolute')

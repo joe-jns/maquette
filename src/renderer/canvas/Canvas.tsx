@@ -115,8 +115,8 @@ export function Canvas() {
       </div>
       {page.children.length === 0 && (
         <div className="canvas-hint" data-testid="canvas-hint">
-          <strong>Page vide</strong>
-          Dessinez un cadre avec <kbd>F</kbd>, un rectangle avec <kbd>R</kbd>, un texte avec <kbd>T</kbd> — ou demandez à Claude Code de la dessiner.
+          <strong>Empty page</strong>
+          Draw a frame with <kbd>F</kbd>, a rectangle with <kbd>R</kbd>, text with <kbd>T</kbd> — or ask Claude Code to design it.
         </div>
       )}
       <Overlay />
@@ -126,7 +126,7 @@ export function Canvas() {
       <ZoomControl />
       {menu && (
         <Menu
-          label="Canevas"
+          label="Canvas"
           x={menu.clientX}
           y={menu.clientY}
           items={selectionMenu({ at: menu })}

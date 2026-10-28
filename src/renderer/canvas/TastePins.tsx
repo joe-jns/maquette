@@ -41,7 +41,7 @@ export function TastePins() {
           type="button"
           className={`taste-pin pin-number ${p.fail ? 'is-fail' : 'is-warn'}`}
           style={{ left: p.x, top: p.y, width: SIZE, height: SIZE }}
-          aria-label={`Faute ${p.n}`}
+          aria-label={`Issue ${p.n}`}
           onPointerDown={(e) => e.stopPropagation()}
           onClick={() => uiStore.getState().select([p.id])}
         >

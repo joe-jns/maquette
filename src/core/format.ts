@@ -17,25 +17,25 @@ export function parseDocument(text: string): ParseResult {
     // Certains éditeurs Windows (PowerShell 5.1, anciens Bloc-notes) commencent le fichier par un BOM.
     raw = JSON.parse(text.replace(/^﻿/, ''))
   } catch (e) {
-    return refuse('', `JSON invalide : ${(e as Error).message}`)
+    return refuse('', `invalid JSON: ${(e as Error).message}`)
   }
   if (typeof raw !== 'object' || raw === null || (raw as { format?: unknown }).format !== 'maquette') {
-    return refuse('format', 'ce fichier n’est pas un document Maquette')
+    return refuse('format', 'this file is not a Maquette document')
   }
   let data = raw as Record<string, unknown>
   const version = data.version
   if (typeof version !== 'number' || !Number.isInteger(version) || version < 1) {
-    return refuse('version', 'version du format absente ou invalide')
+    return refuse('version', 'format version missing or invalid')
   }
   if (version > CURRENT_VERSION) {
     return refuse(
       'version',
-      `fichier créé par une version plus récente de Maquette (format ${version} ; cette app lit jusqu’au format ${CURRENT_VERSION})`,
+      `file created by a newer version of Maquette (format ${version}; this app reads up to format ${CURRENT_VERSION})`,
     )
   }
   for (let n = version; n < CURRENT_VERSION; n++) {
     const migrate = migrations[n]
-    if (!migrate) return refuse('version', `aucune mise à niveau connue depuis le format ${n}`)
+    if (!migrate) return refuse('version', `no known upgrade from format ${n}`)
     data = migrate(data)
   }
   // Ouverture tolérante (spec §6.2) : réparer ce qui peut l'être, refuser seulement le reste.

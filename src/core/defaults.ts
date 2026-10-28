@@ -28,7 +28,7 @@ export function createNode(input: NodeInput, id: string): Node {
     case 'frame': {
       const { layout, ...rest } = input
       return {
-        ...common, name: 'Cadre', width: 400, height: 300,
+        ...common, name: 'Frame', width: 400, height: 300,
         fills: ['#FFFFFF'], radius: 0, shadows: [], clip: false,
         ...rest,
         id, type: 'frame', children: [],
@@ -38,8 +38,8 @@ export function createNode(input: NodeInput, id: string): Node {
     case 'text': {
       const fontSize = input.fontSize ?? 16
       return {
-        ...common, name: 'Texte', width: { mode: 'hug' }, height: { mode: 'hug' },
-        content: 'Texte', fontFamily: 'Inter', fontWeight: 400, fontStyle: 'normal',
+        ...common, name: 'Text', width: { mode: 'hug' }, height: { mode: 'hug' },
+        content: 'Text', fontFamily: 'Inter', fontWeight: 400, fontStyle: 'normal',
         fontSize, lineHeight: Math.round(fontSize * 1.2), letterSpacing: 0,
         textAlign: 'left', color: '#111111', textSizing: 'auto',
         ...input, id, type: 'text',

@@ -19,7 +19,7 @@ export interface Shortcut {
   id: CommandId
   keys: string
   label: string
-  group: 'Outils' | 'Édition' | 'Sélection' | 'Disposition' | 'Affichage'
+  group: 'Tools' | 'Edit' | 'Selection' | 'Arrange' | 'View'
 }
 
 export interface KeyLike {
@@ -33,51 +33,51 @@ export interface KeyLike {
 
 /** Table lisible (aide, menus). Le `Record` garantit une entrée par commande. */
 const TABLE: Record<CommandId, Omit<Shortcut, 'id'>> = {
-  'tool.move': { keys: 'V', label: 'Déplacer', group: 'Outils' },
-  'tool.frame': { keys: 'F', label: 'Cadre', group: 'Outils' },
-  'tool.rect': { keys: 'R', label: 'Rectangle', group: 'Outils' },
-  'tool.ellipse': { keys: 'O', label: 'Ellipse', group: 'Outils' },
-  'tool.text': { keys: 'T', label: 'Texte', group: 'Outils' },
-  insertIcon: { keys: 'Maj+I', label: 'Insérer une icône', group: 'Outils' },
+  'tool.move': { keys: 'V', label: 'Move', group: 'Tools' },
+  'tool.frame': { keys: 'F', label: 'Frame', group: 'Tools' },
+  'tool.rect': { keys: 'R', label: 'Rectangle', group: 'Tools' },
+  'tool.ellipse': { keys: 'O', label: 'Ellipse', group: 'Tools' },
+  'tool.text': { keys: 'T', label: 'Text', group: 'Tools' },
+  insertIcon: { keys: 'Shift+I', label: 'Insert icon', group: 'Tools' },
 
-  undo: { keys: 'Ctrl+Z', label: 'Annuler', group: 'Édition' },
-  redo: { keys: 'Ctrl+Maj+Z', label: 'Rétablir (aussi Ctrl+Y)', group: 'Édition' },
-  delete: { keys: 'Suppr', label: 'Supprimer (aussi Retour arrière)', group: 'Édition' },
-  duplicate: { keys: 'Ctrl+D', label: 'Dupliquer', group: 'Édition' },
-  copy: { keys: 'Ctrl+C', label: 'Copier', group: 'Édition' },
-  paste: { keys: 'Ctrl+V', label: 'Coller', group: 'Édition' },
-  cut: { keys: 'Ctrl+X', label: 'Couper', group: 'Édition' },
+  undo: { keys: 'Ctrl+Z', label: 'Undo', group: 'Edit' },
+  redo: { keys: 'Ctrl+Shift+Z', label: 'Redo (also Ctrl+Y)', group: 'Edit' },
+  delete: { keys: 'Delete', label: 'Delete (also Backspace)', group: 'Edit' },
+  duplicate: { keys: 'Ctrl+D', label: 'Duplicate', group: 'Edit' },
+  copy: { keys: 'Ctrl+C', label: 'Copy', group: 'Edit' },
+  paste: { keys: 'Ctrl+V', label: 'Paste', group: 'Edit' },
+  cut: { keys: 'Ctrl+X', label: 'Cut', group: 'Edit' },
 
-  selectAll: { keys: 'Ctrl+A', label: 'Tout sélectionner', group: 'Sélection' },
-  escape: { keys: 'Échap', label: 'Désélectionner ou remonter au parent', group: 'Sélection' },
-  enter: { keys: 'Entrée', label: 'Sélectionner les enfants', group: 'Sélection' },
-  parent: { keys: 'Maj+Entrée', label: 'Sélectionner le parent', group: 'Sélection' },
-  nextSibling: { keys: 'Tab', label: 'Élément suivant', group: 'Sélection' },
-  prevSibling: { keys: 'Maj+Tab', label: 'Élément précédent', group: 'Sélection' },
+  selectAll: { keys: 'Ctrl+A', label: 'Select all', group: 'Selection' },
+  escape: { keys: 'Esc', label: 'Deselect or select parent', group: 'Selection' },
+  enter: { keys: 'Enter', label: 'Select children', group: 'Selection' },
+  parent: { keys: 'Shift+Enter', label: 'Select parent', group: 'Selection' },
+  nextSibling: { keys: 'Tab', label: 'Select next sibling', group: 'Selection' },
+  prevSibling: { keys: 'Shift+Tab', label: 'Select previous sibling', group: 'Selection' },
 
-  wrapInFrame: { keys: 'Ctrl+Alt+G', label: 'Mettre dans un cadre', group: 'Disposition' },
-  addAutoLayout: { keys: 'Maj+A', label: 'Passer en mise en page automatique', group: 'Disposition' },
-  forward: { keys: 'Ctrl+]', label: 'Avancer d’un plan', group: 'Disposition' },
-  backward: { keys: 'Ctrl+[', label: 'Reculer d’un plan', group: 'Disposition' },
-  front: { keys: 'Ctrl+Maj+]', label: 'Mettre au premier plan', group: 'Disposition' },
-  back: { keys: 'Ctrl+Maj+[', label: 'Mettre à l’arrière-plan', group: 'Disposition' },
-  nudgeLeft: { keys: '←', label: 'Décaler à gauche de 1 px', group: 'Disposition' },
-  nudgeRight: { keys: '→', label: 'Décaler à droite de 1 px', group: 'Disposition' },
-  nudgeUp: { keys: '↑', label: 'Décaler vers le haut de 1 px', group: 'Disposition' },
-  nudgeDown: { keys: '↓', label: 'Décaler vers le bas de 1 px', group: 'Disposition' },
-  nudgeLeft10: { keys: 'Maj+←', label: 'Décaler à gauche de 10 px', group: 'Disposition' },
-  nudgeRight10: { keys: 'Maj+→', label: 'Décaler à droite de 10 px', group: 'Disposition' },
-  nudgeUp10: { keys: 'Maj+↑', label: 'Décaler vers le haut de 10 px', group: 'Disposition' },
-  nudgeDown10: { keys: 'Maj+↓', label: 'Décaler vers le bas de 10 px', group: 'Disposition' },
+  wrapInFrame: { keys: 'Ctrl+Alt+G', label: 'Frame selection', group: 'Arrange' },
+  addAutoLayout: { keys: 'Shift+A', label: 'Add auto layout', group: 'Arrange' },
+  forward: { keys: 'Ctrl+]', label: 'Bring forward', group: 'Arrange' },
+  backward: { keys: 'Ctrl+[', label: 'Send backward', group: 'Arrange' },
+  front: { keys: 'Ctrl+Shift+]', label: 'Bring to front', group: 'Arrange' },
+  back: { keys: 'Ctrl+Shift+[', label: 'Send to back', group: 'Arrange' },
+  nudgeLeft: { keys: '←', label: 'Nudge left 1 px', group: 'Arrange' },
+  nudgeRight: { keys: '→', label: 'Nudge right 1 px', group: 'Arrange' },
+  nudgeUp: { keys: '↑', label: 'Nudge up 1 px', group: 'Arrange' },
+  nudgeDown: { keys: '↓', label: 'Nudge down 1 px', group: 'Arrange' },
+  nudgeLeft10: { keys: 'Shift+←', label: 'Nudge left 10 px', group: 'Arrange' },
+  nudgeRight10: { keys: 'Shift+→', label: 'Nudge right 10 px', group: 'Arrange' },
+  nudgeUp10: { keys: 'Shift+↑', label: 'Nudge up 10 px', group: 'Arrange' },
+  nudgeDown10: { keys: 'Shift+↓', label: 'Nudge down 10 px', group: 'Arrange' },
 
-  zoomIn: { keys: 'Ctrl+=', label: 'Zoom avant (aussi Ctrl++)', group: 'Affichage' },
-  zoomOut: { keys: 'Ctrl+-', label: 'Zoom arrière', group: 'Affichage' },
-  zoom100: { keys: 'Ctrl+0', label: 'Zoom à 100 %', group: 'Affichage' },
-  zoomFit: { keys: 'Maj+1', label: 'Tout voir', group: 'Affichage' },
-  zoomSelection: { keys: 'Maj+2', label: 'Zoomer sur la sélection', group: 'Affichage' },
-  help: { keys: '?', label: 'Afficher les raccourcis', group: 'Affichage' },
-  tasteCheck: { keys: 'Ctrl+Alt+V', label: 'Vérifier le cadre avec taste-skill', group: 'Affichage' },
-  toggleChat: { keys: 'Ctrl+L', label: 'Ouvrir ou fermer le chat avec Claude', group: 'Affichage' },
+  zoomIn: { keys: 'Ctrl+=', label: 'Zoom in (also Ctrl++)', group: 'View' },
+  zoomOut: { keys: 'Ctrl+-', label: 'Zoom out', group: 'View' },
+  zoom100: { keys: 'Ctrl+0', label: 'Zoom to 100%', group: 'View' },
+  zoomFit: { keys: 'Shift+1', label: 'Zoom to fit', group: 'View' },
+  zoomSelection: { keys: 'Shift+2', label: 'Zoom to selection', group: 'View' },
+  help: { keys: '?', label: 'Show keyboard shortcuts', group: 'View' },
+  tasteCheck: { keys: 'Ctrl+Alt+V', label: 'Check frame with taste-skill', group: 'View' },
+  toggleChat: { keys: 'Ctrl+L', label: 'Open or close the Claude chat', group: 'View' },
 }
 
 export const SHORTCUTS: Shortcut[] = (Object.keys(TABLE) as CommandId[]).map((id) => ({ id, ...TABLE[id] }))

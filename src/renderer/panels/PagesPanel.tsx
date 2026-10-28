@@ -36,7 +36,7 @@ export function PagesPanel() {
     <section className="panel-section" data-testid="pages" aria-label="Pages">
       <header className="panel-heading">
         <h2>Pages</h2>
-        <button type="button" className="icon-button" aria-label="Ajouter une page" data-tooltip="Ajouter une page" onClick={add}>
+        <button type="button" className="icon-button" aria-label="Add page" data-tooltip="Add page" onClick={add}>
           <Icon name="plus" size={16} />
         </button>
       </header>
@@ -87,9 +87,9 @@ export function PagesPanel() {
           y={menu.y}
           onClose={() => setMenu(null)}
           items={[
-            { label: 'Renommer', onSelect: () => setRenaming(menu.id) },
+            { label: 'Rename', onSelect: () => setRenaming(menu.id) },
             SEPARATOR,
-            { label: 'Supprimer la page', danger: true, disabled: pages.length <= 1, onSelect: () => remove(menu.id) },
+            { label: 'Delete page', danger: true, disabled: pages.length <= 1, onSelect: () => remove(menu.id) },
           ]}
         />
       )}

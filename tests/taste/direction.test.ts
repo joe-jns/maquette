@@ -24,10 +24,10 @@ const ok = (r: ReturnType<typeof applyOps>) => {
 }
 
 describe('SECTORS et TONES', () => {
-  it('reprend les 22 secteurs de draw.mjs avec des libellés français', () => {
+  it('reprend les 22 secteurs de draw.mjs avec des libellés anglais', () => {
     expect(SECTORS).toHaveLength(22)
     expect(new Set(SECTORS.map((s) => s.id)).size).toBe(22)
-    expect(SECTORS.find((s) => s.id === 'dev-tool')?.label).toBe('Outil pour développeurs')
+    expect(SECTORS.find((s) => s.id === 'dev-tool')?.label).toBe('Developer tool')
     expect(SECTORS.find((s) => s.id === 'restaurant')?.label).toBe('Restaurant')
     for (const s of SECTORS) expect(s.label).not.toBe(s.id)
   })

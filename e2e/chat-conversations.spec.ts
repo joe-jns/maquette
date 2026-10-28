@@ -32,11 +32,11 @@ async function openChat(page: Page) {
 }
 
 async function say(page: Page, text: string, answer: string) {
-  const field = page.getByRole('textbox', { name: 'Message à Claude' })
+  const field = page.getByRole('textbox', { name: 'Message to Claude' })
   await field.fill(text)
   await field.press('Enter')
   await expect(page.getByTestId('chat-panel').locator('.chat-assistant').last()).toHaveText(answer, { timeout: 15_000 })
-  await expect(page.getByRole('button', { name: 'Envoyer' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Send' })).toBeVisible()
 }
 
 /** Ouvre le menu des conversations depuis le titre. */
@@ -70,15 +70,15 @@ test('deux conversations : la nouvelle garde l’ancienne, bascule avec le bon -
     await watchNativeDialogs(app)
     const panel = await openChat(page)
     const title = page.getByTestId('chat-title')
-    await expect(title).toHaveText('Nouvelle conversation')
+    await expect(title).toHaveText('New conversation')
 
     await say(page, 'Premier sujet', 'Reçu.')
     await expect(title).toHaveText('Premier sujet')
 
     // « Nouvelle conversation » : rien n'est effacé, la première reste dans la liste.
-    await panel.getByRole('button', { name: 'Nouvelle conversation' }).click()
+    await panel.getByRole('button', { name: 'New conversation' }).click()
     await expect(panel.locator('.chat-bubble')).toHaveCount(0)
-    await expect(title).toHaveText('Nouvelle conversation')
+    await expect(title).toHaveText('New conversation')
     await say(page, 'Deuxième sujet', 'Reçu.')
     await expect(title).toHaveText('Deuxième sujet')
     await expect.poll(() => saved(s).map((c) => c.title ?? (c.items[0] as { text: string }).text).sort()).toEqual(['Deuxième sujet', 'Premier sujet'])
@@ -93,7 +93,7 @@ test('deux conversations : la nouvelle garde l’ancienne, bascule avec le bon -
     let m = await menu(page)
     await expect(rowTitles(page)).toHaveText(['Deuxième sujet', 'Premier sujet'])
     await expect(m.getByRole('menuitemradio', { name: /Deuxième sujet/ })).toHaveAttribute('aria-checked', 'true')
-    await expect(m.locator('.conv-date').first()).toHaveText(/^aujourd’hui \d\d:\d\d$/)
+    await expect(m.locator('.conv-date').first()).toHaveText(/^Today \d\d:\d\d$/)
 
     // Bascule : l'historique de la première s'affiche, la suite reprend SA session.
     await m.getByRole('menuitemradio', { name: /Premier sujet/ }).click()
@@ -117,8 +117,8 @@ test('deux conversations : la nouvelle garde l’ancienne, bascule avec le bon -
     m = await menu(page)
     const row = m.locator('.conv-row', { hasText: 'Premier sujet' })
     await row.hover()
-    await row.getByRole('button', { name: 'Renommer « Premier sujet »' }).click()
-    const field = m.getByRole('textbox', { name: 'Nouveau titre de la conversation' })
+    await row.getByRole('button', { name: 'Rename “Premier sujet”' }).click()
+    const field = m.getByRole('textbox', { name: 'New conversation title' })
     await expect(field).toBeFocused()
     await expect(field).toHaveValue('Premier sujet')
     await field.fill('Tarifs')
@@ -127,25 +127,25 @@ test('deux conversations : la nouvelle garde l’ancienne, bascule avec le bon -
     await expect.poll(() => saved(s).find((c) => c.id === first!.id)?.title).toBe('Tarifs')
     // Échap annule.
     await m.locator('.conv-row', { hasText: 'Tarifs' }).hover()
-    await m.getByRole('button', { name: 'Renommer « Tarifs »' }).click()
-    await m.getByRole('textbox', { name: 'Nouveau titre de la conversation' }).fill('Autre chose')
-    await m.getByRole('textbox', { name: 'Nouveau titre de la conversation' }).press('Escape')
+    await m.getByRole('button', { name: 'Rename “Tarifs”' }).click()
+    await m.getByRole('textbox', { name: 'New conversation title' }).fill('Autre chose')
+    await m.getByRole('textbox', { name: 'New conversation title' }).press('Escape')
     await expect(rowTitles(page)).toHaveText(['Deuxième sujet', 'Tarifs'])
 
     // Supprimer la conversation ouverte : confirmation dans la fenêtre de l'app, Annuler ne fait rien.
     let del = m.locator('.conv-row', { hasText: 'Deuxième sujet' })
     await del.hover()
-    await del.getByRole('button', { name: 'Supprimer « Deuxième sujet »' }).click()
-    const ask = page.getByRole('dialog', { name: 'Supprimer la conversation « Deuxième sujet » ?' })
+    await del.getByRole('button', { name: 'Delete “Deuxième sujet”' }).click()
+    const ask = page.getByRole('dialog', { name: 'Delete the conversation “Deuxième sujet”?' })
     await expect(ask).toBeVisible()
-    await ask.getByRole('button', { name: 'Annuler' }).click()
+    await ask.getByRole('button', { name: 'Cancel' }).click()
     await expect(ask).toHaveCount(0)
     expect(saved(s)).toHaveLength(2)
     m = await menu(page)
     del = m.locator('.conv-row', { hasText: 'Deuxième sujet' })
     await del.hover()
-    await del.getByRole('button', { name: 'Supprimer « Deuxième sujet »' }).click()
-    await ask.getByRole('button', { name: 'Supprimer' }).click()
+    await del.getByRole('button', { name: 'Delete “Deuxième sujet”' }).click()
+    await ask.getByRole('button', { name: 'Delete' }).click()
     await expect(ask).toHaveCount(0)
     // La conversation restante s'ouvre.
     await expect(title).toHaveText('Tarifs')
@@ -154,17 +154,17 @@ test('deux conversations : la nouvelle garde l’ancienne, bascule avec le bon -
     expect(await nativeDialogs(app)).toEqual([])
 
     // Pendant une réponse : pas de nouvelle conversation ni de bascule, on le dit.
-    const field2 = page.getByRole('textbox', { name: 'Message à Claude' })
+    const field2 = page.getByRole('textbox', { name: 'Message to Claude' })
     await field2.fill('un long texte')
     await field2.press('Enter')
-    await expect(panel.getByRole('button', { name: 'Arrêter' })).toBeVisible()
-    await expect(panel.getByRole('button', { name: 'Nouvelle conversation' })).toBeDisabled()
+    await expect(panel.getByRole('button', { name: 'Stop' })).toBeVisible()
+    await expect(panel.getByRole('button', { name: 'New conversation' })).toBeDisabled()
     m = await menu(page)
-    await expect(m.locator('.conv-notice')).toContainText('arrête la réponse')
+    await expect(m.locator('.conv-notice')).toContainText('stop the reply')
     await page.keyboard.press('Escape')
     await expect(m).toHaveCount(0)
-    await panel.getByRole('button', { name: 'Arrêter' }).click()
-    await expect(panel.getByRole('button', { name: 'Envoyer' })).toBeVisible({ timeout: 10_000 })
+    await panel.getByRole('button', { name: 'Stop' }).click()
+    await expect(panel.getByRole('button', { name: 'Send' })).toBeVisible({ timeout: 10_000 })
   } finally {
     await app.close()
   }
@@ -186,19 +186,19 @@ test('autres fichiers : ancien historique migré, ouverture du fichier puis de s
   try {
     const panel = await openChat(page)
     await say(page, 'Sujet du fichier ouvert', 'Reçu.')
-    await panel.getByRole('button', { name: 'Nouvelle conversation' }).click()
+    await panel.getByRole('button', { name: 'New conversation' }).click()
     await say(page, 'Section tarifs à trois colonnes', 'Reçu.')
 
     const m = await menu(page)
     await expect(rowTitles(page)).toHaveText(['Section tarifs à trois colonnes', 'Sujet du fichier ouvert'])
-    await expect(m.locator('.conv-section')).toHaveText('Autres fichiers')
+    await expect(m.locator('.conv-section')).toHaveText('Other files')
     const others = m.locator('.conv-other')
     await expect(others).toHaveCount(2)
     await expect(others.nth(0)).toContainText('Sujet de l’autre fichier')
     await expect(others.nth(0).locator('.conv-file')).toHaveText('autre maquette')
     await expect(others.nth(1)).toContainText('Sujet perdu')
     await expect(others.nth(1)).toHaveAttribute('aria-disabled', 'true')
-    await expect(others.nth(1)).toHaveAttribute('data-tooltip', `Fichier introuvable : ${missing}`)
+    await expect(others.nth(1)).toHaveAttribute('data-tooltip', `File not found: ${missing}`)
     if (SHOT) {
       mkdirSync(join(SHOT, '..'), { recursive: true })
       await m.locator('.conv-row').nth(1).hover()

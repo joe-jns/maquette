@@ -5,7 +5,7 @@ import { QuickMenu } from '../ui/QuickMenu'
 import { fitTo, selectionExists, zoomAroundCenter, zoomStep } from './camera-actions'
 import { keepButtonKeys } from './Toolbar'
 
-export const formatZoom = (zoom: number) => `${Math.round(zoom * 100)} %`
+export const formatZoom = (zoom: number) => `${Math.round(zoom * 100)}%`
 
 /** Pilule de zoom en bas à droite (comme Pen) : − 79 % +, le pourcentage ouvre le menu du zoom. */
 export function ZoomControl() {
@@ -15,7 +15,7 @@ export function ZoomControl() {
   const button = useRef<HTMLButtonElement>(null)
   return (
     <div className="zoom-control" data-ui onKeyDown={keepButtonKeys}>
-      <button type="button" className="zoom-step" aria-label="Zoom arrière" data-tooltip="Zoom arrière" data-shortcut="Ctrl+-" data-tooltip-side="top" onClick={() => zoomStep(-1)}>
+      <button type="button" className="zoom-step" aria-label="Zoom out" data-tooltip="Zoom out" data-shortcut="Ctrl+-" data-tooltip-side="top" onClick={() => zoomStep(-1)}>
         <Icon name="minus" size={16} />
       </button>
       <button
@@ -23,14 +23,14 @@ export function ZoomControl() {
         type="button"
         className="zoom-value"
         data-testid="zoom"
-        aria-label={`Zoom : ${formatZoom(zoom)}`}
+        aria-label={`Zoom: ${formatZoom(zoom)}`}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
       >
         {formatZoom(zoom)}
       </button>
-      <button type="button" className="zoom-step" aria-label="Zoom avant" data-tooltip="Zoom avant" data-shortcut="Ctrl++" data-tooltip-side="top" onClick={() => zoomStep(1)}>
+      <button type="button" className="zoom-step" aria-label="Zoom in" data-tooltip="Zoom in" data-shortcut="Ctrl++" data-tooltip-side="top" onClick={() => zoomStep(1)}>
         <Icon name="plus" size={16} />
       </button>
       {open && (
@@ -41,23 +41,23 @@ export function ZoomControl() {
           align="end"
           onClose={() => setOpen(false)}
           entries={[
-            { id: 'zoom-in', label: 'Zoom avant', shortcut: 'Ctrl++', onSelect: () => zoomStep(1) },
-            { id: 'zoom-out', label: 'Zoom arrière', shortcut: 'Ctrl+-', onSelect: () => zoomStep(-1) },
+            { id: 'zoom-in', label: 'Zoom in', shortcut: 'Ctrl++', onSelect: () => zoomStep(1) },
+            { id: 'zoom-out', label: 'Zoom out', shortcut: 'Ctrl+-', onSelect: () => zoomStep(-1) },
             'separator',
-            { id: 'zoom-fit', label: 'Ajuster à l’écran', shortcut: 'Maj+1', onSelect: () => fitTo('all', 220) },
+            { id: 'zoom-fit', label: 'Zoom to fit', shortcut: 'Shift+1', onSelect: () => fitTo('all', 220) },
             {
               id: 'zoom-selection',
-              label: 'Zoom sur la sélection',
-              shortcut: 'Maj+2',
+              label: 'Zoom to selection',
+              shortcut: 'Shift+2',
               disabled: !hasSelection,
               onSelect: () => {
                 if (selectionExists()) fitTo(uiStore.getState().selection, 220)
               },
             },
             'separator',
-            { id: 'zoom-50', label: 'Zoom à 50 %', onSelect: () => zoomAroundCenter(0.5) },
-            { id: 'zoom-100', label: 'Zoom à 100 %', shortcut: 'Ctrl+0', onSelect: () => zoomAroundCenter(1) },
-            { id: 'zoom-200', label: 'Zoom à 200 %', onSelect: () => zoomAroundCenter(2) },
+            { id: 'zoom-50', label: 'Zoom to 50%', onSelect: () => zoomAroundCenter(0.5) },
+            { id: 'zoom-100', label: 'Zoom to 100%', shortcut: 'Ctrl+0', onSelect: () => zoomAroundCenter(1) },
+            { id: 'zoom-200', label: 'Zoom to 200%', onSelect: () => zoomAroundCenter(2) },
           ]}
         />
       )}

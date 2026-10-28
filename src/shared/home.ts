@@ -14,25 +14,28 @@ export interface RecentEntry {
   thumb: { hash: string; version: number } | null
 }
 
-const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre']
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
 const dayStart = (t: number) => {
   const d = new Date(t)
   return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
 }
 
-/** « modifié à l'instant », « il y a 12 min », « il y a 2 h », « hier », « le 3 octobre » (année si autre). */
+/** « Edited just now », « Edited 12 min ago », « Edited 2 hours ago », « Edited yesterday », « Edited October 3 » (année si autre). */
 export function relativeDate(t: number, now: number): string {
   const min = Math.floor((now - t) / 60_000)
-  if (min < 1) return 'modifié à l’instant'
-  if (min < 60) return `modifié il y a ${min} min`
+  if (min < 1) return 'Edited just now'
+  if (min < 60) return `Edited ${min} min ago`
   const today = dayStart(now)
-  if (t >= today) return `modifié il y a ${Math.floor(min / 60)} h`
+  if (t >= today) {
+    const h = Math.floor(min / 60)
+    return `Edited ${h} hour${h > 1 ? 's' : ''} ago`
+  }
   const yesterday = dayStart(today - 1)
-  if (t >= yesterday) return 'modifié hier'
+  if (t >= yesterday) return 'Edited yesterday'
   const d = new Date(t)
-  const year = d.getFullYear() === new Date(now).getFullYear() ? '' : ` ${d.getFullYear()}`
-  return `modifié le ${d.getDate() === 1 ? '1er' : d.getDate()} ${MONTHS[d.getMonth()]}${year}`
+  const year = d.getFullYear() === new Date(now).getFullYear() ? '' : `, ${d.getFullYear()}`
+  return `Edited ${MONTHS[d.getMonth()]} ${d.getDate()}${year}`
 }
 
 /** Sans accents ni majuscules, pour chercher « ete » dans « Été ». */

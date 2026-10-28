@@ -39,7 +39,7 @@ test('icônes et dégradés', async () => {
   await page.evaluate((id) => (window as unknown as { __maquetteUi: { getState(): { select(ids: string[]): void } } }).__maquetteUi.getState().select([id]), ids.$i1!)
   await page.waitForTimeout(300)
   await shot(page, 'icones-1-selection')
-  await page.getByTestId('right-panel').getByRole('button', { name: 'Icône', exact: true }).click()
+  await page.getByTestId('right-panel').getByRole('button', { name: 'Icon', exact: true }).click()
   await page.getByTestId('right-panel').getByRole('searchbox').fill('flèche')
   await page.waitForTimeout(200)
   await shot(page, 'icones-2-selecteur-panneau')
@@ -54,7 +54,7 @@ test('icônes et dégradés', async () => {
 
   await page.evaluate(() => (window as unknown as { __maquetteUi: { getState(): { select(ids: string[]): void } } }).__maquetteUi.getState().select(['rBleu1']))
   await page.waitForTimeout(300)
-  await page.getByTestId('right-panel').getByRole('button', { name: 'Passer en dégradé' }).hover()
+  await page.getByTestId('right-panel').getByRole('button', { name: 'Switch to gradient' }).hover()
   await page.waitForTimeout(600)
   await shot(page, 'degrade-0-couleur-unie')
   await page.evaluate((id) => (window as unknown as { __maquetteUi: { getState(): { select(ids: string[]): void } } }).__maquetteUi.getState().select([id]), ids.$c!)

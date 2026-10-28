@@ -98,8 +98,8 @@ describe('décodage des lignes de claude', () => {
 
 describe('résumés des outils', () => {
   it('outils de Maquette sans préfixe, nombre d’opérations', () => {
-    expect(toolSummary('mcp__maquette__appliquer', { operations: [{ op: 'create' }, { op: 'update' }] })).toBe('2 opérations')
-    expect(toolSummary('mcp__maquette__appliquer', { ops: [{ op: 'create' }] })).toBe('1 opération')
+    expect(toolSummary('mcp__maquette__appliquer', { operations: [{ op: 'create' }, { op: 'update' }] })).toBe('2 operations')
+    expect(toolSummary('mcp__maquette__appliquer', { ops: [{ op: 'create' }] })).toBe('1 operation')
     expect(toolSummary('mcp__maquette__lire_document', {})).toBe('')
   })
 
@@ -119,9 +119,9 @@ describe('détail des outils', () => {
     expect(toolInput('Bash', { command: 'npm run build', description: 'Build' })).toBe('npm run build')
     expect(toolInput('PowerShell', { command: 'Get-ChildItem' })).toBe('Get-ChildItem')
     expect(toolInput('Read', { file_path: 'C:\\a.ts' })).toBe('C:\\a.ts')
-    expect(toolInput('Read', { file_path: 'C:\\a.ts', offset: 10, limit: 5 })).toBe('C:\\a.ts\n(à partir de la ligne 10, 5 lignes)')
+    expect(toolInput('Read', { file_path: 'C:\\a.ts', offset: 10, limit: 5 })).toBe('C:\\a.ts\n(from line 10, 5 lines)')
     expect(toolInput('Write', { file_path: 'a.txt', content: 'salut' })).toBe('a.txt\n\nsalut')
-    expect(toolInput('Edit', { file_path: 'a.ts', old_string: 'x = 1', new_string: 'x = 2' })).toBe('a.ts\n\nAncien texte :\nx = 1\n\nNouveau texte :\nx = 2')
+    expect(toolInput('Edit', { file_path: 'a.ts', old_string: 'x = 1', new_string: 'x = 2' })).toBe('a.ts\n\nOld text:\nx = 1\n\nNew text:\nx = 2')
     expect(toolInput('WebFetch', { url: 'https://exemple.be', prompt: 'Résume' })).toBe('https://exemple.be\n\nRésume')
     expect(toolInput('WebSearch', { query: 'figma auto layout' })).toBe('figma auto layout')
     expect(toolInput('mcp__maquette__lire_document', {})).toBe('')
@@ -148,7 +148,7 @@ describe('détail des outils', () => {
     expect(clip('court')).toBe('court')
     const long = 'x'.repeat(MAX_TOOL_TEXT + 500)
     expect(clip(long)).toBe(`${'x'.repeat(MAX_TOOL_TEXT)}${TRUNCATED}`)
-    expect(TRUNCATED).toContain('(tronqué)')
+    expect(TRUNCATED).toContain('(truncated)')
     expect(toolOutput(long).text).toHaveLength(MAX_TOOL_TEXT + TRUNCATED.length)
     expect(toolInput('Bash', { command: long })).toHaveLength(MAX_TOOL_TEXT + TRUNCATED.length)
   })

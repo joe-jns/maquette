@@ -33,43 +33,43 @@ export function DirectionPanel() {
     <div className="design direction-panel">
       <Section title="Brief">
         <div className="select-field">
-          <span aria-hidden>Secteur</span>
-          <Select label="Secteur" value={input.sector} options={SECTORS.map((s) => ({ value: s.id, label: s.label }))} onChange={(sector) => setInput({ sector })} />
+          <span aria-hidden>Sector</span>
+          <Select label="Sector" value={input.sector} options={SECTORS.map((s) => ({ value: s.id, label: s.label }))} onChange={(sector) => setInput({ sector })} />
         </div>
         <div className="select-field">
-          <span aria-hidden>Ton</span>
+          <span aria-hidden>Tone</span>
           <Select
-            label="Ton"
+            label="Tone"
             value={input.tone ?? ''}
-            options={[{ value: '', label: 'Au hasard' }, ...TONES.map((t) => ({ value: t.id, label: t.label }))]}
+            options={[{ value: '', label: 'Random' }, ...TONES.map((t) => ({ value: t.id, label: t.label }))]}
             onChange={(tone) => setInput({ tone: tone || undefined })}
           />
         </div>
         <textarea
           className="brief-field"
-          aria-label="Brief en une phrase"
-          placeholder="En une phrase : qui, quoi, pour qui."
+          aria-label="One-sentence brief"
+          placeholder="In one sentence: who, what, for whom."
           rows={2}
           value={input.brief}
           onChange={(e) => setInput({ brief: e.target.value })}
         />
         <button type="button" className="primary-button" disabled={busy !== null} onClick={() => void drawOptions()}>
-          {busy === 'options' ? 'Tirage…' : options ? 'Tirer 3 autres directions' : 'Tirer 3 directions'}
+          {busy === 'options' ? 'Drawing…' : options ? 'Draw 3 more directions' : 'Draw 3 directions'}
         </button>
         {error && <p className="error-note" role="alert">{error}</p>}
       </Section>
 
       {options && !sheet && (
-        <Section title="Directions tirées">
+        <Section title="Directions">
           <ul className="direction-cards">
             {options.map((o) => (
               <li key={o.id} className="direction-card">
                 <h4>{o.name}</h4>
                 <p>{o.idea}</p>
                 <p className="muted composition" data-tooltip={o.composition}>{o.composition}</p>
-                {o.needs && <p className="needs">Demande beaucoup d’images.</p>}
-                <button type="button" className="secondary-button" disabled={busy !== null} aria-label={`Choisir ${o.name}`} onClick={() => void choose(o.id)}>
-                  {busy === 'direction' ? 'Tirage…' : 'Choisir'}
+                {o.needs && <p className="needs">Needs lots of images.</p>}
+                <button type="button" className="secondary-button" disabled={busy !== null} aria-label={`Choose ${o.name}`} onClick={() => void choose(o.id)}>
+                  {busy === 'direction' ? 'Drawing…' : 'Choose'}
                 </button>
               </li>
             ))}
@@ -82,7 +82,7 @@ export function DirectionPanel() {
           title={sheet.direction?.name ?? 'Direction'}
           actions={
             <button type="button" className="text-button" onClick={() => tasteStore.setState({ sheet: null })}>
-              Retour
+              Back
             </button>
           }
         >
@@ -106,12 +106,12 @@ export function DirectionPanel() {
           </div>
           {sheet.hero?.blueprint && (
             <details className="sheet-hero">
-              <summary>Idée de hero : {sheet.hero.name}</summary>
+              <summary>Hero idea: {sheet.hero.name}</summary>
               <p>{sheet.hero.blueprint}</p>
             </details>
           )}
-          <button type="button" className="primary-button" onClick={apply}>Appliquer au document</button>
-          <p className="muted small">Couleurs nommées et styles de texte ; Ctrl+Z retire tout d’un coup.</p>
+          <button type="button" className="primary-button" onClick={apply}>Apply to document</button>
+          <p className="muted small">Color variables and text styles; Ctrl+Z removes them all at once.</p>
         </Section>
       )}
     </div>

@@ -20,10 +20,10 @@ test('un document passé en argument est affiché avec sa mise en page automatiq
 
 test('un fichier qui n’est pas une maquette affiche une alerte au lieu de planter', async () => {
   const { app, page } = await launch([fixture('pas-une-maquette.maquette')])
-  await expect(page.getByRole('alert')).toContainText('n’est pas un document Maquette')
+  await expect(page.getByRole('alert')).toContainText('is not a Maquette document')
   // Rien d'ouvert : l'accueil, qui reste utilisable (nouvelle maquette → l'éditeur).
   await expect(page.getByTestId('home')).toBeVisible()
-  await page.getByTestId('home').getByRole('button', { name: 'Nouvelle maquette' }).first().click()
+  await page.getByTestId('home').getByRole('button', { name: 'New design' }).first().click()
   await expect(page.locator('.canvas')).toBeVisible()
   await app.close()
 })
@@ -31,7 +31,7 @@ test('un fichier qui n’est pas une maquette affiche une alerte au lieu de plan
 test('un fichier imparfait est ouvert, réparé et signalé', async () => {
   const { app, page } = await launch([fixture('a-reparer.maquette')])
   await expect(page.locator('[data-node-id="tSeul1"]')).toHaveText('Sans position')
-  await expect(page.getByRole('alert')).toContainText('a-reparer.maquette ouvert avec 1 réparation')
+  await expect(page.getByRole('alert')).toContainText('a-reparer.maquette opened with 1 repair')
   await expect(page).toHaveTitle('a-reparer.maquette • — Maquette')
   await app.close()
 })

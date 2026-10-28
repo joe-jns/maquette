@@ -45,8 +45,10 @@ describe('tidy', () => {
 describe('ariaKeys', () => {
   it('traduit le format affiché en noms de touches standard', () => {
     expect(ariaKeys('Ctrl+D')).toBe('Control+D')
-    expect(ariaKeys('Ctrl+Maj+]')).toBe('Control+Shift+]')
-    expect(ariaKeys('Suppr')).toBe('Delete')
+    expect(ariaKeys('Ctrl+Shift+]')).toBe('Control+Shift+]')
+    expect(ariaKeys('Delete')).toBe('Delete')
+    expect(ariaKeys('Esc')).toBe('Escape')
+    expect(ariaKeys('Shift+Enter')).toBe('Shift+Enter')
     expect(ariaKeys('Ctrl+Alt+G')).toBe('Control+Alt+G')
   })
 })

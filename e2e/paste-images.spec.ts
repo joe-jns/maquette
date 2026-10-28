@@ -81,7 +81,7 @@ test('coller une capture : image au pointeur, 800 px de large au plus, une seule
     await pasteAt(page)
     await expect.poll(async () => (await images(page)).length).toBe(1)
     const [img] = await images(page)
-    expect(img).toMatchObject({ name: 'Image collée', width: 800, height: 500 })
+    expect(img).toMatchObject({ name: 'Pasted image', width: 800, height: 500 })
     expect(img!.src).toMatch(/^assets\/[0-9a-f]{16}\.png$/)
     expect((await uiState(page)).selection).toEqual([img!.id])
     await expect.poll(() => page.locator(`img[data-node-id="${img!.id}"]`).evaluate((el: HTMLImageElement) => el.naturalWidth)).toBe(1600)
@@ -217,7 +217,7 @@ test('sans titre, l’app plante : la copie restaurée retrouve ses images, qui 
   const dir = mkdtempSync(join(tmpdir(), 'maquette-crash-doc-'))
   try {
     const banner = second.page.getByTestId('recovery')
-    await banner.getByRole('button', { name: 'Restaurer' }).click()
+    await banner.getByRole('button', { name: 'Restore' }).click()
     await expect(banner).toHaveCount(0)
     const [img] = await images(second.page)
     expect(img!.src).toBe(src)
@@ -252,7 +252,7 @@ test('capture de plusieurs éléments en un appel (relais MCP) : une image lége
     const content = cap.content as { type: string; text?: string; data?: string; mimeType?: string }[]
     expect(content.map((x) => x.type)).toEqual(['text', 'text', 'image', 'text', 'image'])
     expect(content[0]!.text).toBe('2 captures ; échec : absent (introuvable)')
-    expect(content[1]!.text).toBe(`${imgId} « Image collée » 800×500`)
+    expect(content[1]!.text).toBe(`${imgId} « Pasted image » 800×500`)
     expect(content[3]!.text).toBe(`${rectId} « Carré » 200×200`)
     // Image : 1024 px de large par défaut (le rendu est à l'échelle 1, l'image fait 800 px : on lit sa taille réelle).
     const sizeOf = (b64: string) => app.evaluate(({ nativeImage }, d) => nativeImage.createFromBuffer(Buffer.from(d, 'base64')).getSize(), b64)
@@ -288,9 +288,9 @@ test('chat : les images sélectionnées partent comme références (pastille « 
     await page.keyboard.press('Control+l')
     const panel = page.getByTestId('chat-panel')
     await expect(panel.getByTestId('chat-selection')).toContainText('2 images')
-    await panel.getByRole('textbox', { name: 'Message à Claude' }).fill('Fais une page d’accueil cohérente avec ces références')
+    await panel.getByRole('textbox', { name: 'Message to Claude' }).fill('Fais une page d’accueil cohérente avec ces références')
     await page.keyboard.press('Enter')
-    const expected = `2 images de référence sélectionnées : ${ids[0]} (Image collée, 1440×900), ${ids[1]} (Image collée, 1440×900) — regarde-les avec capture({ ids: [\\"${ids[0]}\\", \\"${ids[1]}\\"] }).`
+    const expected = `2 images de référence sélectionnées : ${ids[0]} (Pasted image, 1440×900), ${ids[1]} (Pasted image, 1440×900) — regarde-les avec capture({ ids: [\\"${ids[0]}\\", \\"${ids[1]}\\"] }).`
     await expect.poll(() => (existsSync(log) ? readFileSync(log, 'utf8') : ''), { timeout: 15_000 }).toContain(expected)
   } finally {
     await app.close()

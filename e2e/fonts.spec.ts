@@ -42,10 +42,10 @@ test('une police inconnue dans un fichier est signalée par le bandeau', async (
   const { app, page } = await launch([fixture('police-inconnue.maquette')], offline())
   await expect(page.locator('[data-node-id="tInco1"]')).toHaveText('Police qui n’existe pas')
   const alert = page.getByRole('alert')
-  await expect(alert).toContainText('Police introuvable : Police Inexistante Zz')
-  await expect(alert).toContainText('remplacée à l’affichage par la police par défaut')
+  await expect(alert).toContainText('Font not found: Police Inexistante Zz')
+  await expect(alert).toContainText('displayed with the default font instead')
   // Signalée une seule fois : une fois fermé, le bandeau ne revient pas.
-  await alert.getByRole('button', { name: 'Fermer' }).click()
+  await alert.getByRole('button', { name: 'Close' }).click()
   await expect(alert).toHaveCount(0)
   await page.waitForTimeout(300)
   await expect(page.getByRole('alert')).toHaveCount(0)

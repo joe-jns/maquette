@@ -26,7 +26,7 @@ export async function launch(
 /** Depuis l'accueil : « Nouvelle maquette », puis l'éditeur est là. */
 export async function startBlank(page: Page): Promise<void> {
   const home = page.getByTestId('home')
-  await home.getByRole('button', { name: 'Nouvelle maquette' }).first().click()
+  await home.getByRole('button', { name: 'New design' }).first().click()
   await expect(home).toHaveCount(0)
   await expect(page.getByTestId('canvas')).toBeVisible()
 }

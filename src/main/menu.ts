@@ -20,25 +20,25 @@ export function buildMenu(): void {
   Menu.setApplicationMenu(
     Menu.buildFromTemplate([
       {
-        label: 'Fichier',
+        label: 'File',
         submenu: [
-          { label: 'Accueil', accelerator: 'CmdOrCtrl+Shift+H', click: send('home') },
+          { label: 'Home', accelerator: 'CmdOrCtrl+Shift+H', click: send('home') },
           { type: 'separator' },
-          { label: 'Nouveau', accelerator: 'CmdOrCtrl+N', click: send('new') },
-          { label: 'Ouvrir…', accelerator: 'CmdOrCtrl+O', click: send('open') },
+          { label: 'New', accelerator: 'CmdOrCtrl+N', click: send('new') },
+          { label: 'Open…', accelerator: 'CmdOrCtrl+O', click: send('open') },
           {
-            label: 'Ouvrir un fichier récent',
+            label: 'Open recent',
             enabled: recentList.length > 0,
             submenu: recentList.length
               ? recentList.map((path) => ({ label: path.replace(/&/g, '&&'), click: () => void openInWindow(path) }))
-              : [{ label: 'Aucun', enabled: false }],
+              : [{ label: 'None', enabled: false }],
           },
           { type: 'separator' },
-          { label: 'Enregistrer', accelerator: 'CmdOrCtrl+S', click: send('save') },
-          { label: 'Enregistrer sous…', accelerator: 'CmdOrCtrl+Shift+S', click: send('save-as') },
+          { label: 'Save', accelerator: 'CmdOrCtrl+S', click: send('save') },
+          { label: 'Save as…', accelerator: 'CmdOrCtrl+Shift+S', click: send('save-as') },
           { type: 'separator' },
           {
-            label: 'Exporter la sélection en PNG',
+            label: 'Export selection as PNG',
             submenu: [
               { label: '1×', click: send('export-png-1') },
               { label: '2×', accelerator: 'CmdOrCtrl+Shift+E', click: send('export-png-2') },
@@ -46,26 +46,26 @@ export function buildMenu(): void {
             ],
           },
           { type: 'separator' },
-          { label: 'Connecter à Claude Code…', click: () => void connectClaudeCode(BrowserWindow.getFocusedWindow() ?? undefined) },
+          { label: 'Connect to Claude Code…', click: () => void connectClaudeCode(BrowserWindow.getFocusedWindow() ?? undefined) },
           { type: 'separator' },
-          { label: 'Quitter', role: 'quit' },
+          { label: 'Quit', role: 'quit' },
         ],
       },
       {
-        label: 'Édition',
+        label: 'Edit',
         submenu: [
           // Raccourcis affichés mais gérés par le canevas (sinon l'annulation se ferait deux fois).
-          { label: 'Annuler', accelerator: 'CmdOrCtrl+Z', registerAccelerator: false, click: send('undo') },
-          { label: 'Rétablir', accelerator: 'CmdOrCtrl+Y', registerAccelerator: false, click: send('redo') },
+          { label: 'Undo', accelerator: 'CmdOrCtrl+Z', registerAccelerator: false, click: send('undo') },
+          { label: 'Redo', accelerator: 'CmdOrCtrl+Y', registerAccelerator: false, click: send('redo') },
         ],
       },
       {
-        label: 'Affichage',
+        label: 'View',
         submenu: [
           // Ctrl+L est géré par la fenêtre (il marche aussi depuis la saisie du chat).
-          { label: 'Chat avec Claude', accelerator: 'CmdOrCtrl+L', registerAccelerator: false, click: send('toggle-chat') },
+          { label: 'Chat with Claude', accelerator: 'CmdOrCtrl+L', registerAccelerator: false, click: send('toggle-chat') },
           { type: 'separator' },
-          { role: 'toggleDevTools', label: 'Outils de développement' },
+          { role: 'toggleDevTools', label: 'Developer tools' },
         ],
       },
     ]),

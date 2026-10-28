@@ -112,7 +112,7 @@ export function ColorRow({ name, color, styles, apply, onRemove, onCreateStyle, 
             <input
               ref={swatch}
               type="color"
-              aria-label={`Sélecteur de couleur : ${lower(name)}`}
+              aria-label={`Color picker: ${lower(name)}`}
               value={value.slice(0, 7).toLowerCase()}
               onInput={(e) => {
                 live.current = true
@@ -123,7 +123,7 @@ export function ColorRow({ name, color, styles, apply, onRemove, onCreateStyle, 
           <HexField name={name} value={value} onCommit={(hex) => apply(hex, 'commit')} />
           <div className="alpha-field">
             <NumberField
-              name={`Opacité du ${lower(name)}`}
+              name={`${name} opacity`}
               label=""
               suffix="%"
               min={0}
@@ -136,7 +136,7 @@ export function ColorRow({ name, color, styles, apply, onRemove, onCreateStyle, 
       )}
       <span className="color-row-actions">
         {named && (
-          <button type="button" className="icon-button" aria-label="Détacher la couleur nommée" data-tooltip="Détacher la couleur nommée" onClick={() => apply(value, 'commit')}>
+          <button type="button" className="icon-button" aria-label="Detach variable" data-tooltip="Detach variable" onClick={() => apply(value, 'commit')}>
             <Icon d="M6 10 10 6M5 7.5 3.5 9a2.5 2.5 0 0 0 3.5 3.5L8.5 11M11 8.5 12.5 7A2.5 2.5 0 0 0 9 3.5L7.5 5" />
           </button>
         )}
@@ -144,8 +144,8 @@ export function ColorRow({ name, color, styles, apply, onRemove, onCreateStyle, 
           <button
             type="button"
             className="icon-button"
-            aria-label={`Créer une couleur nommée depuis le ${lower(name)}`}
-            title="Créer une couleur nommée"
+            aria-label={`Create color variable from ${lower(name)}`}
+            title="Create color variable"
             onClick={() => onCreateStyle(value)}
           >
             <Icon d="M8 3v10M3 8h10" />
@@ -155,8 +155,8 @@ export function ColorRow({ name, color, styles, apply, onRemove, onCreateStyle, 
           <button
             type="button"
             className="icon-button"
-            aria-label={`Couleur nommée pour le ${lower(name)}`}
-            title="Couleurs nommées"
+            aria-label={`Color variable for ${lower(name)}`}
+            title="Color variables"
             aria-expanded={picking}
             onClick={() => setPicking((p) => !p)}
           >
@@ -164,14 +164,14 @@ export function ColorRow({ name, color, styles, apply, onRemove, onCreateStyle, 
           </button>
         )}
         {onRemove && (
-          <button type="button" className="icon-button" aria-label={`Retirer : ${lower(name)}`} data-tooltip="Retirer" onClick={onRemove}>
+          <button type="button" className="icon-button" aria-label={`Remove ${lower(name)}`} data-tooltip="Remove" onClick={onRemove}>
             <Icon d="M4 8h8" />
           </button>
         )}
       </span>
       {picking && (
-        <div className="style-picker" role="listbox" aria-label="Couleurs nommées">
-          {styles.colors.length === 0 && <p className="empty-note">Aucune couleur nommée dans ce document.</p>}
+        <div className="style-picker" role="listbox" aria-label="Color variables">
+          {styles.colors.length === 0 && <p className="empty-note">No color variables in this document.</p>}
           {styles.colors.map((s) => (
             <button
               key={s.id}

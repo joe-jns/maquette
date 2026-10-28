@@ -23,19 +23,19 @@ export function IconSection() {
   const width = mixed(icons.map((n) => n.strokeWidth))
 
   return (
-    <Section title="Icône">
+    <Section title="Icon">
       <div className="font-row">
         <button
           type="button"
           className="font-button icon-trigger"
           data-icon-trigger
-          aria-label="Icône"
+          aria-label="Icon"
           aria-expanded={picking}
           onClick={() => setPicking((p) => !p)}
         >
           <span className="icon-current">
             {typeof name === 'string' && <IconSvg name={name} size={16} strokeWidth={1.75} />}
-            <span>{name === 'mixed' ? 'Mixte' : name}</span>
+            <span>{name === 'mixed' ? 'Mixed' : name}</span>
           </span>
           <Icon d="M5 6.5 8 9.5l3-3" />
         </button>
@@ -51,11 +51,11 @@ export function IconSection() {
         )}
       </div>
       {color !== 'mixed' && color !== null && (
-        <ColorRow name="Couleur de l’icône" color={color} styles={styles} apply={(c, phase) => applyPhase(set({ color: c }), phase, 'Couleur de l’icône')} />
+        <ColorRow name="Icon color" color={color} styles={styles} apply={(c, phase) => applyPhase(set({ color: c }), phase, 'Couleur de l’icône')} />
       )}
       <div className="field-grid">
         <NumberField
-          name="Épaisseur du trait de l’icône"
+          name="Icon stroke width"
           label={<Icon d={FIELD_GLYPH.stroke} />}
           min={0.25}
           max={6}
