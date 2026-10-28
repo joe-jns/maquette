@@ -1,3 +1,4 @@
+import { AgentCursors } from '../agents/AgentCursors'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { findNode } from '../../core/tree'
 import { docStore, useDoc } from '../state/store'
@@ -121,6 +122,7 @@ export function Canvas() {
       )}
       <Overlay />
       <TastePins />
+      <AgentCursors />
       <Toolbar />
       <HelpOverlay />
       <ZoomControl />

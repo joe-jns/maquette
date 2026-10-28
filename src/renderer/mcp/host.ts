@@ -3,27 +3,22 @@ import type { DesignHost } from '../../mcp/design'
 import type { FullSheet } from '../../mcp/design/direction'
 import type { TasteDraw } from '../../shared/ipc'
 import { runTool, type ToolHost, type ToolResult } from '../../mcp/tools'
-import { nodeElement } from '../canvas/rects'
+import { agentStore, CLAUDE } from '../agents/agentStore'
 import { ensureFont } from '../fonts/fontLoader'
 import { docStore } from '../state/store'
 import { uiStore } from '../state/ui'
 import { tasteStore } from '../taste/tasteStore'
 import { imageHost } from './imageHost'
 
-const FLASH_MS = 1200
 /** Au-delà, une police encore en téléchargement est signalée « non chargée » (l'appel MCP ne patiente pas plus). */
 const FONT_WAIT_MS = 8000
 
-/** Les éléments touchés par Claude clignotent d'un contour orange : on voit où il a travaillé. */
-function flash(ids: string[]): void {
-  requestAnimationFrame(() => {
-    for (const id of ids) {
-      const el = nodeElement(id)
-      if (!el) continue
-      el.setAttribute('data-claude-flash', '')
-      setTimeout(() => el.removeAttribute('data-claude-flash'), FLASH_MS)
-    }
-  })
+/** Éléments visés par un appel d'outil en lecture (lire_elements, capture, verifier_gout) : le curseur de Claude y va. */
+function readTargets(tool: string, args: unknown): string[] {
+  const a = (args ?? {}) as { id?: unknown; ids?: unknown }
+  if (tool !== 'lire_elements' && tool !== 'capture' && tool !== 'verifier_gout') return []
+  const ids = Array.isArray(a.ids) ? a.ids : typeof a.id === 'string' ? [a.id] : []
+  return ids.filter((x): x is string => typeof x === 'string')
 }
 
 /** Guides, styles et tirages taste-skill pour les outils guide, style et direction. */
@@ -51,7 +46,13 @@ const host: ToolHost = {
     const result = docStore.getState().dispatch(ops, label)
     if (result.ok) {
       const touched = ops.flatMap((op) => ('id' in op && typeof op.id === 'string' ? [result.ids[op.id] ?? op.id] : []))
-      flash([...new Set([...Object.values(result.ids), ...touched])])
+      // Éléments créés sans identifiant temporaire : on les retrouve dans les patchs d'ajout.
+      const added = result.patches.flatMap((p) => {
+        const v = p.op === 'add' ? (p.value as { id?: unknown } | undefined) : undefined
+        return typeof v?.id === 'string' ? [v.id] : []
+      })
+      // Le curseur de Claude glisse vers ce qu'il vient de créer ou de modifier.
+      agentStore.getState().activity(CLAUDE.id, [...new Set([...Object.values(result.ids), ...touched, ...added])])
     }
     return result
   },
@@ -68,7 +69,8 @@ const host: ToolHost = {
 /** Exécute dans la fenêtre les outils appelés par Claude Code. */
 export function serveMcp(): () => void {
   window.maquette.mcpReady(false)
-  return window.maquette.onMcpCall((tool, args): Promise<ToolResult> =>
-    runTool(host, tool, args).catch((e: unknown) => ({ text: `Erreur : ${(e as Error).message}`, isError: true })),
-  )
+  return window.maquette.onMcpCall((tool, args): Promise<ToolResult> => {
+    agentStore.getState().activity(CLAUDE.id, readTargets(tool, args))
+    return runTool(host, tool, args).catch((e: unknown) => ({ text: `Erreur : ${(e as Error).message}`, isError: true }))
+  })
 }

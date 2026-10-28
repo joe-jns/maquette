@@ -45,8 +45,13 @@ test.describe('connexion Claude Code (MCP)', () => {
       const id = JSON.parse(textOf(r)).ids.$c as string
       const el = page.locator(`.canvas [data-node-id="${id}"]`)
       await expect(el).toBeVisible()
-      await expect(el).toHaveAttribute('data-claude-flash', '')
-      await expect(el).not.toHaveAttribute('data-claude-flash', { timeout: 3000 })
+      // Le curseur de Claude glisse vers le carré créé : sa pointe tombe dans le carré.
+      const cursor = page.getByTestId('agent-cursor-claude')
+      await expect(cursor).toBeVisible()
+      await expect.poll(async () => {
+        const [b, c] = [(await el.boundingBox())!, (await cursor.boundingBox())!]
+        return c.x >= b.x && c.x <= b.x + b.width && c.y >= b.y && c.y <= b.y + b.height
+      }).toBe(true)
 
       const cap = await c.callTool({ name: 'capture', arguments: { id, largeur: 200 } })
       const image = (cap.content as { type: string; mimeType?: string; data?: string }[]).find((x) => x.type === 'image')

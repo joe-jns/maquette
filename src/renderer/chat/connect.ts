@@ -6,6 +6,7 @@ import { confirmDiscard } from '../state/commands'
 import { fileName, openDocument } from '../state/openDocument'
 import { docStore } from '../state/store'
 import { uiStore } from '../state/ui'
+import { agentStore, CLAUDE } from '../agents/agentStore'
 import { chatStore } from './chatStore'
 
 /** API du chat, absente dans certains tests : tout le panneau devient alors inerte. */
@@ -53,11 +54,16 @@ export function startChat(): () => void {
     // Début et fin de tour : le titre (premier message) et l'ordre des conversations changent.
     if (event.type === 'busy') refreshConversations()
   })
+  // Pendant une réponse, le curseur de Claude reste affiché (et « pense » entre deux outils).
+  const offBusy = chatStore.subscribe((s, prev) => {
+    if (s.busy !== prev.busy) agentStore.getState().setBusy(CLAUDE.id, s.busy)
+  })
   return () => {
     seq++
     offDoc()
     offSel()
     offEvents()
+    offBusy()
   }
 }
 
