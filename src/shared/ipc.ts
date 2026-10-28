@@ -76,6 +76,11 @@ export interface MaquetteApi {
   documentLoaded(path: string | null): Promise<boolean>
   /** `silent` : jamais de boîte « Enregistrer sous » (enregistrement automatique) ; null si le chemin n'est pas le document courant. */
   saveFile(path: string | null, text: string, opts?: { silent?: boolean }): Promise<string | null>
+  /** Outil fichier de Claude : lire un .maquette par son chemin absolu, enregistrer sous un chemin donné. */
+  mcpFile: {
+    read(path: string): Promise<OpenedFile | { error: string }>
+    saveAs(path: string, text: string, replace: boolean, fresh?: boolean): Promise<{ path: string } | { error: string }>
+  }
   onMenu(cb: (cmd: MenuCommand) => void): () => void
   /** Copie une image dans assets/ à côté du document (sans titre : dossier d'attente, recopié à l'enregistrement). */
   importImage(name: string, bytes: Uint8Array): Promise<ImageImport>
