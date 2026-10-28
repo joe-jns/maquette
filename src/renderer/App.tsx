@@ -72,7 +72,7 @@ export function App() {
         {notice && (
           <div role="alert" className="notice is-error">
             <span>{notice}</span>
-            <button type="button" onClick={() => docStore.setState({ notice: null })}>Fermer</button>
+            <button type="button" onClick={() => docStore.setState({ notice: null })}>Close</button>
           </div>
         )}
       </div>

@@ -22,10 +22,10 @@ export function FileChangedBanner() {
   return (
     <div role="alert" className="notice" data-testid="file-changed">
       <span>
-        <strong>{fileName(path)}</strong> a été modifié en dehors de Maquette.
+        <strong>{fileName(path)}</strong> was changed outside Maquette.
       </span>
-      <button type="button" className="is-primary" onClick={() => void reload()}>Recharger</button>
-      <button type="button" onClick={() => setPath(null)}>Garder ma version</button>
+      <button type="button" className="is-primary" onClick={() => void reload()}>Reload</button>
+      <button type="button" onClick={() => setPath(null)}>Keep my version</button>
     </div>
   )
 }

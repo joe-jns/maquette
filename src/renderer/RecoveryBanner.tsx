@@ -7,10 +7,10 @@ import { docStore } from './state/store'
 
 const ago = (t: number) => {
   const min = Math.round((Date.now() - t) / 60000)
-  if (min < 1) return 'il y a moins d’une minute'
-  if (min < 60) return `il y a ${min} min`
+  if (min < 1) return 'less than a minute ago'
+  if (min < 60) return `${min} min ago`
   const h = Math.round(min / 60)
-  return h < 24 ? `il y a ${h} h` : `le ${new Date(t).toLocaleDateString('fr-BE')}`
+  return h < 24 ? `${h} h ago` : `on ${new Date(t).toLocaleDateString('en-GB')}`
 }
 
 /** Au démarrage : copies de secours de travail non enregistré, une à la fois. */
@@ -41,10 +41,10 @@ export function RecoveryBanner({ ready }: { ready: boolean }) {
   return (
     <div role="alert" className="notice recovery" data-testid="recovery">
       <span>
-        Une copie de secours de <strong>{offer.name}</strong> ({ago(offer.savedAt)}) contient des changements non enregistrés.
+        A backup of <strong>{offer.name}</strong> ({ago(offer.savedAt)}) has unsaved changes.
       </span>
-      <button type="button" className="is-primary" onClick={() => void restore()}>Restaurer</button>
-      <button type="button" onClick={() => void window.maquette.backup.discard(offer.id).then(next)}>Ignorer</button>
+      <button type="button" className="is-primary" onClick={() => void restore()}>Restore</button>
+      <button type="button" onClick={() => void window.maquette.backup.discard(offer.id).then(next)}>Dismiss</button>
     </div>
   )
 }

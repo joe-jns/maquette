@@ -165,7 +165,7 @@ export function useFontCatalog(): FontInfo[] | null {
 
 /** Message du bandeau pour une police qui n'a pas pu être chargée. */
 export const missingFontMessage = (family: string) =>
-  `Police introuvable : ${family} — remplacée à l’affichage par la police par défaut`
+  `Font not found: ${family} — displayed with the default font instead`
 
 /**
  * Suit le document : charge chaque nouvelle famille et signale une fois chaque famille introuvable.

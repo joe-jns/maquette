@@ -87,7 +87,7 @@ export const tasteStore = createStore<TasteState>()((set, get) => ({
     }
     if (seq !== checkSeq) return
     if (result) set({ checking: false, check: { frameId, node, result } })
-    else set({ checking: false, checkError: 'Contrôle impossible : cadre masqué, ou rendu trop long (polices encore en téléchargement ?). Réessayez.' })
+    else set({ checking: false, checkError: 'Check failed: the frame is hidden, or rendering took too long (fonts still downloading?). Try again.' })
   },
   toggleRule(id) {
     const allow = get().allow

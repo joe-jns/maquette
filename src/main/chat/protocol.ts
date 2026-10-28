@@ -189,7 +189,7 @@ export function createDecoder(): (line: string) => ClaudeAction[] {
             out.push({ type: 'item', item: { kind: 'assistant', id: index === undefined ? `${id}:a${k}` : `${id}:${index}`, text: str(block.text) ?? '' } })
           } else if (block.type === 'tool_use') {
             const toolId = str(block.id)
-            const name = str(block.name) ?? 'outil'
+            const name = str(block.name) ?? 'tool'
             if (!toolId) continue
             const known = { name: toolName(name), summary: toolSummary(name, block.input), input: toolInput(name, block.input) }
             tools.set(toolId, known)
@@ -218,7 +218,7 @@ export function createDecoder(): (line: string) => ClaudeAction[] {
         const request = isObj(msg.request) ? msg.request : {}
         const requestId = str(msg.request_id)
         if (request.subtype !== 'can_use_tool' || !requestId) return []
-        const tool = str(request.tool_name) ?? 'outil'
+        const tool = str(request.tool_name) ?? 'tool'
         return [{ type: 'permission', requestId, tool, input: request.input ?? {}, summary: toolSummary(tool, request.input) }]
       }
       case 'result': {

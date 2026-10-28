@@ -53,7 +53,7 @@ const isObj = (v: unknown): v is Obj => typeof v === 'object' && v !== null && !
 const isSize = (v: unknown): v is Size => typeof v === 'number' || isObj(v)
 const hug = (v: unknown) => isSize(v) && isHug(v)
 const fill = (v: unknown) => isSize(v) && isFill(v)
-const show = (v: unknown) => (typeof v === 'string' ? `« ${v} »` : JSON.stringify(v))
+const show = (v: unknown) => (typeof v === 'string' ? `“${v}”` : JSON.stringify(v))
 
 /** Tous les identifiants écrits dans le fichier, pour que les nouveaux n'en reprennent aucun. */
 function collectIds(v: unknown, into: Set<string>): Set<string> {
@@ -81,22 +81,22 @@ export function repairDocument(raw: Record<string, unknown>): { doc: unknown; wa
     taken.add(id)
     seen.add(id)
     const why =
-      v === undefined ? 'absent' : typeof v === 'string' && ID.test(v) ? `en double (${v})` : `invalide (${show(v)})`
-    warn([...segs, 'id'], `identifiant ${why} : remplacé par ${id}`)
+      v === undefined ? 'missing' : typeof v === 'string' && ID.test(v) ? `duplicated (${v})` : `invalid (${show(v)})`
+    warn([...segs, 'id'], `id ${why}: replaced with ${id}`)
     return id
   }
 
   /** Retire les propriétés hors de `allowed` et renvoie une copie. */
-  const dropUnknown = (o: Obj, allowed: ReadonlySet<string>, segs: Segs, what = 'propriété inconnue'): Obj => {
+  const dropUnknown = (o: Obj, allowed: ReadonlySet<string>, segs: Segs, what = 'unknown property'): Obj => {
     const out: Obj = {}
     for (const [k, v] of Object.entries(o)) {
       if (allowed.has(k)) out[k] = v
-      else warn([...segs, k], `${what} ${show(k)} retirée`)
+      else warn([...segs, k], `${what} ${show(k)} removed`)
     }
     return out
   }
 
-  for (const k of Object.keys(src)) if (!ROOT_KEYS.has(k)) warn([k], `propriété inconnue ${show(k)} retirée`)
+  for (const k of Object.keys(src)) if (!ROOT_KEYS.has(k)) warn([k], `unknown property ${show(k)} removed`)
 
   // 1. Styles nommés
   const styles = repairStyles()
@@ -107,7 +107,7 @@ export function repairDocument(raw: Record<string, unknown>): { doc: unknown; wa
     let s = src.styles
     if (s === undefined) s = {}
     if (!isObj(s)) {
-      warn(['styles'], `styles illisibles (${show(s)}) : remplacés par une liste vide`)
+      warn(['styles'], `unreadable styles (${show(s)}): replaced with an empty list`)
       s = {}
     }
     const st = dropUnknown(s as Obj, new Set(['colors', 'text']), ['styles'])
@@ -115,14 +115,14 @@ export function repairDocument(raw: Record<string, unknown>): { doc: unknown; wa
       const v = st[key]
       if (v === undefined) return []
       if (Array.isArray(v)) return v
-      warn(['styles', key], `liste de styles illisible (${show(v)}) : remplacée par une liste vide`)
+      warn(['styles', key], `unreadable style list (${show(v)}): replaced with an empty list`)
       return []
     }
     const entries = (key: 'colors' | 'text', allowed: ReadonlySet<string>, fixEntry: (e: Obj, segs: Segs, n: number) => void) => {
       const out: Obj[] = []
       list(key).forEach((e, i) => {
         const segs: Segs = ['styles', key, i]
-        if (!isObj(e)) return warn(segs, 'style illisible (pas un objet) : retiré')
+        if (!isObj(e)) return warn(segs, 'unreadable style (not an object): removed')
         const entry = dropUnknown(e, allowed, segs)
         entry.id = claim(entry.id, segs)
         fixEntry(entry, segs, out.length + 1)
@@ -133,17 +133,17 @@ export function repairDocument(raw: Record<string, unknown>): { doc: unknown; wa
     const fixName = (e: Obj, segs: Segs, fallback: string) => {
       if (e.name === undefined) e.name = fallback
       else if (typeof e.name !== 'string' || e.name === '') {
-        warn([...segs, 'name'], `nom invalide (${show(e.name)}) : remplacé par « ${fallback} »`)
+        warn([...segs, 'name'], `invalid name (${show(e.name)}): replaced with “${fallback}”`)
         e.name = fallback
       }
     }
     const colors = entries('colors', COLOR_STYLE_KEYS, (e, segs, n) => {
-      fixName(e, segs, `Couleur ${n}`)
+      fixName(e, segs, `Color ${n}`)
       const v = e.value
       if (typeof v === 'string' && HEX_COLOR.test(v)) return
       const norm = typeof v === 'string' ? normalizeColor(v) : null
-      if (norm) warn([...segs, 'value'], `couleur ${show(v)} convertie en ${norm}`)
-      else warn([...segs, 'value'], `couleur ${v === undefined ? 'absente' : `illisible (${show(v)})`} : remplacée par ${MAGENTA}`)
+      if (norm) warn([...segs, 'value'], `color ${show(v)} converted to ${norm}`)
+      else warn([...segs, 'value'], `color ${v === undefined ? 'missing' : `unreadable (${show(v)})`}: replaced with ${MAGENTA}`)
       e.value = norm ?? MAGENTA
     })
     const text = entries('text', TEXT_STYLE_KEYS, (e, segs, n) => {
@@ -157,15 +157,15 @@ export function repairDocument(raw: Record<string, unknown>): { doc: unknown; wa
     if (typeof v === 'string' && HEX_COLOR.test(v)) return v
     const norm = normalizeColorValue(v)
     if (norm === null) {
-      warn(segs, `couleur illisible (${show(v)}) : remplacée par ${MAGENTA}`)
+      warn(segs, `unreadable color (${show(v)}): replaced with ${MAGENTA}`)
       return MAGENTA
     }
     if (typeof norm === 'object') {
       if (colorIds.has(norm.style)) return norm
-      warn(segs, `couleur nommée inconnue ${show(norm.style)} : référence détachée, remplacée par ${MAGENTA}`)
+      warn(segs, `unknown color variable ${show(norm.style)}: reference detached, replaced with ${MAGENTA}`)
       return MAGENTA
     }
-    warn(segs, `couleur ${show(v)} convertie en ${norm}`)
+    warn(segs, `color ${show(v)} converted to ${norm}`)
     return norm
   }
 
@@ -174,27 +174,27 @@ export function repairDocument(raw: Record<string, unknown>): { doc: unknown; wa
     if (!isObj(v) || typeof v.type !== 'string') return fixColor(v, segs)
     const g = normalizeFill(v)
     if (g === null || typeof g !== 'object' || !('type' in g)) {
-      warn(segs, `dégradé illisible (${show(v)}) : remplacé par ${MAGENTA}`)
+      warn(segs, `unreadable gradient (${show(v)}): replaced with ${MAGENTA}`)
       return MAGENTA
     }
-    if (JSON.stringify(g) !== JSON.stringify(v)) warn(segs, 'dégradé réécrit sous la forme de Maquette')
+    if (JSON.stringify(g) !== JSON.stringify(v)) warn(segs, 'gradient rewritten in Maquette format')
     g.stops.forEach((st, k) => { st.color = fixColor(st.color, [...segs, 'stops', k, 'color']) })
     return g
   }
 
   // 2. Pages (identifiants réservés avant ceux des éléments, comme dans validateDocument)
   const pageSrc: unknown[] = Array.isArray(src.pages) ? src.pages : []
-  if (src.pages !== undefined && !Array.isArray(src.pages)) warn(['pages'], `liste de pages illisible (${show(src.pages)})`)
+  if (src.pages !== undefined && !Array.isArray(src.pages)) warn(['pages'], `unreadable page list (${show(src.pages)})`)
   const pages: { page: Obj; children: unknown; segs: Segs }[] = []
   pageSrc.forEach((p, i) => {
     const segs: Segs = ['pages', i]
-    if (!isObj(p)) return warn(segs, 'page illisible (pas un objet) : retirée')
+    if (!isObj(p)) return warn(segs, 'unreadable page (not an object): removed')
     const page = dropUnknown(p, PAGE_KEYS, segs)
     const fallback = `Page ${pages.length + 1}`
     const out: Obj = { id: claim(page.id, segs), name: page.name, children: [] }
     if (out.name === undefined) out.name = fallback
     else if (typeof out.name !== 'string' || out.name === '') {
-      warn([...segs, 'name'], `nom de page invalide (${show(out.name)}) : remplacé par « ${fallback} »`)
+      warn([...segs, 'name'], `invalid page name (${show(out.name)}): replaced with “${fallback}”`)
       out.name = fallback
     }
     pages.push({ page: out, children: page.children, segs })
@@ -202,7 +202,7 @@ export function repairDocument(raw: Record<string, unknown>): { doc: unknown; wa
   if (pages.length === 0) {
     const id = newId(taken)
     taken.add(id)
-    warn(['pages'], 'le document n’a aucune page : une page vide « Page 1 » est ajoutée')
+    warn(['pages'], 'the document has no pages: an empty “Page 1” was added')
     pages.push({ page: { id, name: 'Page 1', children: [] }, children: [], segs: ['pages', 0] })
   }
 
@@ -211,9 +211,9 @@ export function repairDocument(raw: Record<string, unknown>): { doc: unknown; wa
     const out: Obj[] = []
     list.forEach((item, i) => {
       const s: Segs = [...segs, 'children', i]
-      if (!isObj(item)) return warn(s, 'élément illisible (pas un objet) : retiré')
+      if (!isObj(item)) return warn(s, 'unreadable layer (not an object): removed')
       if (!NODE_TYPES.includes(item.type as NodeType)) {
-        return warn(s, item.type === undefined ? 'élément sans type : retiré' : `type d’élément inconnu ${show(item.type)} : élément retiré`)
+        return warn(s, item.type === undefined ? 'layer without a type: removed' : `unknown layer type ${show(item.type)}: layer removed`)
       }
       out.push(repairNode(item, parent, s))
     })
@@ -235,8 +235,8 @@ export function repairDocument(raw: Record<string, unknown>): { doc: unknown; wa
     if (type === 'frame' && given.layout !== undefined) {
       const l = given.layout
       if (isObj(l) && l.mode === 'auto') node.layout = { ...autoLayoutDefaults(), ...dropUnknown(l, AUTO_LAYOUT_KEYS, [...s, 'layout']) }
-      else if (isObj(l) && l.mode === 'free') node.layout = dropUnknown(l, new Set(['mode']), [...s, 'layout'], 'propriété sans effet en placement libre')
-      else warn([...s, 'layout'], 'mise en page illisible : remplacée par le placement libre')
+      else if (isObj(l) && l.mode === 'free') node.layout = dropUnknown(l, new Set(['mode']), [...s, 'layout'], 'property with no effect in free layout')
+      else warn([...s, 'layout'], 'unreadable layout: replaced with free layout')
     }
 
     // Couleurs et références de style
@@ -246,11 +246,11 @@ export function repairDocument(raw: Record<string, unknown>): { doc: unknown; wa
       const known = typeof node.icon === 'string' ? resolveIcon(node.icon) : null
       if (known !== node.icon) {
         const to = known ?? FALLBACK_ICON
-        warn([...s, 'icon'], known ? `icône ${show(node.icon)} renommée en ${show(to)}` : `icône inconnue ${show(node.icon)} : remplacée par ${show(to)}`)
+        warn([...s, 'icon'], known ? `icon ${show(node.icon)} renamed to ${show(to)}` : `unknown icon ${show(node.icon)}: replaced with ${show(to)}`)
         node.icon = to
       }
       if (node.set !== 'lucide') {
-        warn([...s, 'set'], `jeu d’icônes inconnu ${show(node.set)} : remplacé par "lucide"`)
+        warn([...s, 'set'], `unknown icon set ${show(node.set)}: replaced with "lucide"`)
         node.set = 'lucide'
       }
     }
@@ -268,14 +268,14 @@ export function repairDocument(raw: Record<string, unknown>): { doc: unknown; wa
       })
     }
     if (type === 'text' && typeof node.textStyle === 'string' && !textIds.has(node.textStyle)) {
-      warn([...s, 'textStyle'], `style de texte inconnu ${show(node.textStyle)} : référence détachée`)
+      warn([...s, 'textStyle'], `unknown text style ${show(node.textStyle)}: reference detached`)
       delete node.textStyle
     }
 
     // Règles du §6
     const autoParent = isObj(parent?.layout) && parent.layout.mode === 'auto'
     if (node.position === 'absolute' && !autoParent) {
-      warn([...s, 'position'], '"absolute" n’a de sens que dans un cadre automatique : remis en "flow"')
+      warn([...s, 'position'], '"absolute" only applies inside an auto layout frame: reset to "flow"')
       node.position = 'flow'
     }
     const inFlow = autoParent && node.position === 'flow'
@@ -283,25 +283,25 @@ export function repairDocument(raw: Record<string, unknown>): { doc: unknown; wa
 
     const present = (['x', 'y'] as const).filter((k) => node[k] !== undefined)
     if (inFlow && present.length) {
-      warn([...s, present[0]!], 'position calculée par la mise en page automatique : x et y retirés')
+      warn([...s, present[0]!], 'position is set by auto layout: x and y removed')
       delete node.x
       delete node.y
     } else if (!inFlow && present.length < 2) {
       const missing = (['x', 'y'] as const).filter((k) => node[k] === undefined)
-      warn([...s, missing[0]!], `${missing.join(' et ')} ${missing.length > 1 ? 'absents' : 'absent'} hors du flux : mis à 0`)
+      warn([...s, missing[0]!], `${missing.join(' and ')} missing outside the flow: set to 0`)
       for (const k of missing) node[k] = 0
     }
     if (node.alignSelf !== undefined && !inFlow) {
-      warn([...s, 'alignSelf'], 'alignSelf n’a de sens que pour un enfant en flux d’un cadre automatique : retiré')
+      warn([...s, 'alignSelf'], 'alignSelf only applies to a flow child of an auto layout frame: removed')
       delete node.alignSelf
     }
 
     for (const axis of AXES) {
       if (hug(node[axis]) && !(type === 'text' || autoSelf)) {
-        warn([...s, axis], `"hug" impossible ici (ni cadre automatique ni texte) : ${axis} fixé à ${FALLBACK_SIZE} px`)
+        warn([...s, axis], `"hug" not possible here (neither auto layout frame nor text): ${axis} set to ${FALLBACK_SIZE} px`)
         node[axis] = FALLBACK_SIZE
       } else if (fill(node[axis]) && !inFlow) {
-        warn([...s, axis], `"fill" impossible hors du flux d’un cadre automatique : ${axis} fixé à ${FALLBACK_SIZE} px`)
+        warn([...s, axis], `"fill" not possible outside the flow of an auto layout frame: ${axis} set to ${FALLBACK_SIZE} px`)
         node[axis] = FALLBACK_SIZE
       }
     }
@@ -309,7 +309,7 @@ export function repairDocument(raw: Record<string, unknown>): { doc: unknown; wa
     const bounds = MIN_MAX.flat().filter((k) => node[k] !== undefined)
     if (bounds.length && !(autoParent || autoSelf)) {
       for (const k of bounds) {
-        warn([...s, k], `${k} ne s’applique qu’à un cadre automatique ou à ses enfants directs : retiré`)
+        warn([...s, k], `${k} only applies to an auto layout frame or its direct children: removed`)
         delete node[k]
       }
     } else {
@@ -317,7 +317,7 @@ export function repairDocument(raw: Record<string, unknown>): { doc: unknown; wa
         const lo = node[min]
         const hi = node[max]
         if (typeof lo === 'number' && typeof hi === 'number' && lo > hi) {
-          warn([...s, max], `${max} (${hi}) inférieur à ${min} (${lo}) : ${max} retiré`)
+          warn([...s, max], `${max} (${hi}) lower than ${min} (${lo}): ${max} removed`)
           delete node[max]
         }
       }
@@ -326,11 +326,11 @@ export function repairDocument(raw: Record<string, unknown>): { doc: unknown; wa
     if (autoSelf) {
       const layout = node.layout as Obj
       if (layout.rowGap !== undefined && layout.wrap !== true) {
-        warn([...s, 'layout', 'rowGap'], 'rowGap n’a de sens qu’avec le retour à la ligne (wrap) : retiré')
+        warn([...s, 'layout', 'rowGap'], 'rowGap only applies with wrap: removed')
         delete layout.rowGap
       }
       if (layout.align === 'baseline' && layout.direction !== 'row') {
-        warn([...s, 'layout', 'align'], '"baseline" n’existe qu’en direction "row" : remplacé par "start"')
+        warn([...s, 'layout', 'align'], '"baseline" only exists in the "row" direction: replaced with "start"')
         layout.align = 'start'
       }
     }
@@ -340,7 +340,7 @@ export function repairDocument(raw: Record<string, unknown>): { doc: unknown; wa
       if (alignTextSizing(node as unknown as TextNode)) {
         const silent = given.textSizing === undefined && node.height === before.height
         if (!silent) {
-          warn([...s, 'textSizing'], `textSizing ${show(before.textSizing)} incompatible avec les tailles : réaligné en ${show(node.textSizing)}`)
+          warn([...s, 'textSizing'], `textSizing ${show(before.textSizing)} does not match the sizes: changed to ${show(node.textSizing)}`)
         }
       }
     }
@@ -354,7 +354,7 @@ export function repairDocument(raw: Record<string, unknown>): { doc: unknown; wa
         for (const axis of AXES) {
           const fillChild = children.some((c) => isObj(c) && c.position === 'flow' && fill(c[axis]))
           if (hug(node[axis]) && fillChild) {
-            warn([...s, axis], `cadre en "hug" avec un enfant en "fill" sur le même axe : ${axis} fixé à ${FALLBACK_SIZE} px`)
+            warn([...s, axis], `"hug" frame with a "fill" child on the same axis: ${axis} set to ${FALLBACK_SIZE} px`)
             node[axis] = FALLBACK_SIZE
           }
         }
