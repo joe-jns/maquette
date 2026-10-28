@@ -5,6 +5,7 @@ import { shortcutKeys } from '../canvas/shortcuts'
 import { runCommand } from '../state/commands'
 import { useDoc } from '../state/store'
 import { Icon } from '../ui/icons'
+import { modalStore } from '../ui/Modals'
 import { QuickMenu } from '../ui/QuickMenu'
 import { LayersPanel } from './LayersPanel'
 import { PagesPanel } from './PagesPanel'
@@ -55,6 +56,8 @@ function FileHeader() {
             'separator',
             { id: 'save', label: 'Save', shortcut: 'Ctrl+S', onSelect: () => void runCommand('save') },
             { id: 'save-as', label: 'Save as…', shortcut: 'Ctrl+Shift+S', onSelect: () => void runCommand('save-as') },
+            'separator',
+            { id: 'direction', label: 'Art direction (taste-skill)…', onSelect: () => modalStore.getState().toggle('direction') },
           ]}
         />
       )}

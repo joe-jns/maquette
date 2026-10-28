@@ -34,6 +34,18 @@ test('curseur de Claude', async () => {
   await page.screenshot({ path: join(out, 'curseur-2-glisse.png') })
   await page.waitForTimeout(2200)
   await page.screenshot({ path: join(out, 'curseur-3-pense.png') })
+  // Une section entière en un appel : elle apparaît pièce par pièce, le curseur passant de l'une à l'autre.
+  const txt = (content: string, size: number) => ({ type: 'text', content, fontSize: size, fills: ['#F6F1E8'] })
+  const res = await c.callTool({ name: 'appliquer', arguments: { libelle: 'hero', operations: [{ op: 'create', parent: pageId, node: {
+    type: 'frame', name: 'Hero 2', x: 0, y: 480, width: 900, height: 360, fills: ['#1E1A16'], layout: { mode: 'auto', direction: 'column', gap: 16, padding: [48, 48, 48, 48] },
+    children: [
+      { type: 'frame', name: 'Nav', layout: { mode: 'auto', direction: 'row', gap: 24 }, children: [txt('Mezzaluna', 18), txt('Menu', 16), txt('Book', 16)] },
+      txt('Fresh pasta in Liège', 64), txt('Tuesday to Saturday, book online.', 20),
+    ] } }] } })
+  for (const [i, ms] of [[1, 150], [2, 500], [3, 600]] as const) {
+    await page.waitForTimeout(ms)
+    await page.screenshot({ path: join(out, `apparition-${i}.png`) })
+  }
   await c.close()
   await app.close()
 })
