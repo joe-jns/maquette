@@ -438,7 +438,7 @@ export class InteractionController {
     e.preventDefault()
     const files = all.filter((f) => f.type.startsWith('image/') || /\.(png|jpe?g|gif|webp|svg|avif)$/i.test(f.name))
     if (all.length && !files.length) {
-      docStore.getState().showError('Seules les images peuvent être déposées sur le canevas')
+      docStore.getState().showError('Only images can be dropped on the canvas')
       return
     }
     const sources: ImageSource[] = files.length
@@ -470,7 +470,7 @@ export class InteractionController {
     const results = await Promise.all(sources.map((source) => this.importOne(source)))
     const errors = results.flatMap((r) => ('error' in r ? [r.error] : []))
     const imported = results.flatMap((r) => ('src' in r ? [r] : []))
-    if (errors.length) docStore.getState().showError(errors.length > 1 ? `${errors.length} images non importées — ${errors[0]}` : errors[0]!)
+    if (errors.length) docStore.getState().showError(errors.length > 1 ? `${errors.length} images not imported — ${errors[0]}` : errors[0]!)
     if (!imported.length) return
     const sizes = await Promise.all(imported.map(async (img) => importSize(await naturalSize(assetUrl(img.src)))))
     const grid = gridLayout(sizes)

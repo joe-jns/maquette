@@ -1,7 +1,7 @@
 import { uiStore, useUi } from '../state/ui'
 import { SHORTCUTS, type Shortcut } from './shortcuts'
 
-const GROUPS: Shortcut['group'][] = ['Outils', 'Édition', 'Sélection', 'Disposition', 'Affichage']
+const GROUPS: Shortcut['group'][] = ['Tools', 'Edit', 'Selection', 'Arrange', 'View']
 
 /** Fenêtre d'aide « ? » générée depuis la table des raccourcis (une seule source de vérité). */
 export function HelpOverlay() {
@@ -14,12 +14,12 @@ export function HelpOverlay() {
         className="help"
         role="dialog"
         aria-modal="true"
-        aria-label="Raccourcis clavier"
+        aria-label="Keyboard shortcuts"
         onPointerDown={(e) => e.stopPropagation()}
       >
         <header>
-          <h2>Raccourcis clavier</h2>
-          <button type="button" onClick={close} aria-label="Fermer">×</button>
+          <h2>Keyboard shortcuts</h2>
+          <button type="button" onClick={close} aria-label="Close">×</button>
         </header>
         <div className="help-groups">
           {GROUPS.map((group) => (

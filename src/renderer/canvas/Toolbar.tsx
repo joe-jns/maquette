@@ -10,13 +10,13 @@ import { shortcutKeys } from './shortcuts'
 
 interface ToolDef { tool: Tool; label: string; key: string; icon: IconName }
 
-const MOVE: ToolDef = { tool: 'move', label: 'Déplacer', key: 'V', icon: 'move' }
-const FRAME: ToolDef = { tool: 'frame', label: 'Cadre', key: 'F', icon: 'frame' }
+const MOVE: ToolDef = { tool: 'move', label: 'Move', key: 'V', icon: 'move' }
+const FRAME: ToolDef = { tool: 'frame', label: 'Frame', key: 'F', icon: 'frame' }
 const SHAPES: ToolDef[] = [
   { tool: 'rect', label: 'Rectangle', key: 'R', icon: 'rect' },
   { tool: 'ellipse', label: 'Ellipse', key: 'O', icon: 'ellipse' },
 ]
-const TEXT: ToolDef = { tool: 'text', label: 'Texte', key: 'T', icon: 'text' }
+const TEXT: ToolDef = { tool: 'text', label: 'Text', key: 'T', icon: 'text' }
 
 /** Groupes séparés par un trait : sélection | création (cadre, formes, texte). */
 const GROUPS: (ToolDef | 'shapes')[][] = [[MOVE], [FRAME, 'shapes', TEXT]]
@@ -58,10 +58,10 @@ function ShapeGroup({ current }: { current: Tool }) {
         ref={chevron}
         type="button"
         className="tool-chevron"
-        aria-label="Formes"
+        aria-label="Shapes"
         aria-haspopup="menu"
         aria-expanded={open}
-        data-tooltip="Formes"
+        data-tooltip="Shapes"
         onClick={() => setOpen((o) => !o)}
         onKeyDown={(e) => {
           if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
@@ -77,7 +77,7 @@ function ShapeGroup({ current }: { current: Tool }) {
         <QuickMenu
           anchor={chevron}
           alignTo={group}
-          label="Formes"
+          label="Shapes"
           placement="above"
           onClose={() => setOpen(false)}
           entries={[
@@ -95,7 +95,7 @@ function ShapeGroup({ current }: { current: Tool }) {
             'separator' as const,
             {
               id: 'icon',
-              label: 'Icône…',
+              label: 'Icon…',
               icon: 'icon' as const,
               shortcut: shortcutKeys('insertIcon'),
               onSelect: () => uiStore.getState().setIconPicker(true),
@@ -170,7 +170,7 @@ export function Toolbar() {
   const [floating, setFloating] = useState<Floating | null>(null)
   const closeFloating = useCallback(() => setFloating(null), [])
   return (
-    <div className="toolbar" role="toolbar" aria-label="Outils" data-ui data-tooltip-side="top" onKeyDown={keepButtonKeys}>
+    <div className="toolbar" role="toolbar" aria-label="Tools" data-ui data-tooltip-side="top" onKeyDown={keepButtonKeys}>
       {GROUPS.map((group, g) => (
         <Fragment key={g}>
           {g > 0 && <span className="toolbar-separator" aria-hidden />}
@@ -199,7 +199,7 @@ export function Toolbar() {
       {picking && (
         <IconPicker
           className="is-floating"
-          label="Insérer une icône"
+          label="Insert icon"
           onClose={close}
           onPick={(name) => {
             close()
