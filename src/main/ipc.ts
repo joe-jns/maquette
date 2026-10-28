@@ -53,9 +53,11 @@ export function registerFileIpc(fileArg: string | undefined): void {
     return readForWindow(current)
   })
 
-  ipcMain.handle('file:save', async (event, args: { path: string | null; text: string }): Promise<string | null> => {
+  ipcMain.handle('file:save', async (event, args: { path: string | null; text: string; silent?: boolean }): Promise<string | null> => {
     // Sans boîte de dialogue, on n'écrit que dans le document courant.
     let target = allowedSavePath(args.path)
+    // Enregistrement automatique : jamais de boîte de dialogue ouverte d'elle-même.
+    if (!target && args.silent) return null
     if (!target) {
       const win = BrowserWindow.fromWebContents(event.sender)
       const options = { filters: FILTERS, defaultPath: 'Untitled.maquette' }

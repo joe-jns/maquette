@@ -12,6 +12,7 @@ import { FileChangedBanner } from './FileChangedBanner'
 import { Home } from './home/Home'
 import { homeStore, useHome } from './home/homeStore'
 import { RecoveryBanner } from './RecoveryBanner'
+import { startAutoSaveFile } from './state/autoSaveFile'
 import { startAutosave } from './state/autosave'
 import { confirmDiscard, runCommand } from './state/commands'
 import { fileName, openDocument } from './state/openDocument'
@@ -60,6 +61,7 @@ export function App() {
 
   // Copie de secours toutes les 5 s et état « modifié » pour la question à la fermeture.
   useEffect(() => startAutosave(), [])
+  useEffect(() => startAutoSaveFile(), [])
 
   useEffect(() => {
     document.title = `${fileName(filePath)}${dirty ? ' •' : ''} — Maquette`

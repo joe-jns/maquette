@@ -83,3 +83,49 @@ test('une seule Maquette : un second lancement avec un fichier l’ouvre dans la
     await app.close()
   }
 })
+
+test('enregistrement automatique : le fichier suit les modifications ; désactivable ; jamais de boîte pour un sans-titre', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'maquette-autosave-'))
+  const file = join(dir, 'auto.maquette')
+  await copyFile(scene, file)
+  const { app, page } = await launch([file])
+  const rename = (name: string) =>
+    page.evaluate((n) => {
+      const s = (window as unknown as { __maquetteStore: { getState(): { doc: { pages: { id: string }[] }; dispatch(ops: unknown[], label: string): unknown } } }).__maquetteStore.getState()
+      s.dispatch([{ op: 'page.update', id: s.doc.pages[0]!.id, name: n }], 'test')
+    }, name)
+  const onDisk = async () => JSON.parse(await readFile(file, 'utf8')).pages[0].name as string
+  try {
+    await expect.poll(async () => (await state(page)).path).toBe(file)
+    await rename('Auto 1')
+    await expect(page.getByTestId('file-dirty')).toBeVisible()
+    // Quelques secondes après la modification : écrit sur le disque, plus « modifié », pas d'alerte de fichier changé.
+    await expect.poll(onDisk, { timeout: 8000 }).toBe('Auto 1')
+    await expect(page.getByTestId('file-dirty')).toHaveCount(0)
+    await expect(page.getByTestId('file-changed')).toHaveCount(0)
+
+    // Désactivé dans le menu du fichier : le disque ne bouge plus.
+    await page.getByTestId('file-header').getByRole('button').click()
+    await page.getByRole('menuitemradio', { name: 'Auto-save' }).click()
+    await rename('Auto 2')
+    await page.waitForTimeout(3500)
+    expect(await onDisk()).toBe('Auto 1')
+    await expect(page.getByTestId('file-dirty')).toBeVisible()
+  } finally {
+    await app.close()
+  }
+
+  // Document jamais enregistré : l'enregistrement silencieux refuse sans ouvrir de boîte « Save as ».
+  const blank = await launch([])
+  try {
+    const result = await blank.page.evaluate(() =>
+      Promise.race([
+        (window as unknown as { maquette: { saveFile(p: string | null, t: string, o: { silent: boolean }): Promise<string | null> } }).maquette.saveFile(null, '{}', { silent: true }),
+        new Promise((r) => setTimeout(() => r('boîte ouverte'), 3000)),
+      ]),
+    )
+    expect(result).toBeNull()
+  } finally {
+    await blank.app.close()
+  }
+})

@@ -5,6 +5,7 @@ import { shortcutKeys } from '../canvas/shortcuts'
 import { runCommand } from '../state/commands'
 import { useDoc } from '../state/store'
 import { Icon } from '../ui/icons'
+import { autoSaveStore, useAutoSave } from '../state/autoSaveFile'
 import { modalStore } from '../ui/Modals'
 import { QuickMenu } from '../ui/QuickMenu'
 import { LayersPanel } from './LayersPanel'
@@ -18,6 +19,7 @@ export function fileTitle(path: string | null): string {
 
 /** En-tête du panneau gauche (Figma UI3) : nom du fichier, point « modifié », menu Fichier. */
 function FileHeader() {
+  const autoSave = useAutoSave()
   const filePath = useDoc((s) => s.filePath)
   const dirty = useDoc((s) => s.dirty)
   const [open, setOpen] = useState(false)
@@ -56,6 +58,7 @@ function FileHeader() {
             'separator',
             { id: 'save', label: 'Save', shortcut: 'Ctrl+S', onSelect: () => void runCommand('save') },
             { id: 'save-as', label: 'Save as…', shortcut: 'Ctrl+Shift+S', onSelect: () => void runCommand('save-as') },
+            { id: 'auto-save', label: 'Auto-save', checked: autoSave, onSelect: () => autoSaveStore.getState().toggle() },
             'separator',
             { id: 'direction', label: 'Art direction (taste-skill)…', onSelect: () => modalStore.getState().toggle('direction') },
           ]}

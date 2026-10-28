@@ -20,7 +20,7 @@ const api: MaquetteApi = {
   getInitialDocument: () => ipcRenderer.invoke('doc:initial') as Promise<OpenedFile | null>,
   openFile: () => ipcRenderer.invoke('file:open') as Promise<OpenedFile | null>,
   documentLoaded: (path) => ipcRenderer.invoke('doc:loaded', path) as Promise<boolean>,
-  saveFile: (path, text) => ipcRenderer.invoke('file:save', { path, text }) as Promise<string | null>,
+  saveFile: (path, text, opts) => ipcRenderer.invoke('file:save', { path, text, silent: opts?.silent === true }) as Promise<string | null>,
   importImage: (name, bytes) => ipcRenderer.invoke('image:import', { name, bytes }) as Promise<ImageImport>,
   readClipboard: () => ipcRenderer.invoke('clipboard:read') as Promise<ClipboardContent>,
   pasteImage: () => ipcRenderer.invoke('image:paste') as Promise<ImageImport>,
