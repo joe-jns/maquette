@@ -7,7 +7,7 @@ const shots = process.env.MAQUETTE_SHOTS
 test('onglet Direction : tirer, choisir, appliquer, annuler en une fois', async () => {
   const { app, page } = await launch([scene])
   try {
-    await page.getByRole('tab', { name: 'Direction' }).click()
+    await page.getByRole('button', { name: 'Direction', exact: true }).click()
     await page.getByRole('combobox', { name: 'Secteur' }).click()
     await page.getByRole('option', { name: 'Restaurant', exact: true }).click()
     await expect(page.getByRole('combobox', { name: 'Secteur' })).toHaveText('Restaurant')

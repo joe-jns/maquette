@@ -987,7 +987,6 @@ export class InteractionController {
       case 'tasteCheck': {
         const node = selection.length === 1 ? findNode(d, selection[0]!)?.node : undefined
         if (first && node?.type === 'frame') {
-          tasteStore.getState().setTab('design')
           void tasteStore.getState().runCheck(node.id)
         }
         return true
