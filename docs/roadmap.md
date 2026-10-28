@@ -7,9 +7,9 @@ Décidée avec l'utilisateur le 2026-10-28. Le nouveau look passe en dernier et 
 
 ## Chantiers, dans l'ordre
 0. ~~**Enregistrement automatique**~~ — fait le 2026-10-29 (2 s après la dernière modification, 10 s au plus en continu ; option « Auto-save » du menu du fichier). Demande d'origine : le fichier `.maquette` s'enregistre tout seul quelques secondes après chaque modification (aujourd'hui, seule une copie de secours est écrite toutes les 5 s ; le vrai fichier attend Ctrl+S). Fichier jamais enregistré : reste en copie de secours jusqu'au premier « Save as ».
-1. **Fenêtre Variables** : une vraie fenêtre (modal) au centre, couleurs à gauche, styles de texte à droite, à la place du petit panneau flottant.
-2. **Curseur de Claude** (comme Pen) : un curseur nommé glisse vers l'élément modifié et l'entoure un instant, depuis le chat intégré et depuis le MCP.
-3. **Maquette sans l'app ouverte** : Claude ouvre, modifie et enregistre un `.maquette` en mode sans fenêtre (captures par un rendu invisible) ; app ouverte = passage par l'app comme aujourd'hui.
+1. ~~**Fenêtre Variables**~~ — fait.  une vraie fenêtre (modal) au centre, couleurs à gauche, styles de texte à droite, à la place du petit panneau flottant.
+2. ~~**Curseur de Claude**~~ — fait, avec apparition progressive de ce qu'il crée.  un curseur nommé glisse vers l'élément modifié et l'entoure un instant, depuis le chat intégré et depuis le MCP.
+3. ~~**Maquette sans l'app ouverte**~~ — fait le 2026-10-29 (outil `fichier`, relais qui lance l'app sans fenêtre, arrêt après 10 min sans appel). Prévu : Claude ouvre, modifie et enregistre un `.maquette` en mode sans fenêtre (captures par un rendu invisible) ; app ouverte = passage par l'app comme aujourd'hui.
 4. **Plusieurs Claude en parallèle** : un curseur et une couleur par agent ; **sélecteur Variants (1–4) dans la zone de saisie du chat**, un agent par variante, chaque version posée à côté de l'original avec un bouton « Garder ».
 5. **Interactions et animations** : états (survol, appuyé, focus), transitions, animations d'entrée au défilement et boucles, mode aperçu ▶ vivant, liens entre pages (prototype). Claude peut les poser.
 6. **Composants** : modèles réutilisables avec variantes (normal, survol, désactivé).

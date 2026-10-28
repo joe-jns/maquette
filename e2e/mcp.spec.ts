@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { mkdtempSync } from 'node:fs'
+import { readFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { launch } from './launch'
@@ -12,11 +13,11 @@ test.describe('connexion Claude Code (MCP)', () => {
   const userData = mkdtempSync(join(tmpdir(), 'maquette-mcp-'))
   const env = { MAQUETTE_PIPE: pipe, MAQUETTE_USER_DATA: userData }
 
-  async function client(exe: string): Promise<Client> {
+  async function client(exe: string, extra: Record<string, string> = {}): Promise<Client> {
     const transport = new StdioClientTransport({
       command: exe,
       args: [resolve('out/main/relay.js')],
-      env: { ...(process.env as Record<string, string>), ...env, ELECTRON_RUN_AS_NODE: '1' },
+      env: { ...(process.env as Record<string, string>), ...env, ...extra, ELECTRON_RUN_AS_NODE: '1' },
     })
     const c = new Client({ name: 'e2e', version: '1.0.0' })
     await c.connect(transport)
@@ -125,17 +126,62 @@ test.describe('connexion Claude Code (MCP)', () => {
     }
   })
 
-  test('app fermée : message clair, pas de plantage du relais', async () => {
+  test('app fermée, démarrage automatique coupé : message clair, pas de plantage du relais', async () => {
     const { app } = await launch([], env)
     const exe = await app.evaluate(() => process.execPath)
     await app.close()
-    const c = await client(exe)
+    const c = await client(exe, { MAQUETTE_NO_AUTOSTART: '1' })
     try {
       const r = await c.callTool({ name: 'lire_document', arguments: {} })
       expect(r.isError).toBe(true)
       expect(textOf(r)).toContain('Maquette n’est pas ouverte')
     } finally {
       await c.close()
+    }
+  })
+
+  test('app fermée : le relais la lance sans fenêtre ; fichier nouveau, appliquer, enregistrer ; arrêt seul après inactivité', async () => {
+    test.setTimeout(90_000)
+    const { app } = await launch([], env)
+    const exe = await app.evaluate(() => process.execPath)
+    await app.close()
+    const dir = mkdtempSync(join(tmpdir(), 'maquette-sans-app-'))
+    const file = join(dir, 'claude.maquette')
+    // Arrêt après 4 s sans appel, pour que le test ne laisse pas d'app cachée derrière lui.
+    const c = await client(exe, { MAQUETTE_HEADLESS_IDLE_MS: '4000' })
+    try {
+      const etat = JSON.parse(textOf(await c.callTool({ name: 'fichier', arguments: { action: 'etat' } })))
+      expect(etat.visible).toBe(false)
+      const cree = await c.callTool({ name: 'fichier', arguments: { action: 'nouveau', chemin: file } })
+      expect(cree.isError).toBeFalsy()
+      const lu = JSON.parse(textOf(await c.callTool({ name: 'lire_document', arguments: {} })))
+      const r = await c.callTool({
+        name: 'appliquer',
+        arguments: { operations: [{ op: 'create', parent: lu.pages[0].id, node: { id: '$r', type: 'shape', shape: 'rectangle', name: 'Sans app', x: 0, y: 0, width: 80, height: 80, fills: ['#C2410C'] } }] },
+      })
+      expect(r.isError).toBeFalsy()
+      const rect = Object.values(JSON.parse(textOf(r)).ids ?? {})[0] as string | undefined
+      expect((await c.callTool({ name: 'fichier', arguments: { action: 'enregistrer' } })).isError).toBeFalsy()
+      expect(await readFile(file, 'utf8')).toContain('Sans app')
+      const cap = await c.callTool({ name: 'capture', arguments: { id: rect ?? '', largeur: 200 } })
+      expect((cap.content as { type: string }[]).some((x) => x.type === 'image')).toBe(true)
+      // Écraser un autre fichier sans remplacer:true : refusé.
+      const autre = await c.callTool({ name: 'fichier', arguments: { action: 'nouveau', chemin: file } })
+      expect(autre.isError).toBe(true)
+      expect(textOf(autre)).toContain('remplacer:true')
+      // Refus avant tout changement : le document affiché est toujours le fichier enregistré.
+      expect(JSON.parse(textOf(await c.callTool({ name: 'fichier', arguments: { action: 'etat' } }))).chemin).toBe(file)
+    } finally {
+      await c.close()
+    }
+    // Plus d'appel : l'app cachée s'arrête seule ; un relais sans démarrage automatique la trouve fermée.
+    const after = await client(exe, { MAQUETTE_NO_AUTOSTART: '1' })
+    try {
+      // Chaque appel repousse l'arrêt : on attend sans rien demander, puis une seule question.
+      await new Promise((r) => setTimeout(r, 9000))
+      expect(textOf(await after.callTool({ name: 'lire_document', arguments: {} }))).toContain('Maquette n’est pas ouverte')
+    } finally {
+      await after.close()
     }
   })
 })

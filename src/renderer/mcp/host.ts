@@ -9,6 +9,7 @@ import { ensureFont } from '../fonts/fontLoader'
 import { docStore } from '../state/store'
 import { uiStore } from '../state/ui'
 import { tasteStore } from '../taste/tasteStore'
+import { fileHost } from './fileHost'
 import { imageHost } from './imageHost'
 
 /** Au-delà, une police encore en téléchargement est signalée « non chargée » (l'appel MCP ne patiente pas plus). */
@@ -66,6 +67,7 @@ const host: ToolHost = {
   check: (id, allow = []) => window.maquette.taste.check(docStore.getState().doc, id, [...tasteStore.getState().allow, ...allow]),
   images: imageHost,
   design,
+  files: fileHost,
 }
 
 /** Exécute dans la fenêtre les outils appelés par Claude Code. */

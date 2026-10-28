@@ -1,4 +1,5 @@
 import { BrowserWindow, ipcMain } from 'electron'
+import { noteMcpCall } from './headless'
 import { startBridge, type Bridge } from './mcpBridge'
 import { ensureToken, pipePath, userDataDir, type ToolResult } from '../mcp/pipe'
 
@@ -23,6 +24,7 @@ export async function startMcp(editorWindow: () => BrowserWindow | undefined): P
   })
 
   const handle = (tool: string, args: Record<string, unknown>): Promise<ToolResult> => {
+    noteMcpCall()
     const win = editorWindow()
     if (!win || win.webContents.isLoading() || !ready.has(win.webContents)) return Promise.resolve({ text: 'Maquette démarre encore : réessayez dans un instant.', isError: true })
     const id = nextId++
