@@ -1,3 +1,5 @@
+import { spawn } from 'node:child_process'
+import { basename, resolve } from 'node:path'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { pipePath, readToken, userDataDir } from '../mcp/pipe'
@@ -7,7 +9,8 @@ import { TOOLS, type ToolResult } from '../mcp/tools'
 
 /**
  * Relais MCP lancé par Claude Code (stdio). Il ne fait aucun travail lui-même : chaque appel est
- * transmis à l'app ouverte par le pipe nommé, avec le jeton de l'utilisateur.
+ * transmis à l'app ouverte par le pipe nommé, avec le jeton de l'utilisateur. App fermée : il la lance
+ * sans fenêtre et attend qu'elle réponde.
  * Exécuté par l'exécutable d'Electron en mode Node (ELECTRON_RUN_AS_NODE=1).
  */
 
@@ -46,6 +49,45 @@ function failure(e: unknown, sent: boolean, mutating: boolean): ToolResult {
   return { text: `Erreur : ${(e as Error).message}`, isError: true }
 }
 
+const STARTING = 'Maquette démarre encore'
+/** Temps laissé à Maquette pour démarrer sans fenêtre avant d'abandonner. */
+const START_TIMEOUT_MS = 30_000
+let launching: Promise<void> | null = null
+
+/**
+ * App fermée : le relais la lance lui-même, sans fenêtre (MAQUETTE_HEADLESS), puis attend qu'elle réponde.
+ * En développement l'exécutable est celui d'Electron (on lui donne le dossier de l'app), une fois installée
+ * c'est Maquette.exe. MAQUETTE_NO_AUTOSTART=1 garde l'ancien comportement (message « pas ouverte »).
+ */
+function launchHeadless(): Promise<void> {
+  launching ??= (async () => {
+    const exe = process.execPath
+    const dev = /^electron(\.exe)?$/i.test(basename(exe))
+    const env: NodeJS.ProcessEnv = { ...process.env, MAQUETTE_HEADLESS: '1' }
+    delete env.ELECTRON_RUN_AS_NODE
+    const child = spawn(exe, dev ? [resolve(__dirname, '..', '..')] : [], { env, detached: true, stdio: 'ignore', windowsHide: true })
+    child.unref()
+  })()
+  return launching
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+/** Appel avec démarrage de l'app si elle est fermée : on attend qu'elle soit prête, sans rejouer une modification. */
+async function callStarting(tool: string, args: Record<string, unknown>): Promise<ToolResult> {
+  let result = await call(tool, args)
+  const closed = () => result.isError === true && result.text === APP_CLOSED
+  const starting = () => result.isError === true && result.text.startsWith(STARTING)
+  if (!(closed() || starting()) || process.env.MAQUETTE_NO_AUTOSTART === '1') return result
+  if (closed()) await launchHeadless()
+  const until = Date.now() + START_TIMEOUT_MS
+  while ((closed() || starting()) && Date.now() < until) {
+    await sleep(500)
+    result = await call(tool, args)
+  }
+  return closed() ? { text: 'Maquette n’a pas pu démarrer sans fenêtre : ouvrez l’app puis réessayez.', isError: true } : result
+}
+
 async function call(tool: string, args: Record<string, unknown>): Promise<ToolResult> {
   const mutating = mutates(tool, args)
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -80,7 +122,7 @@ async function main(): Promise<void> {
 
   for (const tool of TOOLS) {
     server.registerTool(tool.name, { description: tool.description, inputSchema: tool.input }, async (args: unknown) => {
-      const result = await call(tool.name, (args ?? {}) as Record<string, unknown>)
+      const result = await callStarting(tool.name, (args ?? {}) as Record<string, unknown>)
       const content: ({ type: 'text'; text: string } | { type: 'image'; data: string; mimeType: string })[] = [
         { type: 'text', text: result.text },
       ]
