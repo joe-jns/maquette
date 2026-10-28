@@ -206,7 +206,7 @@ export function ShadowSection() {
         const n = i + 1
         const num = (key: 'x' | 'y' | 'blur' | 'spread', name: string, label: ReactNode, min?: number) => (
           <NumberField
-            name={`Shadow ${n} ${name}`}
+            name={`Shadow ${n} ${name.toLowerCase()}`}
             label={label}
             min={min}
             value={s[key]}

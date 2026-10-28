@@ -55,8 +55,8 @@ function ImageView({ node, style }: { node: ImageNode; style: CSSProperties }) {
   const [failedSrc, setFailedSrc] = useState<string | null>(null)
   if (!node.src || failedSrc === node.src) {
     return (
-      <div ref={nodeRef(node.id)} data-node-id={node.id} style={style} className="missing-image" role="img" aria-label="Image introuvable">
-        Image introuvable
+      <div ref={nodeRef(node.id)} data-node-id={node.id} style={style} className="missing-image" role="img" aria-label="Image not found">
+        Image not found
       </div>
     )
   }
