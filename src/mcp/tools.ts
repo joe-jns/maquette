@@ -27,6 +27,16 @@ export interface ToolHost {
   images?: ImageHost
   /** Guides, styles et directions (outils guide, style, direction) ; absent : ces outils sont indisponibles. */
   design?: DesignHost
+  /** Fichiers .maquette (outil fichier) ; absent : l'outil répond qu'il n'est pas disponible. */
+  files?: FileHost
+}
+
+/** Ouvrir, créer et enregistrer des fichiers .maquette (l'app peut tourner sans fenêtre visible). */
+export interface FileHost {
+  state(): { chemin: string | null; modifie: boolean; visible: boolean }
+  open(path: string): Promise<{ ok: true; chemin: string } | { ok: false; message: string }>
+  create(path?: string, replace?: boolean): Promise<{ ok: true; chemin: string | null } | { ok: false; message: string }>
+  save(path?: string, replace?: boolean): Promise<{ ok: true; chemin: string } | { ok: false; message: string }>
 }
 
 /** `images` : plusieurs images légendées dans la même réponse (capture de plusieurs éléments). */
@@ -68,6 +78,11 @@ const INPUTS = {
   icones: {
     cherche: z.string().min(1),
     limite: z.number().int().min(1).max(100).optional(),
+  },
+  fichier: {
+    action: z.enum(['etat', 'ouvrir', 'nouveau', 'enregistrer']),
+    chemin: z.string().min(1).optional(),
+    remplacer: z.boolean().optional(),
   },
 } satisfies Record<string, z.ZodRawShape>
 
@@ -130,6 +145,11 @@ export const TOOLS: ToolDef[] = [
     ].join('\n'),
     input: INPUTS.icones,
   },
+  {
+    name: 'fichier',
+    description: 'Fichier .maquette (app fermée : démarre cachée). etat, ouvrir {chemin}, nouveau {chemin?}, enregistrer {chemin?=sous}. Chemin absolu ; remplacer:true.',
+    input: INPUTS.fichier,
+  },
   ...DESIGN_TOOLS,
 ]
 
@@ -166,7 +186,24 @@ export async function runTool(host: ToolHost, name: string, args: unknown): Prom
       return runImages(host, parsed.data as Parameters<typeof runImages>[1])
     case 'icones':
       return ok(icons(a.cherche as string, (a.limite as number | undefined) ?? 30))
+    case 'fichier':
+      return runFile(host, a as { action: 'etat' | 'ouvrir' | 'nouveau' | 'enregistrer'; chemin?: string; remplacer?: boolean })
   }
+}
+
+// ——— fichier ———
+
+async function runFile(host: ToolHost, a: { action: 'etat' | 'ouvrir' | 'nouveau' | 'enregistrer'; chemin?: string; remplacer?: boolean }): Promise<ToolResult> {
+  const files = host.files
+  if (!files) return error('fichier : indisponible ici')
+  if (a.action === 'etat') return ok(files.state())
+  if (a.action === 'ouvrir' && !a.chemin) return error('fichier ouvrir : chemin manquant')
+  if (a.chemin && !/\.maquette$/i.test(a.chemin)) return error('fichier : le chemin doit finir par .maquette')
+  const r =
+    a.action === 'ouvrir' ? await files.open(a.chemin!)
+    : a.action === 'nouveau' ? await files.create(a.chemin, a.remplacer)
+    : await files.save(a.chemin, a.remplacer)
+  return r.ok ? ok({ chemin: r.chemin, ...(a.action !== 'enregistrer' ? { suite: 'lire_document' } : {}) }) : error(r.message)
 }
 
 // ——— lire_document ———

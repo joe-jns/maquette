@@ -155,3 +155,26 @@ describe('outils MCP', () => {
     expect(JSON.parse((await runTool(h, 'selection', {})).text)).toEqual([{ id: 'R1', type: 'shape', nom: 'Bleu' }])
   })
 })
+
+describe('outil fichier', () => {
+  const calls: string[] = []
+  const files = {
+    state: () => ({ chemin: 'C:/a.maquette', modifie: false, visible: false }),
+    open: async (p: string) => (calls.push(`open ${p}`), { ok: true as const, chemin: p }),
+    create: async (p?: string) => (calls.push(`create ${p ?? ''}`), { ok: true as const, chemin: p ?? null }),
+    save: async (p?: string, r?: boolean) => (calls.push(`save ${p ?? ''} ${r ?? ''}`), p === 'C:/pris.maquette' ? { ok: false as const, message: 'existe déjà' } : { ok: true as const, chemin: p ?? 'C:/a.maquette' }),
+  }
+  const h = () => ({ ...host(scene()), files })
+
+  it('état, ouvrir, nouveau, enregistrer (sous) ; refus lisibles', async () => {
+    expect(JSON.parse((await runTool(h(), 'fichier', { action: 'etat' })).text)).toEqual({ chemin: 'C:/a.maquette', modifie: false, visible: false })
+    expect(JSON.parse((await runTool(h(), 'fichier', { action: 'ouvrir', chemin: 'C:/b.maquette' })).text)).toEqual({ chemin: 'C:/b.maquette', suite: 'lire_document' })
+    await runTool(h(), 'fichier', { action: 'nouveau' })
+    await runTool(h(), 'fichier', { action: 'enregistrer', chemin: 'C:/c.maquette', remplacer: true })
+    expect(calls).toEqual(['open C:/b.maquette', 'create ', 'save C:/c.maquette true'])
+    expect(await runTool(h(), 'fichier', { action: 'ouvrir' })).toMatchObject({ isError: true, text: expect.stringContaining('chemin manquant') })
+    expect(await runTool(h(), 'fichier', { action: 'ouvrir', chemin: 'C:/x.png' })).toMatchObject({ isError: true, text: expect.stringContaining('.maquette') })
+    expect(await runTool(h(), 'fichier', { action: 'enregistrer', chemin: 'C:/pris.maquette' })).toMatchObject({ isError: true, text: 'existe déjà' })
+    expect(await runTool(host(scene()), 'fichier', { action: 'etat' })).toMatchObject({ isError: true })
+  })
+})
