@@ -55,7 +55,7 @@ export function registerSessionIpc(): void {
     // Les sans-titre de ce lancement ne sont pas « à récupérer » : ce sont ceux qu'on est en train d'écrire.
     return list
       .filter((b) => b.path !== null || !b.id.endsWith(session))
-      .map((b) => ({ id: b.id, name: b.path ? basename(b.path) : 'Sans titre', savedAt: b.savedAt }))
+      .map((b) => ({ id: b.id, name: b.path ? basename(b.path) : 'Untitled', savedAt: b.savedAt }))
   })
   ipcMain.handle('backup:restore', async (_e, id: string): Promise<OpenedFile | null> => {
     // La copie n'est effacée qu'une fois le document rouvert et recopié (backup:discard par la fenêtre).
@@ -92,9 +92,9 @@ export function guardClose(win: BrowserWindow): void {
     asking.add(win)
     // Posée dans la fenêtre qui ferme ; fermée ou rechargée entre-temps : « Annuler ».
     void askWindow(win, {
-      message: `Enregistrer les modifications de ${state.name} ?`,
-      detail: 'Sinon, elles seront perdues.',
-      buttons: [{ label: 'Enregistrer', kind: 'primary' }, { label: 'Ne pas enregistrer', kind: 'danger' }, { label: 'Annuler' }],
+      message: `Save changes to ${state.name}?`,
+      detail: 'Your changes will be lost if you don’t save them.',
+      buttons: [{ label: 'Save', kind: 'primary' }, { label: 'Don’t save', kind: 'danger' }, { label: 'Cancel' }],
       defaultIndex: 0,
       cancelIndex: 2,
     }).then(async (response) => {

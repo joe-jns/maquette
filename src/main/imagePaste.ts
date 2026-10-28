@@ -64,8 +64,8 @@ const net: Fetch = (url, init) => fetch(url, init)
 /** Télécharge une image du web (http, https ou data:) dans le dossier des images du document. */
 export async function fetchImage(url: string, f: Fetch = net): Promise<ImageImport> {
   const dir = getAssetDir()
-  if (!dir) return { ok: false, message: 'dossier des images indisponible' }
-  if (!/^(https?:|data:image\/)/i.test(url)) return { ok: false, message: 'adresse d’image non prise en charge' }
+  if (!dir) return { ok: false, message: 'image folder unavailable' }
+  if (!/^(https?:|data:image\/)/i.test(url)) return { ok: false, message: 'unsupported image address' }
   try {
     const file = await download(f, url, MAX_WEB_BYTES, WEB_TIMEOUT_MS)
     const name = nameFromUrl(url)
@@ -81,11 +81,11 @@ export function registerImagePasteIpc(): void {
     const dir = getAssetDir()
     try {
       const png = await source().png()
-      if (!dir || !png) return { ok: false, message: 'pas d’image dans le presse-papiers' }
-      return { ok: true, name: 'Image collée', ...(await importImage(dir, 'image.png', png)) }
+      if (!dir || !png) return { ok: false, message: 'no image in the clipboard' }
+      return { ok: true, name: 'Pasted image', ...(await importImage(dir, 'image.png', png)) }
     } catch (e) {
       return { ok: false, message: (e as Error).message }
     }
   })
-  ipcMain.handle('image:fetch', (_e, url: unknown) => (typeof url === 'string' ? fetchImage(url) : { ok: false, message: 'adresse invalide' }))
+  ipcMain.handle('image:fetch', (_e, url: unknown) => (typeof url === 'string' ? fetchImage(url) : { ok: false, message: 'invalid address' }))
 }

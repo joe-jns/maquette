@@ -31,7 +31,7 @@ export function registerFileIpc(fileArg: string | undefined): void {
   ipcMain.handle('image:import', async (_event, args: { name: string; bytes: Uint8Array }): Promise<ImageImport> => {
     // Document jamais enregistré : dossier d'attente, recopié au premier enregistrement.
     const dir = getAssetDir()
-    if (!dir) return { ok: false, message: 'dossier des images indisponible' }
+    if (!dir) return { ok: false, message: 'image folder unavailable' }
     try {
       return { ok: true, ...(await importImage(dir, args.name, args.bytes)) }
     } catch (e) {
@@ -58,7 +58,7 @@ export function registerFileIpc(fileArg: string | undefined): void {
     let target = allowedSavePath(args.path)
     if (!target) {
       const win = BrowserWindow.fromWebContents(event.sender)
-      const options = { filters: FILTERS, defaultPath: 'Sans titre.maquette' }
+      const options = { filters: FILTERS, defaultPath: 'Untitled.maquette' }
       const res = win ? await dialog.showSaveDialog(win, options) : await dialog.showSaveDialog(options)
       if (res.canceled || !res.filePath) return null
       target = res.filePath.toLowerCase().endsWith('.maquette') ? res.filePath : `${res.filePath}.maquette`

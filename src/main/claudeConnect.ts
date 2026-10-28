@@ -46,18 +46,18 @@ export async function connectClaudeCode(win: BrowserWindow | undefined): Promise
   const existing = await claude(['mcp', 'get', NAME])
   // 9009 : code de cmd pour « commande introuvable » (message traduit selon la langue de Windows).
   if (existing.code === 9009 || existing.code === 127 || /ENOENT/.test(existing.out)) {
-    await box({ title: 'Claude Code introuvable', message: 'Claude Code n’est pas installé sur cet ordinateur (commande « claude » introuvable).', detail: 'Installez Claude Code, puis recommencez.', buttons: OK, cancelIndex: 0, defaultIndex: 0 })
+    await box({ title: 'Claude Code not found', message: 'Claude Code is not installed on this computer (the “claude” command was not found).', detail: 'Install Claude Code, then try again.', buttons: OK, cancelIndex: 0, defaultIndex: 0 })
     return
   }
   const already = existing.code === 0
   const response = await box({
-    title: 'Connecter à Claude Code',
+    title: 'Connect to Claude Code',
     message: already
-      ? 'Maquette est déjà connectée à Claude Code. Remplacer la connexion par celle de cette installation ?'
-      : 'Connecter Maquette à Claude Code ? Claude pourra lire et modifier le document ouvert.',
-    detail: 'Commande lancée :',
+      ? 'Maquette is already connected to Claude Code. Replace the connection with this installation?'
+      : 'Connect Maquette to Claude Code? Claude will be able to read and edit the open document.',
+    detail: 'Command to run:',
     code: displayCommand(args),
-    buttons: [{ label: 'Annuler' }, { label: already ? 'Remplacer' : 'Connecter', kind: 'primary' }],
+    buttons: [{ label: 'Cancel' }, { label: already ? 'Replace' : 'Connect', kind: 'primary' }],
     defaultIndex: 1,
     cancelIndex: 0,
   })
@@ -67,11 +67,11 @@ export async function connectClaudeCode(win: BrowserWindow | undefined): Promise
   const result = await claude(args)
   await box(
     result.code === 0
-      ? { title: 'Connecté', message: 'Maquette est connectée à Claude Code.', detail: 'Ouvrez une nouvelle session Claude Code : les outils de Maquette y seront disponibles tant que l’app est ouverte.', buttons: OK, cancelIndex: 0, defaultIndex: 0 }
+      ? { title: 'Connected', message: 'Maquette is connected to Claude Code.', detail: 'Start a new Claude Code session: the Maquette tools will be available there while the app is open.', buttons: OK, cancelIndex: 0, defaultIndex: 0 }
       : {
-          title: 'Connexion impossible',
-          message: already ? 'Claude Code a refusé la nouvelle connexion (l’ancienne a été retirée).' : 'Claude Code a refusé la connexion.',
-          code: result.out || `Code de sortie ${result.code}`,
+          title: 'Connection failed',
+          message: already ? 'Claude Code refused the new connection (the old one was removed).' : 'Claude Code refused the connection.',
+          code: result.out || `Exit code ${result.code}`,
           buttons: OK,
           cancelIndex: 0,
           defaultIndex: 0,

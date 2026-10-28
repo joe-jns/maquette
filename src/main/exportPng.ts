@@ -282,14 +282,14 @@ export function registerExportIpc(): void {
     if (win && event.sender === win.webContents) return null
     const scale = [1, 2, 3].includes(args.scale) ? args.scale : 1
     const node = findVisible(args.doc, args.nodeId)
-    if (!node) throw new Error('élément introuvable ou masqué')
+    if (!node) throw new Error('layer not found or hidden')
     const rendered = await renderNode(args.doc, args.nodeId, { scale, format: 'png' })
-    if (!rendered) throw new Error('le rendu de l’élément a échoué')
+    if (!rendered) throw new Error('the layer could not be rendered')
     const name = exportFileName(node.name, scale)
     const dir = getCurrentDir()
     const options = {
       defaultPath: dir ? join(dir, name) : name,
-      filters: [{ name: 'Image PNG', extensions: ['png'] }],
+      filters: [{ name: 'PNG image', extensions: ['png'] }],
     }
     const parent = BrowserWindow.fromWebContents(event.sender)
     const res = parent ? await dialog.showSaveDialog(parent, options) : await dialog.showSaveDialog(options)
