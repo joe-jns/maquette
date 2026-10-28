@@ -140,16 +140,6 @@ body { font: var(--panel-font); letter-spacing: var(--ls); background: var(--can
   background: var(--field-bg); border-radius: var(--radius-sm); padding: 0 4px; white-space: nowrap;
 }
 
-/* Éléments que Claude vient de toucher (outil « appliquer »). */
-[data-claude-flash] {
-  outline: 2px solid #f97316;
-  outline-offset: 2px;
-  animation: claude-flash 1.2s ease-out forwards;
-}
-@keyframes claude-flash {
-  0%, 60% { outline-color: #f97316; }
-  100% { outline-color: transparent; }
-}
 /* Variables / Direction ouverts : fond gris, le bleu reste réservé à l'outil actif. */
 .toolbar > button[data-floating-button][aria-pressed='true'] { background: var(--field-bg); color: var(--icon); }
 /* Fenêtre Variables : centrée, deux colonnes (couleurs | styles de texte), fond assombri. */
