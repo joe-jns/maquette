@@ -11,7 +11,7 @@ import { PagesPanel } from './PagesPanel'
 
 /** Nom affiché du fichier : sans dossier ni extension, « Sans titre » s'il n'est pas encore enregistré. */
 export function fileTitle(path: string | null): string {
-  if (!path) return 'Sans titre'
+  if (!path) return 'Untitled'
   return path.split(/[\\/]/).pop()!.replace(/\.maquette$/i, '')
 }
 
@@ -30,13 +30,13 @@ function FileHeader() {
         className="file-title"
         aria-haspopup="menu"
         aria-expanded={open}
-        data-tooltip={filePath ?? 'Document non enregistré'}
+        data-tooltip={filePath ?? 'Unsaved document'}
         onClick={() => setOpen((o) => !o)}
       >
         <span className="file-name">{title}</span>
         {dirty && (
           <span className="file-dirty" data-testid="file-dirty">
-            <span className="visually-hidden">(modifié)</span>
+            <span className="visually-hidden">(edited)</span>
           </span>
         )}
         <Icon name="chevronDownSmall" size={16} className="file-chevron" />
@@ -44,17 +44,17 @@ function FileHeader() {
       {open && (
         <QuickMenu
           anchor={button}
-          label="Fichier"
+          label="File"
           placement="below"
           onClose={() => setOpen(false)}
           entries={[
-            { id: 'home', label: 'Accueil', shortcut: 'Ctrl+Maj+H', onSelect: () => void runCommand('home') },
+            { id: 'home', label: 'Home', shortcut: 'Ctrl+Shift+H', onSelect: () => void runCommand('home') },
             'separator',
-            { id: 'new', label: 'Nouveau', shortcut: 'Ctrl+N', onSelect: () => void runCommand('new') },
-            { id: 'open', label: 'Ouvrir…', shortcut: 'Ctrl+O', onSelect: () => void runCommand('open') },
+            { id: 'new', label: 'New', shortcut: 'Ctrl+N', onSelect: () => void runCommand('new') },
+            { id: 'open', label: 'Open…', shortcut: 'Ctrl+O', onSelect: () => void runCommand('open') },
             'separator',
-            { id: 'save', label: 'Enregistrer', shortcut: 'Ctrl+S', onSelect: () => void runCommand('save') },
-            { id: 'save-as', label: 'Enregistrer sous…', shortcut: 'Ctrl+Maj+S', onSelect: () => void runCommand('save-as') },
+            { id: 'save', label: 'Save', shortcut: 'Ctrl+S', onSelect: () => void runCommand('save') },
+            { id: 'save-as', label: 'Save as…', shortcut: 'Ctrl+Shift+S', onSelect: () => void runCommand('save-as') },
           ]}
         />
       )}

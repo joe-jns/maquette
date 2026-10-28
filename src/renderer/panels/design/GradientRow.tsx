@@ -7,7 +7,7 @@ import { NumberField } from './NumberField'
 import { Icon, scrubWith } from './shared'
 
 const TYPES: { value: Gradient['type']; label: string }[] = [
-  { value: 'linear', label: 'Linéaire' },
+  { value: 'linear', label: 'Linear' },
   { value: 'radial', label: 'Radial' },
 ]
 
@@ -51,7 +51,7 @@ export function GradientRow({ name, gradient, styles, apply, onRemove, opsFor }:
   const setStop = (k: number, patch: Partial<GradientStop>) => withStops(stops.map((s, i) => (i === k ? { ...s, ...patch } : s)))
   const setType = (type: Gradient['type']): Gradient =>
     type === 'linear' ? { type, angle: gradient.type === 'linear' ? gradient.angle : 180, stops } : { type, stops }
-  const label = gradient.type === 'linear' ? `Linéaire ${Math.round(gradient.angle)}°` : 'Radial'
+  const label = gradient.type === 'linear' ? `Linear ${Math.round(gradient.angle)}°` : 'Radial'
 
   const addStop = () => {
     // Au milieu du plus grand écart entre deux arrêts.
@@ -76,19 +76,19 @@ export function GradientRow({ name, gradient, styles, apply, onRemove, opsFor }:
           <button
             type="button"
             className="icon-button"
-            aria-label={`Couleur unie pour le ${name.toLowerCase()}`}
-            data-tooltip="Couleur unie"
+            aria-label={`Solid color for ${name.toLowerCase()}`}
+            data-tooltip="Solid color"
             onClick={() => apply(stops[0]!.color, 'commit')}
           >
             <Icon d={SOLID_GLYPH} />
           </button>
-          <button type="button" className="icon-button" aria-label={`Retirer : ${name.toLowerCase()}`} data-tooltip="Retirer" onClick={onRemove}>
+          <button type="button" className="icon-button" aria-label={`Remove ${name.toLowerCase()}`} data-tooltip="Remove" onClick={onRemove}>
             <Icon d="M4 8h8" />
           </button>
         </span>
       </div>
       <div className="field-grid">
-        <div className="segmented" role="group" aria-label="Type de dégradé">
+        <div className="segmented" role="group" aria-label="Gradient type">
           {TYPES.map((t) => (
             <button key={t.value} type="button" aria-pressed={gradient.type === t.value} onClick={() => apply(setType(t.value), 'commit')}>
               {t.label}
@@ -96,7 +96,7 @@ export function GradientRow({ name, gradient, styles, apply, onRemove, opsFor }:
           ))}
         </div>
         <NumberField
-          name="Angle du dégradé"
+          name="Gradient angle"
           label={<Icon d={ANGLE_GLYPH} />}
           suffix="°"
           disabled={gradient.type !== 'linear'}
@@ -109,7 +109,7 @@ export function GradientRow({ name, gradient, styles, apply, onRemove, opsFor }:
         <div key={k} className="gradient-stop">
           <div className="stop-position">
             <NumberField
-              name={`Position de l’arrêt ${k + 1}`}
+              name={`Stop ${k + 1} position`}
               label=""
               suffix="%"
               min={0}
@@ -119,7 +119,7 @@ export function GradientRow({ name, gradient, styles, apply, onRemove, opsFor }:
             />
           </div>
           <ColorRow
-            name={`Arrêt ${k + 1}`}
+            name={`Stop ${k + 1}`}
             compact
             color={s.color}
             styles={styles}
@@ -129,7 +129,7 @@ export function GradientRow({ name, gradient, styles, apply, onRemove, opsFor }:
         </div>
       ))}
       <button type="button" className="text-button" onClick={addStop}>
-        Ajouter un arrêt
+        Add stop
       </button>
     </div>
   )

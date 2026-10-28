@@ -12,7 +12,7 @@ const MARGIN = 2
  * Sélecteur d'icône Lucide : recherche (français ou anglais) et grille virtualisée (seules les
  * rangées visibles sont dessinées). Entrée prend la première icône, Échap ferme, un clic dehors aussi.
  */
-export function IconPicker({ current, onPick, onClose, className, label = 'Choisir une icône' }: {
+export function IconPicker({ current, onPick, onClose, className, label = 'Choose an icon' }: {
   current?: string
   onPick(name: string): void
   onClose(): void
@@ -63,8 +63,8 @@ export function IconPicker({ current, onPick, onClose, className, label = 'Chois
       <input
         autoFocus
         type="search"
-        aria-label="Rechercher une icône"
-        placeholder={`Rechercher parmi ${ICON_NAMES.length} icônes`}
+        aria-label="Search icons"
+        placeholder={`Search ${ICON_NAMES.length} icons`}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={(e) => {
@@ -75,7 +75,7 @@ export function IconPicker({ current, onPick, onClose, className, label = 'Chois
         className="icon-grid"
         ref={grid}
         role="listbox"
-        aria-label="Icônes"
+        aria-label="Icons"
         style={{ height: HEIGHT }}
         onScroll={(e) => setScroll(e.currentTarget.scrollTop)}
       >
@@ -99,10 +99,10 @@ export function IconPicker({ current, onPick, onClose, className, label = 'Chois
             )
           })}
         </div>
-        {results.length === 0 && <p className="empty-note">Aucune icône ne correspond.</p>}
+        {results.length === 0 && <p className="empty-note">No matching icons.</p>}
       </div>
       <p className="icon-picker-name" aria-live="polite">
-        {hover ?? (query.trim() ? `${results.length} icône${results.length > 1 ? 's' : ''}` : current ?? 'Lucide')}
+        {hover ?? (query.trim() ? `${results.length} icon${results.length > 1 ? 's' : ''}` : current ?? 'Lucide')}
       </p>
     </div>
   )

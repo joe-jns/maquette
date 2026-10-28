@@ -8,7 +8,7 @@ import { NumberField } from './NumberField'
 import { commit, FIELD_GLYPH, Icon, scrubWith, Section, useMeasured, useSelection } from './shared'
 
 const MODE_LABEL: Record<SizeChoice, string> = { fixed: 'fixe', hug: 'contenu', fill: 'remplir' }
-const MODE_TEXT: Record<SizeChoice, string> = { fixed: 'Fixe', hug: 'Contenu', fill: 'Remplir' }
+const MODE_TEXT: Record<SizeChoice, string> = { fixed: 'Fixed', hug: 'Hug', fill: 'Fill' }
 const modeOf = (n: Node, axis: Axis): SizeChoice => {
   const s = n[axis]
   return typeof s === 'number' ? 'fixed' : s.mode
@@ -43,7 +43,7 @@ export function PositionSection() {
     const shown = current === 'hug' || current === 'fill' ? MODE_TEXT[current] : null
     return (
       <Select
-        label={`${name} : mode`}
+        label={`${name} mode`}
         className={`size-mode${shown ? ' has-mode' : ''}`}
         value={current === 'mixed' || current === null ? null : current}
         options={options}
@@ -75,14 +75,14 @@ export function PositionSection() {
   const radius = mixed(hasRadius.map((n) => ('radius' in n ? n.radius : 0)))
 
   return (
-    <Section title="Position et taille">
+    <Section title="Position">
       <div className="field-grid">
         <NumberField
           name="X"
           label="X"
           value={flowOnly ? null : mixed(free.map((l) => l.node.x ?? 0))}
           disabled={flowOnly}
-          title={flowOnly ? 'Position calculée par la mise en page automatique' : undefined}
+          title={flowOnly ? 'Position set by auto layout' : undefined}
           onCommit={(v) => commit(positionOps(doc, ids, 'x', v), 'Déplacer')}
           scrub={scrubWith('Déplacer', (v) => positionOps(doc, ids, 'x', v))}
         />
@@ -91,16 +91,16 @@ export function PositionSection() {
           label="Y"
           value={flowOnly ? null : mixed(free.map((l) => l.node.y ?? 0))}
           disabled={flowOnly}
-          title={flowOnly ? 'Position calculée par la mise en page automatique' : undefined}
+          title={flowOnly ? 'Position set by auto layout' : undefined}
           onCommit={(v) => commit(positionOps(doc, ids, 'y', v), 'Déplacer')}
           scrub={scrubWith('Déplacer', (v) => positionOps(doc, ids, 'y', v))}
         />
-        {axisField('width', 'Largeur', 'L')}
-        {axisField('height', 'Hauteur', 'H')}
+        {axisField('width', 'Width', 'W')}
+        {axisField('height', 'Height', 'H')}
       </div>
       <div className="field-grid">
         <NumberField
-          name="Opacité"
+          name="Opacity"
           label={<Icon d={FIELD_GLYPH.opacity} />}
           suffix="%"
           min={0}
@@ -111,7 +111,7 @@ export function PositionSection() {
         />
         {hasRadius.length > 0 && (
           <NumberField
-            name="Arrondi"
+            name="Corner radius"
             label={<Icon d={FIELD_GLYPH.radius} />}
             min={0}
             value={typeof radius === 'object' && radius !== null ? 'mixed' : radius}

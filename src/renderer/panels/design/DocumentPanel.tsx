@@ -90,41 +90,41 @@ export function DocumentPanel() {
   return (
     <div className="design">
       <Section
-        title="Couleurs nommées"
+        title="Colors"
         actions={
           <IconButton
-            label="Ajouter une couleur nommée"
-            onClick={() => commit([{ op: 'style.color.set', name: `Couleur ${styles.colors.length + 1}`, value: '#0D99FF' }], 'Ajouter une couleur nommée')}
+            label="Add color"
+            onClick={() => commit([{ op: 'style.color.set', name: `Color ${styles.colors.length + 1}`, value: '#0D99FF' }], 'Ajouter une couleur nommée')}
           >
             <Icon d="M8 3v10M3 8h10" />
           </IconButton>
         }
       >
-        {styles.colors.length === 0 && <p className="empty-note inline">Aucune. Une couleur nommée change partout à la fois.</p>}
+        {styles.colors.length === 0 && <p className="empty-note inline">None yet. A color variable updates everywhere at once.</p>}
         {styles.colors.map((c, i) => (
           <div key={c.id} className="style-row">
             <span className="swatch" style={{ background: c.value }}>
               <StyleColorInput
-                label={`Sélecteur de la couleur ${i + 1}`}
+                label={`Color ${i + 1} picker`}
                 value={c.value}
                 opsFor={(value) => [{ op: 'style.color.set', id: c.id, name: c.name, value }]}
               />
             </span>
             <NameField
-              name={`Nom de la couleur ${i + 1}`}
+              name={`Color ${i + 1} name`}
               value={c.name}
               onCommit={(name) => commit([{ op: 'style.color.set', id: c.id, name, value: c.value }], 'Renommer la couleur')}
             />
             <HexField
-              name={`Couleur nommée ${i + 1}`}
+              name={`Color ${i + 1}`}
               value={c.value}
               onCommit={(value) => commit([{ op: 'style.color.set', id: c.id, name: c.name, value }], 'Couleur nommée')}
             />
             <button
               type="button"
               className="icon-button small"
-              aria-label={`Supprimer la couleur nommée ${c.name}`}
-              data-tooltip="Supprimer (les éléments gardent la couleur)"
+              aria-label={`Delete color ${c.name}`}
+              data-tooltip="Delete (layers keep the color)"
               onClick={() => commit([{ op: 'style.delete', id: c.id }], 'Supprimer la couleur nommée')}
             >
               <Icon d="M4 8h8" />
@@ -134,13 +134,13 @@ export function DocumentPanel() {
       </Section>
 
       <Section
-        title="Styles de texte"
+        title="Text styles"
         actions={
           <IconButton
-            label="Ajouter un style de texte"
+            label="Add text style"
             onClick={() =>
               commit(
-                [{ op: 'style.text.set', name: `Texte ${styles.text.length + 1}`, fontFamily: 'Inter', fontWeight: 400, fontStyle: 'normal', fontSize: 16, lineHeight: 24, letterSpacing: 0 }],
+                [{ op: 'style.text.set', name: `Text ${styles.text.length + 1}`, fontFamily: 'Inter', fontWeight: 400, fontStyle: 'normal', fontSize: 16, lineHeight: 24, letterSpacing: 0 }],
                 'Ajouter un style de texte',
               )
             }
@@ -149,24 +149,24 @@ export function DocumentPanel() {
           </IconButton>
         }
       >
-        {styles.text.length === 0 && <p className="empty-note inline">Aucun. Un style de texte réunit police, taille et interligne.</p>}
+        {styles.text.length === 0 && <p className="empty-note inline">None yet. A text style combines font, size and line height.</p>}
         {styles.text.map((s, i) => (
           <div key={s.id} className="text-style-block">
             <div className="style-row">
               <span className="text-style-preview" style={{ fontFamily: `"${s.fontFamily}", system-ui`, fontWeight: s.fontWeight }} aria-hidden>Ag</span>
-              <NameField name={`Nom du style ${i + 1}`} value={s.name} onCommit={(name) => setText(s, { name })} />
+              <NameField name={`Text style ${i + 1} name`} value={s.name} onCommit={(name) => setText(s, { name })} />
               <button
                 type="button"
                 className="icon-button small"
-                aria-label={`Supprimer le style de texte ${s.name}`}
-                data-tooltip="Supprimer (les textes gardent leur mise en forme)"
+                aria-label={`Delete text style ${s.name}`}
+                data-tooltip="Delete (text layers keep their formatting)"
                 onClick={() => commit([{ op: 'style.delete', id: s.id }], 'Supprimer le style de texte')}
               >
                 <Icon d="M4 8h8" />
               </button>
             </div>
             <div className="font-row">
-              <button type="button" className="font-button" data-font-trigger aria-label={`Police du style ${i + 1}`} onClick={() => setPicking(picking === s.id ? null : s.id)}>
+              <button type="button" className="font-button" data-font-trigger aria-label={`Text style ${i + 1} font`} onClick={() => setPicking(picking === s.id ? null : s.id)}>
                 <span style={{ fontFamily: `"${s.fontFamily}", system-ui` }}>{s.fontFamily}</span>
                 <Icon d="M5 6.5 8 9.5l3-3" />
               </button>
@@ -188,14 +188,14 @@ export function DocumentPanel() {
             </div>
             <div className="field-grid">
               <Select
-                label={`Graisse du style ${i + 1}`}
+                label={`Text style ${i + 1} weight`}
                 value={String(s.fontWeight)}
                 options={weightOptions(weightsOf(fullCatalog.find((f) => f.family === s.fontFamily)))}
                 onChange={(v) => setText(s, { fontWeight: Number(v) })}
               />
-              <NumberField name={`Taille du style ${i + 1}`} label={<Icon d={FIELD_GLYPH.fontSize} />} min={1} value={s.fontSize} onCommit={(fontSize) => setText(s, { fontSize })} />
-              <NumberField name={`Interligne du style ${i + 1}`} label={<Icon d={FIELD_GLYPH.lineHeight} />} min={1} value={s.lineHeight} onCommit={(lineHeight) => setText(s, { lineHeight })} />
-              <NumberField name={`Espacement du style ${i + 1}`} label={<Icon d={FIELD_GLYPH.letterSpacing} />} step={0.1} value={s.letterSpacing} onCommit={(letterSpacing) => setText(s, { letterSpacing })} />
+              <NumberField name={`Text style ${i + 1} size`} label={<Icon d={FIELD_GLYPH.fontSize} />} min={1} value={s.fontSize} onCommit={(fontSize) => setText(s, { fontSize })} />
+              <NumberField name={`Text style ${i + 1} line height`} label={<Icon d={FIELD_GLYPH.lineHeight} />} min={1} value={s.lineHeight} onCommit={(lineHeight) => setText(s, { lineHeight })} />
+              <NumberField name={`Text style ${i + 1} letter spacing`} label={<Icon d={FIELD_GLYPH.letterSpacing} />} step={0.1} value={s.letterSpacing} onCommit={(letterSpacing) => setText(s, { letterSpacing })} />
             </div>
           </div>
         ))}

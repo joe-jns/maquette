@@ -23,7 +23,7 @@ export function InlineName({ value, onCommit, onDone }: { value: string; onCommi
       ref={ref}
       className="inline-name"
       defaultValue={value}
-      aria-label="Nouveau nom"
+      aria-label="New name"
       spellCheck={false}
       onBlur={() => finish(true)}
       onClick={(e) => e.stopPropagation()}

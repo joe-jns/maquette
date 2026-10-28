@@ -13,7 +13,7 @@ import { commit, FIELD_GLYPH, Icon, scrubWith, Section, useSelection } from './s
 
 /** Polices installées sur Windows, proposées en plus du catalogue Google. */
 export const SYSTEM_FONTS: FontInfo[] = ['Arial', 'Georgia', 'Times New Roman', 'Verdana', 'Courier New', 'Segoe UI', 'Tahoma', 'Trebuchet MS'].map(
-  (family) => ({ family, category: 'Système', weights: [400, 700], italic: true, variable: null }),
+  (family) => ({ family, category: 'System', weights: [400, 700], italic: true, variable: null }),
 )
 
 export const WEIGHT_NAMES: Record<number, string> = {
@@ -73,15 +73,15 @@ export function FontPicker({ current, catalog, onPick, onClose }: { current: str
       <input
         autoFocus
         type="search"
-        aria-label="Rechercher une police"
-        placeholder={`Rechercher parmi ${catalog.length} polices`}
+        aria-label="Search fonts"
+        placeholder={`Search ${catalog.length} fonts`}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === 'Enter' && results[0]) onPick(results[0].family)
         }}
       />
-      <div className="font-results" role="listbox" aria-label="Polices">
+      <div className="font-results" role="listbox" aria-label="Fonts">
         {results.map((f) => (
           <button
             key={f.family}
@@ -100,23 +100,23 @@ export function FontPicker({ current, catalog, onPick, onClose }: { current: str
             <span className="font-category">{f.category}</span>
           </button>
         ))}
-        {results.length === 0 && <p className="empty-note">Aucune police ne correspond.</p>}
+        {results.length === 0 && <p className="empty-note">No matching fonts.</p>}
       </div>
     </div>
   )
 }
 
 const ALIGNS: { value: TextNode['textAlign']; label: string; d: string }[] = [
-  { value: 'left', label: 'gauche', d: 'M3 4h10M3 8h6M3 12h8' },
-  { value: 'center', label: 'centre', d: 'M3 4h10M5 8h6M4 12h8' },
-  { value: 'right', label: 'droite', d: 'M3 4h10M7 8h6M5 12h8' },
-  { value: 'justify', label: 'justifié', d: 'M3 4h10M3 8h10M3 12h10' },
+  { value: 'left', label: 'left', d: 'M3 4h10M3 8h6M3 12h8' },
+  { value: 'center', label: 'center', d: 'M3 4h10M5 8h6M4 12h8' },
+  { value: 'right', label: 'right', d: 'M3 4h10M7 8h6M5 12h8' },
+  { value: 'justify', label: 'justify', d: 'M3 4h10M3 8h10M3 12h10' },
 ]
 
 const SIZINGS: { value: TextNode['textSizing']; label: string }[] = [
-  { value: 'auto', label: 'Largeur auto' },
-  { value: 'auto-height', label: 'Hauteur auto' },
-  { value: 'fixed', label: 'Fixe' },
+  { value: 'auto', label: 'Auto width' },
+  { value: 'auto-height', label: 'Auto height' },
+  { value: 'fixed', label: 'Fixed' },
 ]
 
 /** Police, graisse, taille, interligne, espacement, alignement, couleur, style de texte nommé. */
@@ -189,7 +189,7 @@ export function TextSection() {
     commit(
       [
         {
-          op: 'style.text.set', id: '$text', name: `Texte ${styles.text.length + 1}`,
+          op: 'style.text.set', id: '$text', name: `Text ${styles.text.length + 1}`,
           fontFamily: f.fontFamily, fontWeight: f.fontWeight, fontStyle: f.fontStyle, fontSize: f.fontSize, lineHeight: f.lineHeight, letterSpacing: f.letterSpacing,
         },
         ...set({ textStyle: '$text' }),
@@ -200,10 +200,10 @@ export function TextSection() {
 
   return (
     <Section
-      title="Texte"
+      title="Text"
       actions={
         styleId === '' ? (
-          <button type="button" className="icon-button" aria-label="Créer un style de texte depuis la sélection" data-tooltip="Créer un style de texte" onClick={createStyle}>
+          <button type="button" className="icon-button" aria-label="Create text style from selection" data-tooltip="Create text style" onClick={createStyle}>
             <Icon d="M8 3v10M3 8h10" />
           </button>
         ) : undefined
@@ -213,39 +213,39 @@ export function TextSection() {
         <div className="select-field">
           <span aria-hidden>Style</span>
           <Select
-            label="Style de texte"
+            label="Text style"
             value={styleId === 'mixed' ? null : styleId ?? ''}
-            options={[{ value: '', label: 'Aucun style' }, ...styles.text.map((s) => ({ value: s.id, label: s.name, hint: `${s.fontSize}/${s.lineHeight}` }))]}
+            options={[{ value: '', label: 'No style' }, ...styles.text.map((s) => ({ value: s.id, label: s.name, hint: `${s.fontSize}/${s.lineHeight}` }))]}
             onChange={(v) => commit(set({ textStyle: v || null }), 'Style de texte')}
           />
         </div>
       )}
       <div className="font-row">
-        <button type="button" className="font-button" data-font-trigger aria-label="Police" aria-expanded={picking} onClick={() => setPicking((p) => !p)}>
-          <span style={{ fontFamily: typeof family === 'string' ? `"${family}", system-ui` : undefined }}>{family === 'mixed' ? 'Mixte' : family}</span>
+        <button type="button" className="font-button" data-font-trigger aria-label="Font" aria-expanded={picking} onClick={() => setPicking((p) => !p)}>
+          <span style={{ fontFamily: typeof family === 'string' ? `"${family}", system-ui` : undefined }}>{family === 'mixed' ? 'Mixed' : family}</span>
           <Icon d="M5 6.5 8 9.5l3-3" />
         </button>
         {picking && <FontPicker current={typeof family === 'string' ? family : ''} catalog={fullCatalog} onPick={pickFamily} onClose={() => setPicking(false)} />}
       </div>
       <div className="field-grid">
         <Select
-          label="Graisse"
+          label="Weight"
           value={weight === 'mixed' || weight === null ? null : String(weight)}
           options={weightOptions(weights)}
           onChange={(v) => commit(set({ fontWeight: Number(v) }), 'Graisse')}
         />
-        {num('fontSize', 'Taille du texte', <Icon d={FIELD_GLYPH.fontSize} />, { min: 1 })}
-        {num('lineHeight', 'Interligne', <Icon d={FIELD_GLYPH.lineHeight} />, { min: 1 })}
-        {num('letterSpacing', 'Espacement des lettres', <Icon d={FIELD_GLYPH.letterSpacing} />, { step: 0.1 })}
+        {num('fontSize', 'Font size', <Icon d={FIELD_GLYPH.fontSize} />, { min: 1 })}
+        {num('lineHeight', 'Line height', <Icon d={FIELD_GLYPH.lineHeight} />, { min: 1 })}
+        {num('letterSpacing', 'Letter spacing', <Icon d={FIELD_GLYPH.letterSpacing} />, { step: 0.1 })}
       </div>
       <div className="text-options">
-        <div className="segmented" role="group" aria-label="Alignement du texte">
+        <div className="segmented" role="group" aria-label="Text align">
           {ALIGNS.map((a) => (
             <button
               key={a.value}
               type="button"
-              aria-label={`Aligner le texte : ${a.label}`}
-              data-tooltip={`Aligner : ${a.label}`}
+              aria-label={`Text align ${a.label}`}
+              data-tooltip={`Align ${a.label}`}
               aria-pressed={mixed(texts.map((t) => t.textAlign)) === a.value}
               onClick={() => commit(set({ textAlign: a.value }), 'Alignement du texte')}
             >
@@ -256,20 +256,20 @@ export function TextSection() {
         <button
           type="button"
           className={`icon-button${mixed(fonts.map((f) => f.fontStyle)) === 'italic' ? ' is-pressed' : ''}`}
-          aria-label="Italique"
+          aria-label="Italic"
           aria-pressed={mixed(fonts.map((f) => f.fontStyle)) === 'italic'}
-          data-tooltip="Italique"
+          data-tooltip="Italic"
           onClick={() => commit(set({ fontStyle: mixed(fonts.map((f) => f.fontStyle)) === 'italic' ? 'normal' : 'italic' }), 'Italique')}
         >
           <Icon d="M7 3h5M4 13h5M10 3 6 13" />
         </button>
       </div>
-      <div className="segmented is-fit" role="group" aria-label="Taille du bloc de texte">
+      <div className="segmented is-fit" role="group" aria-label="Text resizing">
         {SIZINGS.map((s) => (
           <button
             key={s.value}
             type="button"
-            aria-label={`Bloc de texte : ${s.label.toLowerCase()}`}
+            aria-label={`Text resizing: ${s.label.toLowerCase()}`}
             aria-pressed={mixed(texts.map((t) => t.textSizing)) === s.value}
             onClick={() => commit(sizingOps(s.value), 'Taille du bloc de texte')}
           >
@@ -278,7 +278,7 @@ export function TextSection() {
         ))}
       </div>
       {color !== 'mixed' && color !== null && (
-        <ColorRow name="Couleur du texte" color={color} styles={styles} apply={(c, phase) => applyPhase(set({ color: c }), phase, 'Couleur du texte')} />
+        <ColorRow name="Text color" color={color} styles={styles} apply={(c, phase) => applyPhase(set({ color: c }), phase, 'Couleur du texte')} />
       )}
     </Section>
   )

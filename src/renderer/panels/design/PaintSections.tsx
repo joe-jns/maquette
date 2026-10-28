@@ -62,15 +62,15 @@ export function FillSection() {
 
   return (
     <Section
-      title="Remplissage"
+      title="Fill"
       actions={
         <>
           {fills !== 'mixed' && (
-            <IconButton label="Passer en dégradé" tooltip="Dégradé" onClick={toGradientFill}>
+            <IconButton label="Switch to gradient" tooltip="Gradient" onClick={toGradientFill}>
               <GradientGlyph />
             </IconButton>
           )}
-          <IconButton label="Ajouter un remplissage" onClick={() => commit(set([...list, '#D9D9D9']), 'Ajouter un remplissage')}>
+          <IconButton label="Add fill" onClick={() => commit(set([...list, '#D9D9D9']), 'Ajouter un remplissage')}>
             <Icon d={PLUS} />
           </IconButton>
         </>
@@ -78,14 +78,14 @@ export function FillSection() {
     >
       {fills === 'mixed' ? (
         <button type="button" className="text-button" onClick={() => commit(set((painted[0] as { fills: Fill[] }).fills), 'Remplissage')}>
-          Remplissages différents — tout aligner sur le premier
+          Mixed fills — match the first one
         </button>
       ) : (
         list.map((f, i) =>
           isGradient(f) ? (
             <GradientRow
               key={i}
-              name={`Remplissage ${i + 1}`}
+              name={`Fill ${i + 1}`}
               gradient={f}
               styles={styles}
               apply={(fill, phase) => applyPhase(replace(i, fill), phase, 'Dégradé')}
@@ -95,7 +95,7 @@ export function FillSection() {
           ) : (
             <ColorRow
               key={i}
-              name={`Remplissage ${i + 1}`}
+              name={`Fill ${i + 1}`}
               color={f}
               styles={styles}
               apply={(color, phase) => applyPhase(replace(i, color), phase, 'Remplissage')}
@@ -103,7 +103,7 @@ export function FillSection() {
               onCreateStyle={(value) =>
                 commit(
                   [
-                    { op: 'style.color.set', id: '$style', name: `Couleur ${styles.colors.length + 1}`, value },
+                    { op: 'style.color.set', id: '$style', name: `Color ${styles.colors.length + 1}`, value },
                     ...replace(i, { style: '$style' }),
                   ],
                   'Créer une couleur nommée',
@@ -118,9 +118,9 @@ export function FillSection() {
 }
 
 const ALIGNS: { value: Stroke['align']; label: string }[] = [
-  { value: 'inside', label: 'Intérieur' },
-  { value: 'center', label: 'Centre' },
-  { value: 'outside', label: 'Extérieur' },
+  { value: 'inside', label: 'Inside' },
+  { value: 'center', label: 'Center' },
+  { value: 'outside', label: 'Outside' },
 ]
 
 /** Contour : couleur, épaisseur, position. Les contours ne prennent jamais de place dans la mise en page. */
@@ -135,29 +135,29 @@ export function StrokeSection() {
 
   return (
     <Section
-      title="Contour"
+      title="Stroke"
       actions={
         current ? (
-          <IconButton label="Retirer le contour" onClick={() => commit(set(null), 'Retirer le contour')}><Icon d="M4 8h8" /></IconButton>
+          <IconButton label="Remove stroke" onClick={() => commit(set(null), 'Retirer le contour')}><Icon d="M4 8h8" /></IconButton>
         ) : (
-          <IconButton label="Ajouter un contour" onClick={() => commit(set({ color: '#000000', width: 1, align: 'inside' }), 'Ajouter un contour')}>
+          <IconButton label="Add stroke" onClick={() => commit(set({ color: '#000000', width: 1, align: 'inside' }), 'Ajouter un contour')}>
             <Icon d={PLUS} />
           </IconButton>
         )
       }
     >
-      {stroke === 'mixed' && <p className="empty-note">Contours différents.</p>}
+      {stroke === 'mixed' && <p className="empty-note">Mixed strokes.</p>}
       {current && (
         <>
           <ColorRow
-            name="Contour"
+            name="Stroke"
             color={current.color}
             styles={styles}
             apply={(color, phase) => applyPhase(set({ ...current, color }), phase, 'Contour')}
           />
           <div className="field-grid">
             <NumberField
-              name="Épaisseur du contour"
+              name="Stroke width"
               label={<Icon d={FIELD_GLYPH.stroke} />}
               min={0.5}
               step={1}
@@ -166,7 +166,7 @@ export function StrokeSection() {
               scrub={scrubWith('Contour', (v) => set({ ...current, width: Math.max(0.5, v) }))}
             />
             <Select
-              label="Position du contour"
+              label="Stroke position"
               value={current.align}
               options={ALIGNS}
               onChange={(align) => commit(set({ ...current, align }), 'Contour')}
@@ -191,22 +191,22 @@ export function ShadowSection() {
 
   return (
     <Section
-      title="Ombres"
+      title="Shadow"
       actions={
         <IconButton
-          label="Ajouter une ombre"
+          label="Add shadow"
           onClick={() => commit(set([...list, { x: 0, y: 4, blur: 12, spread: 0, color: '#00000026', inset: false }]), 'Ajouter une ombre')}
         >
           <Icon d={PLUS} />
         </IconButton>
       }
     >
-      {shadows === 'mixed' && <p className="empty-note">Ombres différentes.</p>}
+      {shadows === 'mixed' && <p className="empty-note">Mixed shadows.</p>}
       {list.map((s, i) => {
         const n = i + 1
         const num = (key: 'x' | 'y' | 'blur' | 'spread', name: string, label: ReactNode, min?: number) => (
           <NumberField
-            name={`${name} de l’ombre ${n}`}
+            name={`Shadow ${n} ${name}`}
             label={label}
             min={min}
             value={s[key]}
@@ -219,18 +219,18 @@ export function ShadowSection() {
             <div className="field-grid">
               {num('x', 'X', 'X')}
               {num('y', 'Y', 'Y')}
-              {num('blur', 'Flou', <Icon d={FIELD_GLYPH.blur} />, 0)}
-              {num('spread', 'Étendue', <Icon d={FIELD_GLYPH.spread} />)}
+              {num('blur', 'Blur', <Icon d={FIELD_GLYPH.blur} />, 0)}
+              {num('spread', 'Spread', <Icon d={FIELD_GLYPH.spread} />)}
             </div>
             <ColorRow
-              name={`Ombre ${n}`}
+              name={`Shadow ${n}`}
               color={s.color}
               styles={styles}
               apply={(color, phase) => applyPhase(update(i, { color }), phase, 'Ombre')}
               onRemove={() => commit(set(list.filter((_, k) => k !== i)), 'Retirer une ombre')}
             />
             <Checkbox checked={s.inset} onChange={(inset) => commit(update(i, { inset }), 'Ombre')}>
-              Ombre intérieure
+              Inner shadow
             </Checkbox>
           </div>
         )
