@@ -22,11 +22,11 @@ async function openChat(page: Page) {
 }
 
 async function say(page: Page, text: string, answer: string) {
-  const field = page.getByRole('textbox', { name: 'Message à Claude' })
+  const field = page.getByRole('textbox', { name: 'Message to Claude' })
   await field.fill(text)
   await field.press('Enter')
   await expect(page.getByTestId('chat-panel').locator('.chat-assistant').last()).toHaveText(answer, { timeout: 15_000 })
-  await expect(page.getByRole('button', { name: 'Envoyer' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Send' })).toBeVisible()
 }
 
 test('interrupteur taste-skill : éteint par défaut, relance avec --resume et l’autre consigne, mémorisé', async () => {
@@ -63,7 +63,7 @@ test('interrupteur taste-skill : éteint par défaut, relance avec --resume et l
     expect(launches(s)).toHaveLength(2)
 
     // Mémorisé avec la conversation du fichier ; « Nouvelle conversation » le garde.
-    await panel.getByRole('button', { name: 'Nouvelle conversation' }).click()
+    await panel.getByRole('button', { name: 'New conversation' }).click()
     await expect(panel.locator('.chat-bubble')).toHaveCount(0)
     await expect(box).toHaveAttribute('aria-checked', 'true')
     const reopened = await page.evaluate(async (file) => {

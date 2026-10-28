@@ -71,7 +71,7 @@ test('T + clic crée un texte et l’ouvre en édition', async () => {
   const p = await screenOf(page, 100, 420)
   await page.mouse.click(p.x, p.y)
   const created = (await pageChildren(page)).at(-1)!
-  expect(created).toMatchObject({ type: 'text', content: 'Texte' })
+  expect(created).toMatchObject({ type: 'text', content: 'Text' })
   expect((await uiState(page)).editing).toBe(created.id)
   await app.close()
 })
@@ -110,7 +110,7 @@ test('la barre d’outils change l’outil au clic', async () => {
   await page.locator('[data-tool-button="text"]').click()
   expect((await uiState(page)).tool).toBe('text')
   // L'ellipse est dans le groupe des formes : chevron, puis choix dans la liste.
-  await page.getByRole('button', { name: 'Formes' }).click()
+  await page.getByRole('button', { name: 'Shapes' }).click()
   await page.getByRole('menuitemradio', { name: 'Ellipse' }).click()
   expect((await uiState(page)).tool).toBe('ellipse')
   await expect(page.locator('[data-tool-button="ellipse"]')).toHaveAttribute('aria-pressed', 'true')

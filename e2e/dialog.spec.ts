@@ -39,7 +39,7 @@ async function spyNative(app: ElectronApplication, page: Page): Promise<() => Pr
   return async () => [...(await app.evaluate(() => (globalThis as unknown as { __native: string[] }).__native)), ...pageDialogs]
 }
 
-const DISCARD = 'Abandonner les modifications non enregistrées ?'
+const DISCARD = 'Discard unsaved changes?'
 
 test('Nouveau avec un document modifié : question dans l’app ; Échap annule, « Abandonner » confirme', async () => {
   const { app, page } = await launch()
@@ -54,7 +54,7 @@ test('Nouveau avec un document modifié : question dans l’app ; Échap annule,
     await expect(dialog).toBeVisible()
     await expect(dialog).toHaveAttribute('aria-modal', 'true')
     // Bouton par défaut : « Annuler » (rien n'est perdu sur Entrée).
-    await expect(dialog.getByRole('button', { name: 'Annuler' })).toBeFocused()
+    await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeFocused()
     // Les raccourcis du canevas ne passent pas sous la question.
     await page.evaluate(() => {
       const s = (window as unknown as { __maquetteStore: Store }).__maquetteStore.getState()
@@ -67,7 +67,7 @@ test('Nouveau avec un document modifié : question dans l’app ; Échap annule,
     await expect(page).toHaveTitle(/•/)
 
     await menu(app, 'new')
-    await page.getByRole('dialog', { name: DISCARD }).getByRole('button', { name: 'Abandonner' }).click()
+    await page.getByRole('dialog', { name: DISCARD }).getByRole('button', { name: 'Discard' }).click()
     await expect(page.getByRole('dialog')).toHaveCount(0)
     await expect.poll(() => names(page)).toEqual([])
     await expect(page).not.toHaveTitle(/•/)
@@ -89,19 +89,19 @@ test('file d’attente, focus piégé, clic sur le fond et Entrée', async () =>
     // Une seule question affichée à la fois.
     await expect(page.getByRole('dialog')).toHaveCount(1)
     const dialog = page.getByRole('dialog', { name: DISCARD })
-    await expect(dialog.getByRole('button', { name: 'Annuler' })).toBeFocused()
+    await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeFocused()
     // Tab tourne entre les deux boutons sans sortir de la fenêtre.
     await page.keyboard.press('Tab')
-    await expect(dialog.getByRole('button', { name: 'Abandonner' })).toBeFocused()
+    await expect(dialog.getByRole('button', { name: 'Discard' })).toBeFocused()
     await page.keyboard.press('Tab')
-    await expect(dialog.getByRole('button', { name: 'Annuler' })).toBeFocused()
+    await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeFocused()
     await page.keyboard.press('Shift+Tab')
-    await expect(dialog.getByRole('button', { name: 'Abandonner' })).toBeFocused()
+    await expect(dialog.getByRole('button', { name: 'Discard' })).toBeFocused()
 
     // Clic sur le fond : annule ; la question suivante prend la place.
     await page.mouse.click(5, 5)
     await expect(page.getByRole('dialog', { name: DISCARD })).toBeVisible()
-    await expect(page.getByRole('dialog').getByRole('button', { name: 'Annuler' })).toBeFocused()
+    await expect(page.getByRole('dialog').getByRole('button', { name: 'Cancel' })).toBeFocused()
     // Entrée : le bouton par défaut (Annuler).
     await page.keyboard.press('Enter')
     await expect(page.getByRole('dialog')).toHaveCount(0)
@@ -120,8 +120,8 @@ test('question venue du principal : fichier récent introuvable', async () => {
     const missing = join(tmpdir(), 'maquette-absent-e2e.maquette')
     // Comme un double-clic sur un .maquette avec l'app déjà ouverte (attend la fenêtre prête s'il le faut).
     await app.evaluate(({ app: electronApp }, path) => void electronApp.emit('second-instance', {}, ['maquette', path], process.cwd()), missing)
-    const dialog = page.getByRole('dialog', { name: 'maquette-absent-e2e.maquette est introuvable.' })
-    await expect(dialog).toContainText('Il est retiré des fichiers récents.')
+    const dialog = page.getByRole('dialog', { name: 'maquette-absent-e2e.maquette could not be found.' })
+    await expect(dialog).toContainText('It has been removed from recent files.')
     await expect(dialog.getByRole('button', { name: 'OK' })).toBeFocused()
     await page.keyboard.press('Enter')
     await expect(page.getByRole('dialog')).toHaveCount(0)

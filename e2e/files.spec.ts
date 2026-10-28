@@ -28,7 +28,7 @@ test('fichier modifié sur le disque : bandeau, Recharger ; notre enregistrement
     const before = (await stat(file)).mtimeMs
     await app.evaluate(({ Menu }) => {
       const fichier = Menu.getApplicationMenu()!.items[0]!.submenu!
-      fichier.items.find((i) => i.label === 'Enregistrer')!.click()
+      fichier.items.find((i) => i.label === 'Save')!.click()
     })
     await expect.poll(async () => (await stat(file)).mtimeMs, { timeout: 15_000 }).toBeGreaterThan(before)
     await page.waitForTimeout(1200)
@@ -40,7 +40,7 @@ test('fichier modifié sur le disque : bandeau, Recharger ; notre enregistrement
     await writeFile(file, JSON.stringify(doc), 'utf8')
     const banner = page.getByTestId('file-changed')
     await expect(banner).toBeVisible({ timeout: 5000 })
-    await banner.getByRole('button', { name: 'Recharger' }).click()
+    await banner.getByRole('button', { name: 'Reload' }).click()
     await expect.poll(async () => (await state(page)).pages[0]).toBe('Changée ailleurs')
   } finally {
     await app.close()
@@ -58,7 +58,7 @@ test('fichiers récents : le menu liste le fichier ouvert', async () => {
     const labels = () =>
       app.evaluate(({ Menu }) => {
         const fichier = Menu.getApplicationMenu()!.items[0]!.submenu!
-        const recent = fichier.items.find((i) => i.label === 'Ouvrir un fichier récent')!
+        const recent = fichier.items.find((i) => i.label === 'Open recent')!
         return recent.submenu!.items.map((i) => i.label)
       })
     await expect.poll(labels).toEqual([file.replace(/&/g, '&&')])

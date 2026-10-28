@@ -147,14 +147,14 @@ test('menu Exporter : rien de sélectionné → message ; sélection → fichier
 
   // Le menu propose les trois échelles, 2× au clavier.
   const items = await app.evaluate(({ Menu }) => {
-    const file = Menu.getApplicationMenu()!.items.find((i) => i.label === 'Fichier')!
-    const exp = file.submenu!.items.find((i) => i.label === 'Exporter la sélection en PNG')!
+    const file = Menu.getApplicationMenu()!.items.find((i) => i.label === 'File')!
+    const exp = file.submenu!.items.find((i) => i.label === 'Export selection as PNG')!
     return exp.submenu!.items.map((i) => `${i.label}${i.accelerator ? ` ${i.accelerator}` : ''}`)
   })
   expect(items).toEqual(['1×', '2× CmdOrCtrl+Shift+E', '3×'])
 
   await sendMenu('export-png-2')
-  await expect(page.getByRole('alert')).toContainText('Sélectionnez un élément à exporter')
+  await expect(page.getByRole('alert')).toContainText('Select a layer to export')
 
   await clickOn(page, 'rBleu1')
   const target = join(dir, 'bleu.png')

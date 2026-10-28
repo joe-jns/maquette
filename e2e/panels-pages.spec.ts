@@ -24,7 +24,7 @@ test('pages : ajouter, renommer, changer, supprimer, annuler', async () => {
   const { app, page } = await launch([scene])
   await settled(page, 'rBleu1')
   expect(await pageNames(page)).toEqual(['Scène'])
-  await page.getByRole('button', { name: 'Ajouter une page' }).click()
+  await page.getByRole('button', { name: 'Add page' }).click()
   expect(await pageNames(page)).toEqual(['Scène', 'Page 2'])
   await expect(page.locator('[data-node-id="rBleu1"]')).toHaveCount(0)
 
@@ -44,10 +44,10 @@ test('pages : ajouter, renommer, changer, supprimer, annuler', async () => {
   await expect(page.locator('[data-node-id="rBleu1"]')).toBeVisible()
 
   await page.locator('[data-page-id]', { hasText: 'Contact' }).click({ button: 'right' })
-  await page.getByRole('menuitem', { name: 'Supprimer la page' }).click()
+  await page.getByRole('menuitem', { name: 'Delete page' }).click()
   expect(await pageNames(page)).toEqual(['Scène'])
   await page.locator('[data-page-id]', { hasText: 'Scène' }).click({ button: 'right' })
-  await expect(page.getByRole('menuitem', { name: 'Supprimer la page' })).toBeDisabled()
+  await expect(page.getByRole('menuitem', { name: 'Delete page' })).toBeDisabled()
   await page.keyboard.press('Escape')
   await page.keyboard.press('Control+z')
   expect(await pageNames(page)).toEqual(['Scène', 'Contact'])

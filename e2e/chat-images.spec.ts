@@ -18,7 +18,7 @@ async function start(env: Record<string, string>, file: string) {
 const loaded = (img: Locator) => img.evaluate((el: HTMLImageElement) => (el.complete ? el.naturalWidth : 0))
 
 async function sendMessage(page: Page, text: string) {
-  const box = page.getByRole('textbox', { name: 'Message à Claude' })
+  const box = page.getByRole('textbox', { name: 'Message to Claude' })
   await box.fill(text)
   await box.press('Enter')
 }
@@ -57,11 +57,11 @@ test('image jointe : vignette sous le message, encore là après relance, aperç
     await expect(thumb).toHaveCount(1)
     await expect.poll(() => loaded(thumb)).toBe(120)
 
-    const button = panel.getByRole('button', { name: 'Agrandir l’image jointe' })
+    const button = panel.getByRole('button', { name: 'Enlarge attached image' })
     await button.click()
-    const box = page.getByRole('dialog', { name: 'Aperçu de l’image' })
+    const box = page.getByRole('dialog', { name: 'Image preview' })
     await expect(box).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Fermer l’aperçu' })).toBeFocused()
+    await expect(page.getByRole('button', { name: 'Close preview' })).toBeFocused()
     await expect.poll(() => loaded(box.locator('img'))).toBe(120)
     await page.keyboard.press('Escape')
     await expect(box).toHaveCount(0)
@@ -79,7 +79,7 @@ test('outil déplié : entrée et résultat ; image vue par Claude en vignette, 
   try {
     await sendMessage(page, 'regarde le hero')
     await expect(panel.locator('.chat-assistant').last()).toHaveText('Le hero est bien centré.')
-    const line = panel.getByRole('button', { name: /Regarde le rendu/ })
+    const line = panel.getByRole('button', { name: /Looking at the render/ })
     await expect(line).toHaveAttribute('aria-expanded', 'false')
     // Repliée : petite vignette de ce que Claude a regardé.
     const peek = line.locator('.chat-tool-peek')
@@ -89,16 +89,16 @@ test('outil déplié : entrée et résultat ; image vue par Claude en vignette, 
     await line.click()
     await expect(line).toHaveAttribute('aria-expanded', 'true')
     const detail = panel.locator('.chat-tool-detail')
-    await expect(detail.getByRole('region', { name: 'Entrée' }).locator('pre')).toContainText('"id": "fHero1"')
-    await expect(detail.getByRole('region', { name: 'Résultat' }).locator('pre')).toHaveText('capture de Hero (1440×600)')
-    await expect(detail.getByRole('button', { name: 'Copier : entrée' })).toBeVisible()
+    await expect(detail.getByRole('region', { name: 'Input' }).locator('pre')).toContainText('"id": "fHero1"')
+    await expect(detail.getByRole('region', { name: 'Result' }).locator('pre')).toHaveText('capture de Hero (1440×600)')
+    await expect(detail.getByRole('button', { name: 'Copy input' })).toBeVisible()
     const seen = detail.locator('.chat-image img')
     await expect.poll(() => loaded(seen)).toBe(240)
     await expect(peek).toHaveCount(0)
 
     // Aperçu en grand : un clic sur le fond le ferme.
-    await detail.getByRole('button', { name: 'Agrandir l’image vue par Claude' }).click()
-    const box = page.getByRole('dialog', { name: 'Aperçu de l’image' })
+    await detail.getByRole('button', { name: 'Enlarge image seen by Claude' }).click()
+    const box = page.getByRole('dialog', { name: 'Image preview' })
     await expect(box).toBeVisible()
     await box.click({ position: { x: 10, y: 10 } })
     await expect(box).toHaveCount(0)
@@ -120,12 +120,12 @@ test('commande : entrée et résultat dans le détail', async () => {
   const { app, page, panel } = await start(s.env, s.file)
   try {
     await sendMessage(page, 'lance une commande')
-    await panel.getByRole('button', { name: 'Toujours pour cette conversation' }).click()
+    await panel.getByRole('button', { name: 'Always allow in this conversation' }).click()
     await expect(panel.locator('.chat-assistant').last()).toHaveText('autorisé')
-    const line = panel.getByRole('button', { name: /Lance une commande/ })
+    const line = panel.getByRole('button', { name: /Running a command/ })
     await line.click()
-    await expect(panel.getByRole('region', { name: 'Entrée' }).locator('pre')).toHaveText('echo hi')
-    await expect(panel.getByRole('region', { name: 'Résultat' }).locator('pre')).toHaveText('hi')
+    await expect(panel.getByRole('region', { name: 'Input' }).locator('pre')).toHaveText('echo hi')
+    await expect(panel.getByRole('region', { name: 'Result' }).locator('pre')).toHaveText('hi')
   } finally {
     await app.close()
   }
