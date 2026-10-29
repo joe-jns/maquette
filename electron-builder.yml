@@ -1,4 +1,4 @@
-# Installateur Windows de Maquette (npm run dist).
+# Installateurs de Maquette : Windows (npm run dist) et Mac (npm run dist:mac).
 appId: yt.joe.maquette
 productName: Maquette
 copyright: Copyright © 2026 Joakim Janssens
@@ -18,6 +18,18 @@ extraResources:
 win:
   target: nsis
   icon: build/icon.ico
+# Mac (npm run dist:mac, sur un Mac ou dans GitHub Actions) : signature « ad hoc », sans compte Apple.
+# Le Mac refuse un premier lancement par double-clic : clic droit sur l'app, puis Ouvrir.
+mac:
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+  icon: build/icon.png
+  category: public.app-category.graphics-design
+  identity: '-'
+  hardenedRuntime: false
+dmg:
+  artifactName: ${productName}-${version}-${arch}.${ext}
 nsis:
   oneClick: false
   perMachine: false

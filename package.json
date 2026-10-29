@@ -13,6 +13,7 @@
     "update-taste": "node scripts/update-taste-skill.mjs",
     "update-design": "node scripts/update-design.mjs",
     "dist": "electron-vite build && electron-builder --win",
+    "dist:mac": "electron-vite build && electron-builder --mac --publish never",
     "icons": "electron scripts/make-icons.mjs"
   },
   "dependencies": {
