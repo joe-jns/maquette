@@ -21,6 +21,8 @@ describe('images d’un document jamais enregistré', () => {
     const text = docText(image('a', 'assets/a.png'), image('b', 'assets/b.jpg'), image('c', 'assets/a.png'), image('d', 'https://x/y.png'))
     expect(referencedAssets(text)).toEqual(['assets/a.png', 'assets/b.jpg'])
     expect(referencedAssets('pas du json')).toEqual([])
+    // Images en remplissage d'un cadre : citées elles aussi.
+    expect(referencedAssets(docText({ id: 'r', type: 'shape', fills: ['#FFFFFF', { type: 'image', src: 'assets/c.webp', fit: 'cover' }] }))).toEqual(['assets/c.webp'])
   })
 
   it('premier enregistrement : les images citées sont recopiées à côté du fichier, avec leurs crédits ; les src restent valables', async () => {

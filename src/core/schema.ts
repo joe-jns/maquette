@@ -12,7 +12,8 @@ const GradientSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('radial'), stops: z.array(StopSchema).min(2, 'un dégradé a au moins 2 arrêts') }),
   z.strictObject({ type: z.literal('conic'), angle: z.number(), stops: z.array(StopSchema).min(2, 'un dégradé a au moins 2 arrêts') }),
 ])
-const FillSchema = z.union([ColorSchema, GradientSchema])
+const ImageFillSchema = z.strictObject({ type: z.literal('image'), src: z.string(), fit: z.enum(['cover', 'contain', 'fill']) })
+const FillSchema = z.union([ColorSchema, GradientSchema, ImageFillSchema])
 const SizeSchema = z.union([Px, z.strictObject({ mode: z.literal('hug') }), z.strictObject({ mode: z.literal('fill') })])
 const StrokeSchema = z.strictObject({ color: ColorSchema, width: z.number().positive(), align: z.enum(['inside', 'outside', 'center']) })
 const ShadowSchema = z.strictObject({

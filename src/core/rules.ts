@@ -1,4 +1,4 @@
-import { isGradient } from './paint'
+import { isGradient, isImageFill } from './paint'
 import { DocumentSchema, NodeSchema } from './schema'
 import { isFill, isHug, walk } from './tree'
 import type { Axis, Color, FrameNode, MaquetteDocument, Node } from './types'
@@ -151,6 +151,7 @@ function nodeRules(doc: MaquetteDocument, add: (path: string, message: string) =
 function checkPaint(node: Node, path: string, checkColor: (c: Color, path: string) => void): void {
   if (node.type === 'frame' || node.type === 'shape') {
     node.fills.forEach((f, i) => {
+      if (isImageFill(f)) return
       if (isGradient(f)) f.stops.forEach((s, k) => checkColor(s.color, `${path}.fills[${i}].stops[${k}].color`))
       else checkColor(f, `${path}.fills[${i}]`)
     })

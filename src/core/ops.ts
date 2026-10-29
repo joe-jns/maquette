@@ -4,7 +4,7 @@ import { autoLayoutDefaults, createNode } from './defaults'
 import { alignTextSizing } from './fixes'
 import { FALLBACK_ICON, resolveIcon } from './icons/lucide'
 import { newId } from './ids'
-import { isGradient, normalizeFill } from './paint'
+import { isGradient, isImageFill, normalizeFill } from './paint'
 import { validateDocument, validateNodes, type Issue } from './rules'
 import { containsId, findNodeIn, isFill, isHug, takenIds, walk, type NodeLocation } from './tree'
 import type { AutoLayout, Axis, Color, FrameNode, MaquetteDocument, Node, NodeInput, Page, Rect, TextNode, TextStyle } from './types'
@@ -508,6 +508,7 @@ function detachColorStyle(ctx: Ctx, id: string, value: string): number {
     // Affectations élément par élément : une valeur inchangée ne produit aucun patch.
     if ('fills' in node) {
       node.fills.forEach((f, k) => {
+        if (isImageFill(f)) return
         if (isGradient(f)) f.stops.forEach((st) => { st.color = fix(st.color) })
         else node.fills[k] = fix(f)
       })

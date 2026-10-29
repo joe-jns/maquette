@@ -12,8 +12,15 @@ export interface RadialGradient { type: 'radial'; stops: GradientStop[] }
 /** Dégradé conique autour du centre : `angle` = départ en degrés (0 = en haut, sens horaire), comme `conic-gradient(from …)`. */
 export interface ConicGradient { type: 'conic'; angle: number; stops: GradientStop[] }
 export type Gradient = LinearGradient | RadialGradient | ConicGradient
-/** Remplissage d'un cadre ou d'une forme : une couleur ou un dégradé. */
-export type Fill = Color | Gradient
+/**
+ * Image en remplissage d'un cadre ou d'une forme. `src` suit les règles d'un élément image (« assets/… »
+ * à côté du fichier) ; `fit` comme `object-fit` : cover (recadre), contain (entière), fill (étirée).
+ */
+export interface ImageFill { type: 'image'; src: string; fit: 'cover' | 'contain' | 'fill' }
+/** Couleur ou dégradé (remplissage d'un vecteur). */
+export type Paint = Color | Gradient
+/** Remplissage d'un cadre ou d'une forme : une couleur, un dégradé ou une image. */
+export type Fill = Paint | ImageFill
 
 export interface Stroke { color: Color; width: number; align: 'inside' | 'outside' | 'center' }
 export interface Shadow { x: number; y: number; blur: number; spread: number; color: Color; inset: boolean }

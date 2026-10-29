@@ -14,7 +14,7 @@ import { TextEditor } from './TextEditor'
  */
 export const NodeView = memo(function NodeView({ node, parent, index }: { node: Node; parent: FrameNode | null; index: number }) {
   const styles = useDoc((s) => s.doc.styles)
-  const style = nodeCss(node, parent, styles, index) as CSSProperties
+  const style = nodeCss(node, parent, styles, index, assetUrl) as CSSProperties
   switch (node.type) {
     case 'frame': {
       const stroke = frameStrokeCss(node, styles)

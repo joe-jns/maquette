@@ -3,7 +3,7 @@ import { autoLayoutDefaults, createNode } from './defaults'
 import { alignTextSizing } from './fixes'
 import { FALLBACK_ICON, resolveIcon } from './icons/lucide'
 import { newId } from './ids'
-import { normalizeFill } from './paint'
+import { normalizeFill, parseImageFill } from './paint'
 import { formatPath, type Issue } from './rules'
 import { HEX_COLOR } from './schema'
 import { isFill, isHug } from './tree'
@@ -169,11 +169,20 @@ export function repairDocument(raw: Record<string, unknown>): { doc: unknown; wa
     return norm
   }
 
-  /** Remplissage : couleur (voir fixColor) ou dégradé, dont chaque arrêt passe par fixColor. */
+  /** Remplissage : couleur (voir fixColor), image, ou dégradé dont chaque arrêt passe par fixColor. */
   const fixFill = (v: unknown, segs: Segs): Fill => {
     if (!isObj(v) || typeof v.type !== 'string') return fixColor(v, segs)
+    if (v.type.toLowerCase() === 'image') {
+      const img = parseImageFill(v)
+      if (img === null) {
+        warn(segs, `unreadable image fill (${show(v)}): replaced with ${MAGENTA}`)
+        return MAGENTA
+      }
+      if (JSON.stringify(img) !== JSON.stringify(v)) warn(segs, 'image fill rewritten in Maquette format')
+      return img
+    }
     const g = normalizeFill(v)
-    if (g === null || typeof g !== 'object' || !('type' in g)) {
+    if (g === null || typeof g !== 'object' || !('stops' in g)) {
       warn(segs, `unreadable gradient (${show(v)}): replaced with ${MAGENTA}`)
       return MAGENTA
     }

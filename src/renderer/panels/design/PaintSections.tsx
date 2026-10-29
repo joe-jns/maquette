@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import type { Op } from '../../../core/ops'
-import { isGradient } from '../../../core/paint'
+import { isGradient, isImageFill } from '../../../core/paint'
 import type { Color, Fill, Shadow, Stroke } from '../../../core/types'
 import { docStore, useDoc } from '../../state/store'
 import { Checkbox } from '../../ui/Checkbox'
@@ -8,6 +8,7 @@ import { Select } from '../../ui/Select'
 import { mixed, setOps } from '../props'
 import { ColorRow, type ColorPhase } from './ColorRow'
 import { GradientRow, toGradient } from './GradientRow'
+import { IMAGE_GLYPH, ImageFillRow, useImagePicker } from './ImageFillRow'
 import { NumberField } from './NumberField'
 import { commit, FIELD_GLYPH, Icon, IconButton, scrubWith, Section, useSelection } from './shared'
 
@@ -40,12 +41,17 @@ const GradientGlyph = () => (
   </svg>
 )
 
-/** Remplissages d'un cadre ou d'une forme : couleurs et dégradés. */
+/** Remplissages d'un cadre, d'une forme ou d'un vecteur : couleurs, dégradés et (sauf vecteur) images. */
 export function FillSection() {
-  const styles = useDoc((s) => s.doc.styles)
   const { nodes } = useSelection()
   const painted = nodes.filter((n) => n.type === 'frame' || n.type === 'shape')
   if (painted.length === 0 || painted.length !== nodes.length) return null
+  return <Fills painted={painted} />
+}
+
+function Fills({ painted }: { painted: { id: string; fills: Fill[] }[] }) {
+  const styles = useDoc((s) => s.doc.styles)
+  const imagePicker = useImagePicker((src) => commit(set([...list, { type: 'image', src, fit: 'cover' }]), 'Remplissage image'))
   const ids = painted.map((n) => n.id)
   const fills = mixed(painted.map((n) => ('fills' in n ? n.fills : [])))
   const list = Array.isArray(fills) ? fills : []
@@ -53,7 +59,7 @@ export function FillSection() {
   const replace = (i: number, fill: Fill) => set(list.map((f, k) => (k === i ? fill : f)))
   const remove = (i: number) => commit(set(list.filter((_, k) => k !== i)), 'Retirer un remplissage')
   // Le remplissage uni du dessus passe en dégradé ; sans remplissage uni, un dégradé est ajouté.
-  const solid = list.findLastIndex((f) => !isGradient(f))
+  const solid = list.findLastIndex((f) => !isGradient(f) && !isImageFill(f))
   const toGradientFill = () =>
     commit(
       solid >= 0 ? replace(solid, toGradient(list[solid] as Color, styles)) : set([...list, toGradient('#D9D9D9', styles)]),
@@ -70,6 +76,11 @@ export function FillSection() {
               <GradientGlyph />
             </IconButton>
           )}
+          {fills !== 'mixed' && (
+            <IconButton label="Add image fill" tooltip="Image" onClick={imagePicker.pick}>
+              <Icon d={IMAGE_GLYPH} />
+            </IconButton>
+          )}
           <IconButton label="Add fill" onClick={() => commit(set([...list, '#D9D9D9']), 'Ajouter un remplissage')}>
             <Icon d={PLUS} />
           </IconButton>
@@ -82,7 +93,16 @@ export function FillSection() {
         </button>
       ) : (
         list.map((f, i) =>
-          isGradient(f) ? (
+          isImageFill(f) ? (
+            <ImageFillRow
+              key={i}
+              name={`Fill ${i + 1}`}
+              fill={f}
+              solid="#D9D9D9"
+              apply={(fill) => commit(replace(i, fill), 'Remplissage image')}
+              onRemove={() => remove(i)}
+            />
+          ) : isGradient(f) ? (
             <GradientRow
               key={i}
               name={`Fill ${i + 1}`}
@@ -113,6 +133,7 @@ export function FillSection() {
           ),
         )
       )}
+      {imagePicker.element}
     </Section>
   )
 }

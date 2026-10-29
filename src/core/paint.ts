@@ -1,24 +1,29 @@
 import { normalizeColor, normalizeColorValue } from './color'
-import type { Color, Fill, Gradient, GradientStop } from './types'
+import type { Color, Fill, Gradient, GradientStop, ImageFill } from './types'
 
 /**
- * Remplissages : couleurs et dégradés. Lecture tolérante des formes courantes (CSS, Figma, Pen),
- * rendu CSS. Code pur.
+ * Remplissages : couleurs, dégradés et images. Lecture tolérante des formes courantes (CSS, Figma,
+ * Pen), rendu CSS. Code pur.
  */
 
 type Obj = Record<string, unknown>
 const isObj = (v: unknown): v is Obj => typeof v === 'object' && v !== null && !Array.isArray(v)
 const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v)
 
-export const isGradient = (f: Fill): f is Gradient => typeof f === 'object' && 'type' in f
+export const isImageFill = (f: Fill): f is ImageFill => typeof f === 'object' && 'type' in f && f.type === 'image'
+export const isGradient = (f: Fill): f is Gradient => typeof f === 'object' && 'type' in f && f.type !== 'image'
+/** Une couleur (chaîne ou couleur nommée), ni dégradé ni image. */
+export const isColorFill = (f: Fill): f is Color => !(typeof f === 'object' && 'type' in f)
 
-/** Les couleurs d'un remplissage (une seule pour une couleur, celles des arrêts pour un dégradé). */
-export const fillColors = (f: Fill): Color[] => (isGradient(f) ? f.stops.map((s) => s.color) : [f])
+/** Les couleurs d'un remplissage (une seule pour une couleur, celles des arrêts pour un dégradé, aucune pour une image). */
+export const fillColors = (f: Fill): Color[] => (isImageFill(f) ? [] : isGradient(f) ? f.stops.map((s) => s.color) : [f as Color])
 
 /** Applique `fn` à chaque couleur d'un remplissage ; renvoie un nouveau remplissage. */
-export function mapFillColors(f: Fill, fn: (c: Color) => Color): Fill {
-  if (!isGradient(f)) return fn(f)
-  return { ...f, stops: f.stops.map((s) => ({ ...s, color: fn(s.color) })) }
+export function mapFillColors<F extends Fill>(f: F, fn: (c: Color) => Color): F {
+  if (isImageFill(f)) return f
+  if (!isGradient(f)) return fn(f as Color) as F
+  const g: Gradient = f
+  return { ...g, stops: g.stops.map((s) => ({ ...s, color: fn(s.color) })) } as F
 }
 
 /** Dégradé CSS d'un remplissage dégradé (couleurs déjà résolues par `color`). */
@@ -178,12 +183,29 @@ export function parseGradientObject(v: unknown): Gradient | null {
   return finish(kind, angle, stops)
 }
 
+const FITS = new Set(['cover', 'contain', 'fill'])
+/** Modes de Figma et Pen (fill = recadrer, fit = entière, stretch = étirée) → `fit` de Maquette. */
+const SCALE_MODES: Record<string, ImageFill['fit']> = { fill: 'cover', crop: 'cover', tile: 'cover', fit: 'contain', stretch: 'fill' }
+
+/**
+ * Objet image sous une forme courante → remplissage image, sinon null : {type:"image",src,fit?},
+ * `url`/`path` pour `src`, Figma/Pen `scaleMode`/`mode` (FILL, FIT, STRETCH). `fit` absent : cover.
+ */
+export function parseImageFill(v: unknown): ImageFill | null {
+  if (!isObj(v) || typeof v.type !== 'string' || v.type.toLowerCase() !== 'image') return null
+  const src = v.src ?? v.url ?? v.path
+  if (typeof src !== 'string') return null
+  const fit = typeof v.fit === 'string' && FITS.has(v.fit) ? v.fit as ImageFill['fit']
+    : typeof (v.scaleMode ?? v.mode) === 'string' ? SCALE_MODES[String(v.scaleMode ?? v.mode).toLowerCase()] : 'cover'
+  return fit ? { type: 'image', src, fit } : null
+}
+
 /**
  * Toute valeur de remplissage lisible → remplissage canonique, sinon null : couleur (chaîne CSS,
- * couleur nommée), dégradé CSS en chaîne, objet dégradé (formes ci-dessus).
+ * couleur nommée), dégradé CSS en chaîne, objet dégradé ou image (formes ci-dessus).
  */
 export function normalizeFill(v: unknown): Fill | null {
   if (typeof v === 'string') return normalizeColor(v) ?? parseCssGradient(v)
-  if (isObj(v) && typeof v.type === 'string') return parseGradientObject(v)
+  if (isObj(v) && typeof v.type === 'string') return v.type.toLowerCase() === 'image' ? parseImageFill(v) : parseGradientObject(v)
   return normalizeColorValue(v)
 }

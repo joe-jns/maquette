@@ -205,6 +205,13 @@
 .swatch-fill { position: absolute; inset: 0; }
 .gradient-label { flex: 1; min-width: 0; padding: 0 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gradient-stop { display: flex; gap: 8px; align-items: center; }
+
+/* Image en remplissage : aperçu et nom du fichier (cliquer pour en choisir un autre), puis le mode. */
+.image-fill-row { display: flex; flex-direction: column; gap: 8px; }
+.image-fill-row + .color-row, .image-fill-row + .gradient-row, .image-fill-row + .image-fill-row,
+.color-row + .image-fill-row, .gradient-row + .image-fill-row { margin-top: 8px; }
+.image-fill-pick { font: inherit; color: var(--panel-text); text-align: left; cursor: pointer; padding: 0; }
+.image-fill-pick:focus-visible { outline: none; border-color: var(--accent); }
 .stop-position { flex: none; width: 56px; }
 .stop-position .number-label { width: 0; }
 .stop-position input { padding-left: 6px; }

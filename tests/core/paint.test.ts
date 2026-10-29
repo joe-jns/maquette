@@ -156,3 +156,61 @@ describe('dégradés : document', () => {
     expect(validateDocument(doc as MaquetteDocument)).toEqual([])
   })
 })
+
+describe('remplissage image', () => {
+  const img: Fill = { type: 'image', src: 'assets/abc.png', fit: 'cover' }
+
+  it('lecture : forme Maquette, url/mode de Figma et Pen, fit par défaut', () => {
+    expect(normalizeFill(img)).toEqual(img)
+    expect(normalizeFill({ type: 'image', url: 'assets/abc.png' })).toEqual(img)
+    expect(normalizeFill({ type: 'IMAGE', src: 'a.png', scaleMode: 'FIT' })).toEqual({ type: 'image', src: 'a.png', fit: 'contain' })
+    expect(normalizeFill({ type: 'image', url: 'a.png', mode: 'stretch' })).toEqual({ type: 'image', src: 'a.png', fit: 'fill' })
+    expect(normalizeFill({ type: 'image' })).toBeNull()
+    expect(normalizeFill({ type: 'image', src: 'a.png', mode: 'zut' })).toBeNull()
+  })
+
+  it('rendu CSS : couche centrée sans répétition, taille selon fit, sous les couleurs du dessus', () => {
+    expect(fillsCss([img], styles, (s) => `masset://doc/${s}`)).toEqual({
+      backgroundImage: 'url("masset://doc/assets/abc.png")', backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat',
+    })
+    expect(fillsCss([{ type: 'image', src: 'a.png', fit: 'fill' }, '#00000080'], styles)).toEqual({
+      backgroundImage: 'linear-gradient(#00000080, #00000080), url("a.png")',
+      backgroundSize: 'auto, 100% 100%', backgroundPosition: 'center, center', backgroundRepeat: 'no-repeat, no-repeat',
+    })
+    // Sans fichier : un gris neutre.
+    expect(fillsCss([{ type: 'image', src: '', fit: 'cover' }], styles).backgroundImage).toBe('linear-gradient(#E5E5E5, #E5E5E5)')
+    expect(nodeCss(frame('f00001', { x: 0, y: 0, fills: [{ type: 'image', src: 'a.png', fit: 'contain' }] }), null, styles, 0, (s) => `u/${s}`))
+      .toMatchObject({ backgroundImage: 'url("u/a.png")', backgroundSize: 'contain' })
+  })
+
+  it('document : appliquer, schéma, aller-retour, réparation', () => {
+    const doc = docWith([rect('r00001', { x: 0, y: 0 })])
+    const r = applyOps(doc, [{ op: 'update', id: 'r00001', set: { fills: ['#FFFFFF', { type: 'image', url: 'assets/abc.png' }] } }])
+    expect(r.ok).toBe(true)
+    if (!r.ok) return
+    expect((r.doc.pages[0]!.children[0] as ShapeNode).fills).toEqual(['#FFFFFF', img])
+    expect(validateDocument(r.doc)).toEqual([])
+    const again = parseDocument(serializeDocument(r.doc))
+    expect(again.ok && again.doc).toEqual(r.doc)
+    expect(applyOps(doc, [{ op: 'update', id: 'r00001', set: { fills: [{ type: 'image' }] } }]).ok).toBe(false)
+
+    const bad = structuredClone(r.doc)
+    ;(bad.pages[0]!.children[0] as ShapeNode).fills = [{ type: 'image', src: 'a.png', fit: 'zoom' } as unknown as Fill]
+    expect(validateDocument(bad).length).toBeGreaterThan(0)
+
+    const raw = JSON.parse(serializeDocument(r.doc)) as { pages: { children: Record<string, unknown>[] }[] }
+    raw.pages[0]!.children[0]!.fills = [{ type: 'image', url: 'assets/abc.png', scaleMode: 'FILL' }, { type: 'image' }]
+    const { doc: fixed, warnings } = repairDocument(raw as unknown as Record<string, unknown>)
+    expect(((fixed as MaquetteDocument).pages[0]!.children[0] as ShapeNode).fills).toEqual([img, '#FF00FF'])
+    expect(warnings.map((w) => w.message)).toEqual(['image fill rewritten in Maquette format', expect.stringMatching(/^unreadable image fill/)])
+    expect(validateDocument(fixed as MaquetteDocument)).toEqual([])
+  })
+
+  it('suppression d’un style : une image en remplissage reste intacte', () => {
+    const doc = docWith([rect('r00001', { x: 0, y: 0, fills: [img] })])
+    const r = applyOps(doc, [{ op: 'style.color.set', id: '$a', name: 'a', value: '#000000' }])
+    if (!r.ok) throw new Error('refusé')
+    const del = applyOps(r.doc, [{ op: 'style.delete', id: r.ids.$a! }])
+    expect(del.ok && (del.doc.pages[0]!.children[0] as ShapeNode).fills).toEqual([img])
+  })
+})
