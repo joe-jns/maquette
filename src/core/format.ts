@@ -1,3 +1,4 @@
+import { syncInstances } from './components'
 import { repairDocument } from './repair'
 import { validateDocument, type Issue } from './rules'
 import type { MaquetteDocument } from './types'
@@ -39,7 +40,16 @@ export function parseDocument(text: string): ParseResult {
     data = migrate(data)
   }
   // Ouverture tolérante (spec §6.2) : réparer ce qui peut l'être, refuser seulement le reste.
-  const { doc, warnings } = repairDocument(data)
+  const repaired = repairDocument(data)
+  const { warnings } = repaired
+  let doc = repaired.doc
+  // Instances remises d'accord avec leur principal (fichier modifié hors de Maquette). Un document
+  // trop abîmé pour cela est laissé tel quel : la validation dira ce qui ne va pas.
+  try {
+    doc = syncInstances(doc as MaquetteDocument)
+  } catch {
+    // rien : la validation tranche
+  }
   const issues = validateDocument(doc as MaquetteDocument)
   if (issues.length) return { ok: false, errors: issues }
   return { ok: true, doc: doc as MaquetteDocument, warnings }
