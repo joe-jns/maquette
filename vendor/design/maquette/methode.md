@@ -24,7 +24,7 @@ The design rules are kept; Pen's format and functions are replaced by Maquette's
 - Use the canvas to think: no need to pre-plan every detail; iterate on the document.
 - Each page/screen is a top-level frame of a page (`x`,`y` set, `clip:true`), placed to the right of the existing ones (read their `x`+`l` with `lire_document`; leave ~200 px). Never put loose texts, buttons or shapes directly in a page.
 - Name every element (`name`) in plain words: "Hero", "Bouton principal", "Carte tarif". Names are how you and the user find things.
-- Repeated UI (cards, rows, nav items): build one, check it, then create the others in the same batch with the same properties (there are no components; keep them identical by construction).
+- Repeated UI (cards, rows, nav items, buttons): build one, check it, make it a component (`update {component:true}`), then place instances of it (see **Components**). Change the main to change them all.
 - Don't think in CSS or HTML. Maquette has its own model: if a property is not listed below, it does not exist — find another way.
 
 ## The model
@@ -56,6 +56,8 @@ Elements: `frame` (the only container), `text`, `shape` (`rectangle`|`ellipse`),
 **Icons** — `type:"icon"`, `icon` (name in its set, from `icones`), `set`: `lucide` (default, stroke), `phosphor` (filled shapes; `weight`: `thin`|`light`|`regular`|`bold`|`fill`|`duotone`), `feather` (stroke), `material-rounded` (Material Symbols Rounded, snake_case names like `content_cut`; `weight` 100-700, `filled:true`). `color`; `strokeWidth` for stroke sets only. One set per design.
 
 **Vectors** — `type:"vector"`, `path` (SVG `d` attribute), `viewBox:[x,y,w,h]` (the part of the path stretched to the box; omitted = the path's bounds, and the size defaults to it), `fillRule:"nonzero"|"evenodd"`, `fills` (colours, gradients), `stroke` (keeps its px width at any size), `shadows`, `blur`. For logos, blobs, dividers and custom marks; prefer `icon` for UI icons.
+
+**Components** — any frame becomes a main component with `update {id, set:{component:true}}`. An instance is `create {parent, node:{type:"frame", instanceOf:"<main id>", x, y, descendants?:{"<id of a layer in the main>":{content:"…"}}}}`: a real copy whose layers carry `source` (the main's layer) and follow the main. Position, size and name of the instance stay its own. `update` on a layer of an instance is an override (kept when the main changes; `visible:false` hides it). Inside an instance you cannot create, delete or move layers: edit the main, or detach. `update {overrides:null}` resets an instance (or one layer), `update {instanceOf:null}` detaches it into ordinary layers. Deleting a main detaches its instances. An instance of a component cannot go inside that component.
 
 **Images** — `type:"image"`, `src` (path or URL), `fit:"cover"|"contain"|"fill"`, explicit `width`/`height` (or `fill`), `radius`. Placing a real picture: `images` tool if present; otherwise an image element with an honest placeholder and say so.
 
