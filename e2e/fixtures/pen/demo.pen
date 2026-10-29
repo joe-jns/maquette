@@ -1,0 +1,31 @@
+{
+  "version": "2.17",
+  "themes": { "mode": ["light", "dark"] },
+  "variables": {
+    "ink": { "type": "color", "value": [{ "value": "#111827" }, { "value": "#F9FAFB", "theme": { "mode": "dark" } }] },
+    "accent": { "type": "color", "value": "#2563EB" },
+    "body": { "type": "string", "value": "Inter" }
+  },
+  "children": [
+    {
+      "type": "frame", "id": "penBtn", "x": 0, "y": 0, "name": "Button", "reusable": true,
+      "padding": [10, 18], "gap": 8, "alignItems": "center", "cornerRadius": 8, "fill": "$accent",
+      "children": [
+        { "type": "icon", "id": "penIco", "width": 16, "height": 16, "icon": "star", "library": "lucide", "fill": "#FFFFFF" },
+        { "type": "text", "id": "penLbl", "content": "Button", "fontFamily": "$body", "fontSize": 14, "fontWeight": "600", "fill": "#FFFFFF" }
+      ]
+    },
+    {
+      "type": "frame", "id": "penPage", "x": 0, "y": 120, "name": "Accueil", "width": 480, "height": 360,
+      "layout": "vertical", "gap": 16, "padding": 32, "fill": "#FFFFFF",
+      "stroke": "#E5E7EB", "strokeWidth": { "bottom": 1 }, "strokeAlignment": "inner",
+      "children": [
+        { "type": "text", "id": "penTitre", "content": "Bonjour Pen", "fontFamily": "$body", "fontSize": 28, "fontWeight": "700", "lineHeight": 1.2, "fill": "$ink" },
+        { "type": "rectangle", "id": "penPhoto", "width": "fill_container", "height": 120, "cornerRadius": 12,
+          "fill": { "type": "image", "enabled": true, "url": "images/bleu.png", "mode": "fill" } },
+        { "type": "ref", "id": "penCta", "ref": "penBtn", "descendants": { "penLbl": { "content": "Commencer" } } }
+      ]
+    },
+    { "type": "note", "id": "penNote", "x": 600, "y": 0, "width": 200, "height": 100, "content": "Idée : ajouter un pied de page" }
+  ]
+}

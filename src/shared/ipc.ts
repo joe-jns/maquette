@@ -12,8 +12,15 @@ export interface TasteFinding { level: 'FAIL' | 'WARN'; id: string; message: str
 export interface TasteCheck { findings: TasteFinding[]; isPage: boolean; width: number; height: number }
 export interface TasteInput { sector: string; brief: string; tone?: string; sections?: string[] }
 
-/** Un document lu : son chemin (null pour une copie de secours d'un document jamais enregistré). */
-export interface OpenedFile { path: string | null; text: string }
+/** Ce qu'un .pen ouvert n'a pas repris tel quel : catégories et nombres (rapport d'import). */
+export interface PenReportItem { label: string; count: number }
+/** Document converti depuis un .pen : sans fichier, nommé d'après le .pen (jamais écrit). */
+export interface PenImportInfo { from: string; name: string; report: PenReportItem[] }
+/**
+ * Un document lu : son chemin (null pour une copie de secours d'un document jamais enregistré, ou un
+ * .pen converti : `imported`).
+ */
+export interface OpenedFile { path: string | null; text: string; imported?: PenImportInfo }
 /** État du document d'une fenêtre, pour la question à la fermeture. */
 export interface DocState { dirty: boolean; name: string; path: string | null }
 /** Copie de secours plus récente que son fichier, proposée au démarrage. */
@@ -72,8 +79,12 @@ export interface ExportViewApi {
 export interface MaquetteApi {
   getInitialDocument(): Promise<OpenedFile | null>
   openFile(): Promise<OpenedFile | null>
+  /** Ouvre un .maquette ou un .pen lâché sur la fenêtre (chemin absolu). */
+  openPath(path: string): Promise<OpenedFile | null>
+  /** Chemin sur le disque d'un fichier lâché ('' s'il n'en a pas). */
+  pathForFile(file: File): string
   /** La fenêtre a chargé ce fichier (null : nouveau document). */
-  documentLoaded(path: string | null): Promise<boolean>
+  documentLoaded(path: string | null, importedFrom?: string | null): Promise<boolean>
   /** `silent` : jamais de boîte « Enregistrer sous » (enregistrement automatique) ; null si le chemin n'est pas le document courant. */
   saveFile(path: string | null, text: string, opts?: { silent?: boolean }): Promise<string | null>
   /** Outil fichier de Claude : lire un .maquette par son chemin absolu, enregistrer sous un chemin donné. */

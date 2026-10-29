@@ -9,9 +9,25 @@ const offered = new Set<string>()
 
 const key = (path: string) => (process.platform === 'win32' ? resolve(path).toLowerCase() : resolve(path))
 
+/** .pen converti affiché (document sans fichier) : « Enregistrer » propose un .maquette à côté de lui. */
+let importedFrom: string | null = null
+const offeredImports = new Set<string>()
+
 export function resetSession(): void {
   currentPath = null
+  importedFrom = null
   offered.clear()
+  offeredImports.clear()
+}
+
+/** Un .pen vient d'être lu et converti pour la fenêtre. */
+export function offerImport(penPath: string): void {
+  offeredImports.add(key(penPath))
+}
+
+/** Le .pen d'origine du document affiché (sans fichier), ou null. */
+export function getImportedFrom(): string | null {
+  return importedFrom
 }
 
 /** Un fichier vient d'être lu sur disque pour la fenêtre (argument de lancement, boîte « Ouvrir »). */
@@ -20,9 +36,12 @@ export function offerPath(path: string): void {
 }
 
 /** La fenêtre a chargé ce fichier (ou un nouveau document : null). Refusé s'il ne lui a pas été proposé. */
-export function acceptPath(path: string | null): boolean {
+export function acceptPath(path: string | null, fromPen?: string | null): boolean {
+  importedFrom = null
   if (path === null) {
     currentPath = null
+    // Document converti d'un .pen : seulement un .pen réellement lu pour la fenêtre.
+    if (fromPen && offeredImports.has(key(fromPen))) importedFrom = resolve(fromPen)
     return true
   }
   if (!offered.has(key(path))) return false
@@ -40,6 +59,7 @@ export function allowedSavePath(requested: string | null): string | null {
 export function savedTo(path: string): void {
   offerPath(path)
   currentPath = resolve(path)
+  importedFrom = null
 }
 
 export function getCurrentDir(): string | null {
@@ -55,6 +75,11 @@ let pendingDir: string | null = null
 
 export function setPendingDir(dir: string | null): void {
   pendingDir = dir
+}
+
+/** Dossier d'attente des images des documents sans fichier (un .pen converti y met les siennes). */
+export function getPendingDir(): string | null {
+  return pendingDir
 }
 
 /**

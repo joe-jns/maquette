@@ -4,8 +4,9 @@ import { basename, join } from 'node:path'
 import type { OpenedFile } from '../shared/ipc'
 import { askWindow } from './askDialog'
 import { RecentStore } from './recent'
+import { isPenPath, readPenForWindow } from './penOpen'
 import { offerPath } from './state'
-import { ensureThumb, removeThumb } from './thumbs'
+import { ensureThumb, removeThumb, updateThumb } from './thumbs'
 import { FileWatcher } from './watch'
 
 let recent: RecentStore | null = null
@@ -40,6 +41,15 @@ export function initOpenFiles(opts: { editorWindow: () => BrowserWindow | undefi
 /** La fenêtre de l'éditeur (pas celle, cachée, de l'export), s'il y en a une. */
 export const currentEditorWindow = (): BrowserWindow | undefined => editorWindow()
 
+/** Lit un .maquette, ou convertit un .pen (lu seulement, jamais écrit), pour la fenêtre. */
+export async function readDocForWindow(path: string): Promise<OpenedFile> {
+  if (!isPenPath(path)) return readForWindow(path)
+  const file = await readPenForWindow(path)
+  // Texte converti gardé pour l'aperçu de l'accueil, une fois le document affiché.
+  read.set(key(file.imported!.from), file.text)
+  return file
+}
+
 /** Lit un fichier pour la fenêtre : il lui est proposé, et son contenu devient la référence de la surveillance. */
 export async function readForWindow(path: string): Promise<OpenedFile> {
   const text = await readFile(path, 'utf8')
@@ -49,7 +59,14 @@ export async function readForWindow(path: string): Promise<OpenedFile> {
 }
 
 /** La fenêtre a chargé ce fichier (ou un nouveau document) : surveillance et fichiers récents. */
-export function documentShown(path: string | null): void {
+export function documentShown(path: string | null, importedFrom: string | null = null): void {
+  // .pen converti : il rejoint les récents (l'accueil le rouvre), son aperçu vient du document converti.
+  if (importedFrom) {
+    void addRecent(importedFrom)
+    const text = read.get(key(importedFrom))
+    read.delete(key(importedFrom))
+    if (text !== undefined) setTimeout(() => updateThumb(importedFrom, text), 2500)
+  }
   const text = path ? read.get(key(path)) : undefined
   if (path) read.delete(key(path))
   if (text !== undefined) watcher?.wrote(text)
@@ -88,8 +105,19 @@ export async function openInWindow(path: string): Promise<void> {
   if (win.isMinimized()) win.restore()
   win.focus()
   try {
-    win.webContents.send('open-file', await readForWindow(path))
-  } catch {
+    win.webContents.send('open-file', await readDocForWindow(path))
+  } catch (e) {
+    // Fichier présent mais pas un .pen lisible : dit tel quel, sans le retirer des récents.
+    if (isPenPath(path) && (e as NodeJS.ErrnoException).code !== 'ENOENT') {
+      await askWindow(win, {
+        message: `${basename(path)} could not be opened.`,
+        detail: (e as Error).message,
+        buttons: [{ label: 'OK', kind: 'primary' }],
+        cancelIndex: 0,
+        defaultIndex: 0,
+      })
+      return
+    }
     // Retiré des récents sans attendre la réponse : la question n'a qu'un bouton.
     await removeRecent(path)
     await askWindow(win, {

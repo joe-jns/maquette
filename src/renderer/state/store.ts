@@ -9,6 +9,8 @@ import { newDocument } from '../../core/defaults'
 export interface DocState {
   doc: MaquetteDocument
   filePath: string | null
+  /** Document sans fichier venu d'un .pen : son nom (titre de la fenêtre). */
+  untitledName: string | null
   dirty: boolean
   pageId: string
   notice: string | null
@@ -16,7 +18,7 @@ export interface DocState {
   canRedo: boolean
   /** Un geste (glisser, redimensionnement…) est en cours : `doc` montre son aperçu. */
   inGesture: boolean
-  load(doc: MaquetteDocument, path: string | null): void
+  load(doc: MaquetteDocument, path: string | null, untitledName?: string | null): void
   showError(message: string): void
   dispatch(ops: Op[], label: string): ApplyResult
   undo(): void
@@ -59,6 +61,7 @@ const initial = freeze(newDocument(), true)
 export const docStore = createStore<DocState>()((set, get) => ({
   doc: initial,
   filePath: null,
+  untitledName: null,
   dirty: false,
   pageId: initial.pages[0]!.id,
   notice: null,
@@ -66,12 +69,12 @@ export const docStore = createStore<DocState>()((set, get) => ({
   canRedo: false,
   inGesture: false,
 
-  load(doc, path) {
+  load(doc, path, untitledName = null) {
     // Gelé comme tout document produit par Immer : il ne change plus, son index (core/tree) reste juste.
     freeze(doc, true)
     history.clear()
     gesture = null
-    set({ doc, filePath: path, dirty: false, pageId: doc.pages[0]!.id, notice: null, canUndo: false, canRedo: false, inGesture: false })
+    set({ doc, filePath: path, untitledName: path ? null : untitledName, dirty: false, pageId: doc.pages[0]!.id, notice: null, canUndo: false, canRedo: false, inGesture: false })
   },
 
   showError(message) {
@@ -101,7 +104,7 @@ export const docStore = createStore<DocState>()((set, get) => ({
   },
 
   markSaved(path) {
-    set({ filePath: path, dirty: false })
+    set({ filePath: path, untitledName: null, dirty: false })
   },
 
   setPage(id) {

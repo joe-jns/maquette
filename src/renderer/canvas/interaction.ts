@@ -433,6 +433,8 @@ export class InteractionController {
     const dt = e.dataTransfer
     if (!dt || (e.target as Element | null)?.closest?.('[data-editing]')) return
     const all = [...dt.files]
+    // Un .maquette ou un .pen lâché s'ouvre (géré par la fenêtre, App.tsx), il n'est pas importé.
+    if (all.some((f) => /\.(maquette|pen)$/i.test(f.name))) return
     const urls = all.length ? [] : droppedImageUrls(dt.getData('text/html'), dt.getData('text/uri-list'))
     if (!all.length && !urls.length) return
     // Toujours intercepter : un fichier lâché non intercepté ferait naviguer la fenêtre vers lui.

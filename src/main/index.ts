@@ -20,7 +20,8 @@ import { initOpenFiles, openInWindow } from './openFiles'
 // Dossier de données imposé (tests, relais MCP de test) : jeton, copies de secours, fichiers récents.
 if (process.env.MAQUETTE_USER_DATA) app.setPath('userData', process.env.MAQUETTE_USER_DATA)
 
-const maquetteArg = (argv: string[]) => argv.slice(1).find((a) => a.toLowerCase().endsWith('.maquette'))
+// Un .maquette, ou un .pen (converti à l'ouverture, jamais écrit).
+const maquetteArg = (argv: string[]) => argv.slice(1).find((a) => /\.(maquette|pen)$/i.test(a))
 const fileArg = maquetteArg(process.argv)
 
 // Une seule Maquette ouverte : double-cliquer un .maquette l'ouvre dans la fenêtre existante.

@@ -19,7 +19,7 @@ export async function launch(
   const app = await electron.launch({ args: ['.', ...args], env: { ...process.env, ...isolated, ...env, MAQUETTE_E2E: '1' } })
   const page = await app.firstWindow()
   await page.waitForLoadState('domcontentloaded')
-  if (!opts.home && !args.some((a) => a.toLowerCase().endsWith('.maquette'))) await startBlank(page)
+  if (!opts.home && !args.some((a) => /\.(maquette|pen)$/i.test(a))) await startBlank(page)
   return { app, page }
 }
 
