@@ -1,8 +1,18 @@
 import { test, expect, type ElectronApplication, type Page } from '@playwright/test'
+import { copyFile, mkdtemp } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { clickOn, docNode, scene, settled, uiState } from './canvas'
 import { launch } from './launch'
 
 /** Jeux d'icônes Phosphor, Feather et Material Rounded : par opérations, au sélecteur, au panneau, à l'export. */
+
+/** Copie de la scène : l'enregistrement automatique ne touche pas la fixture. */
+async function freshScene(): Promise<string> {
+  const file = join(await mkdtemp(join(tmpdir(), 'maquette-icones-')), 'scene.maquette')
+  await copyFile(scene, file)
+  return file
+}
 
 const panel = (page: Page) => page.getByTestId('right-panel')
 const currentDoc = (page: Page) =>
@@ -30,7 +40,7 @@ const inkedPixels = (app: ElectronApplication, doc: unknown, nodeId: string) =>
   }, { doc, nodeId })
 
 test('par opérations : Phosphor bold, Material Rounded plein, Feather — dessinés à l’écran et à l’export', async () => {
-  const { app, page } = await launch([scene])
+  const { app, page } = await launch([await freshScene()])
   await settled(page, 'fLibre')
   const r = await dispatch(page, [
     { op: 'create', parent: 'fLibre', node: { id: '$ph', type: 'icon', set: 'phosphor', icon: 'caret-right', weight: 'bold', color: '#C2410C', width: 48, height: 48, x: 10, y: 10 } },
@@ -61,7 +71,7 @@ test('par opérations : Phosphor bold, Material Rounded plein, Feather — dessi
 })
 
 test('au sélecteur : jeu Phosphor en bold, puis Material Rounded plein ; variante changée au panneau', async () => {
-  const { app, page } = await launch([scene])
+  const { app, page } = await launch([await freshScene()])
   await settled(page, 'fLibre')
   await clickOn(page, 'fLibre')
   await page.keyboard.press('Shift+I')
