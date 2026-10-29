@@ -113,14 +113,28 @@ export interface ImageNode extends BaseNode, Blurs {
   shadows: Shadow[]
 }
 
-/** Icône d'un jeu embarqué (Lucide), dessinée au trait dans sa boîte, en `color`. */
+/** Jeux d'icônes embarqués. Lucide et Feather sont dessinés au trait, Phosphor et Material en aplats. */
+export type IconSet = 'lucide' | 'phosphor' | 'feather' | 'material-rounded'
+/** Variantes de Phosphor (une police par variante). */
+export type PhosphorWeight = 'thin' | 'light' | 'regular' | 'bold' | 'fill' | 'duotone'
+/** Variante d'une icône : Phosphor par nom, Material par graisse (100 à 700, par centaines). */
+export type IconWeight = PhosphorWeight | number
+
+/** Icône d'un jeu embarqué, dessinée dans sa boîte, en `color`. */
 export interface IconNode extends BaseNode {
   type: 'icon'
-  /** Nom de l'icône dans le jeu (kebab-case, ex. « arrow-right ») ; `name` reste le nom du calque. */
+  /**
+   * Nom de l'icône dans le jeu (Lucide, Phosphor, Feather : kebab-case, « arrow-right » ;
+   * Material : snake_case, « content_cut ») ; `name` reste le nom du calque.
+   */
   icon: string
-  set: 'lucide'
+  set: IconSet
+  /** Phosphor : variante (absente = regular) ; Material : graisse (absente = 400). Jamais pour Lucide ni Feather. */
+  weight?: IconWeight
+  /** Material : forme pleine plutôt que contour. */
+  filled?: boolean
   color: Color
-  /** Épaisseur du trait, dans la grille 24 × 24 de l'icône (mise à l'échelle avec elle). */
+  /** Épaisseur du trait (Lucide, Feather), dans la grille 24 × 24 de l'icône (mise à l'échelle avec elle). */
   strokeWidth: number
 }
 

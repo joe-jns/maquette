@@ -5,7 +5,7 @@
  * validation le refusera avec un indice. Code pur : l'entrée n'est jamais modifiée.
  */
 import { normalizeColor } from '../core/color'
-import { resolveIcon } from '../core/icons/lucide'
+import { resolveIconIn, toIconSet } from '../core/icons/sets'
 
 type Obj = Record<string, unknown>
 type NodeKind = 'frame' | 'text' | 'shape' | 'image' | 'icon' | 'vector' | undefined
@@ -151,8 +151,10 @@ const ICON_NAME_KEYS = ['iconName', 'iconFontName', 'glyph']
 
 /**
  * Icône : nom sous un autre nom de clé (Pen iconFontName…) ou dans `name` quand c'est un nom
- * d'icône connu, `size` pour la largeur et la hauteur, jeu de Pen retiré. Le nom lui-même
- * (« lucide:ArrowRight », ancien nom) est ramené au jeu par le noyau.
+ * d'icône connu, `size` pour la largeur et la hauteur, jeu sous son nom Pen (`library`,
+ * `iconFontFamily` : « Material Symbols Rounded »…) ramené au jeu du modèle, jeu inconnu retiré
+ * (Lucide). Le nom lui-même (« lucide:ArrowRight », ancien nom) et la graisse numérique de Pen
+ * sont ramenés au jeu par le noyau.
  */
 function normalizeIcon(bag: Obj, creating: boolean): string[] {
   const notes: string[] = []
@@ -164,13 +166,25 @@ function normalizeIcon(bag: Obj, creating: boolean): string[] {
     }
     if (bag.icon === bag[key]) delete bag[key]
   }
-  if (creating && bag.icon === undefined && typeof bag.name === 'string' && resolveIcon(bag.name)) {
+  for (const key of ['library', 'iconFontFamily']) {
+    if (typeof bag[key] !== 'string') continue
+    if (bag.set === undefined && toIconSet(bag[key])) {
+      bag.set = bag[key]
+      notes.push(`${key}→set`)
+    } else notes.push(`${key} retiré`)
+    delete bag[key]
+  }
+  if (typeof bag.set === 'string') {
+    const set = toIconSet(bag.set)
+    if (!set) {
+      notes.push(`set ${bag.set} inconnu : lucide`)
+      delete bag.set
+    } else bag.set = set
+  }
+  const set = toIconSet(bag.set) ?? 'lucide'
+  if (creating && bag.icon === undefined && typeof bag.name === 'string' && resolveIconIn(set, bag.name)) {
     bag.icon = bag.name
     notes.push('name→icon')
-  }
-  if (typeof bag.iconFontFamily === 'string') {
-    delete bag.iconFontFamily
-    notes.push('iconFontFamily retiré')
   }
   if (isPx(bag.size) && bag.size > 0) {
     bag.width ??= bag.size
@@ -178,7 +192,6 @@ function normalizeIcon(bag: Obj, creating: boolean): string[] {
     delete bag.size
     notes.push('size→width/height')
   }
-  if (typeof bag.set === 'string' && bag.set.toLowerCase() !== 'lucide') delete bag.set
   return notes
 }
 

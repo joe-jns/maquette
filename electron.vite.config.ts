@@ -1,6 +1,7 @@
 import { resolve } from 'node:path'
 import { defineConfig } from 'electron-vite'
 import react from '@vitejs/plugin-react'
+import { iconPaths } from './scripts/iconPathsPlugin'
 
 export default defineConfig({
   main: {
@@ -12,5 +13,6 @@ export default defineConfig({
     },
   },
   preload: {},
-  renderer: { plugins: [react()] },
+  // Tracés des jeux d'icônes autres que Lucide : un morceau par variante, chargé à la demande.
+  renderer: { plugins: [react(), iconPaths()] },
 })

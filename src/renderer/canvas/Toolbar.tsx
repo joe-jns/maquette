@@ -148,9 +148,9 @@ export function Toolbar() {
           className="is-floating"
           label="Insert icon"
           onClose={close}
-          onPick={(name) => {
+          onPick={(name, style) => {
             close()
-            insertIcon(name)
+            insertIcon(name, style)
           }}
         />
       )}

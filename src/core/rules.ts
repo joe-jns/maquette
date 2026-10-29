@@ -128,6 +128,16 @@ function nodeRules(doc: MaquetteDocument, add: (path: string, message: string) =
       }
     }
 
+    if (node.type === 'icon') {
+      // La variante dépend du jeu : un nom pour Phosphor, une graisse pour Material, rien sinon.
+      const w = node.weight
+      if (w !== undefined) {
+        const ok = node.set === 'phosphor' ? typeof w === 'string' : node.set === 'material-rounded' ? typeof w === 'number' : false
+        if (!ok) add(`${path}.weight`, node.set === 'phosphor' ? 'Phosphor : weight thin, light, regular, bold, fill ou duotone' : node.set === 'material-rounded' ? 'Material : weight de 100 à 700' : `le jeu ${node.set} n’a pas de weight`)
+      }
+      if (node.filled !== undefined && node.set !== 'material-rounded') add(`${path}.filled`, 'filled n’existe que pour Material')
+    }
+
     if (node.type === 'text') {
       const wHug = isHug(node.width)
       const hHug = isHug(node.height)

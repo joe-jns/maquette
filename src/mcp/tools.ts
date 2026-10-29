@@ -7,10 +7,10 @@ import { z } from 'zod'
 import { createNode } from '../core/defaults'
 import type { ApplyResult, Op } from '../core/ops'
 import { formatPath } from '../core/rules'
-import { searchIcons } from '../core/icons/lucide'
+import { ICON_SETS, searchIconsIn } from '../core/icons/sets'
 import { APP_ALLOW } from '../taste/rules'
 import { findNode, walk } from '../core/tree'
-import type { MaquetteDocument, Node, NodeInput, Size } from '../core/types'
+import type { IconSet, MaquetteDocument, Node, NodeInput, Size } from '../core/types'
 import { IMAGES_DESCRIPTION, IMAGES_INPUT, runImages, type ImageHost } from './images'
 import { DESIGN_TOOLS, isDesignTool, runDesignTool, type DesignHost } from './design'
 import { ALIASES, normalizeOperations, originPath } from './normalize'
@@ -77,6 +77,7 @@ const INPUTS = {
   images: IMAGES_INPUT,
   icones: {
     cherche: z.string().min(1),
+    jeu: z.enum(ICON_SETS as [IconSet, ...IconSet[]]).optional(),
     limite: z.number().int().min(1).max(100).optional(),
   },
   fichier: {
@@ -140,8 +141,8 @@ export const TOOLS: ToolDef[] = [
   {
     name: 'icones',
     description: [
-      'Noms d’icônes Lucide (recherche en fr ou en : « panier »), meilleurs d’abord.',
-      'Icône : node {type:"icon",icon:nom,color,strokeWidth?} (24 px par défaut).',
+      'Noms d’icônes du jeu (fr ou en), meilleurs d’abord.',
+      'Icône : node {type:"icon",icon,set?:jeu,weight?,filled?,color,strokeWidth?} (24 px).',
       'fills : couleur, {type:"linear"|"conic",angle,stops:[{color,position}]}, "radial" sans angle, "linear-gradient(…)", {type:"image",src,fit}. blur, backgroundBlur.',
       'vector {path (d SVG),viewBox?,fillRule?}.',
     ].join('\n'),
@@ -187,7 +188,7 @@ export async function runTool(host: ToolHost, name: string, args: unknown): Prom
     case 'images':
       return runImages(host, parsed.data as Parameters<typeof runImages>[1])
     case 'icones':
-      return ok(icons(a.cherche as string, (a.limite as number | undefined) ?? 30))
+      return ok(icons((a.jeu as IconSet | undefined) ?? 'lucide', a.cherche as string, (a.limite as number | undefined) ?? 30))
     case 'fichier':
       return runFile(host, a as { action: 'etat' | 'ouvrir' | 'nouveau' | 'enregistrer'; chemin?: string; remplacer?: boolean })
   }
@@ -434,8 +435,8 @@ function selection(host: ToolHost) {
 
 // ——— icones ———
 
-function icons(query: string, limit: number) {
-  const all = searchIcons(query, limit + 1)
+function icons(set: IconSet, query: string, limit: number) {
+  const all = searchIconsIn(set, query, limit + 1)
   return all.length > limit ? { noms: all.slice(0, limit), plus: true } : { noms: all }
 }
 

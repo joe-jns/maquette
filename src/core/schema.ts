@@ -113,7 +113,9 @@ const IconSchema = z.strictObject({
   ...base,
   type: z.literal('icon'),
   icon: z.string().min(1),
-  set: z.literal('lucide'),
+  set: z.enum(['lucide', 'phosphor', 'feather', 'material-rounded']),
+  weight: z.union([z.enum(['thin', 'light', 'regular', 'bold', 'fill', 'duotone']), z.number().int().min(100).max(700).multipleOf(100)]).optional(),
+  filled: z.boolean().optional(),
   color: ColorSchema,
   strokeWidth: z.number().positive().max(24),
 })

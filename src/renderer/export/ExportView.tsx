@@ -4,6 +4,7 @@ import { flushSync } from 'react-dom'
 import { isFill } from '../../core/tree'
 import type { MaquetteDocument, Node } from '../../core/types'
 import type { ExportJob, ExportMeasure } from '../../shared/ipc'
+import { ensureDocumentIcons } from '../canvas/iconPaths'
 import { NodeView } from '../canvas/NodeView'
 import { ensureDocumentFonts } from '../fonts/fontLoader'
 import { docStore } from '../state/store'
@@ -108,7 +109,8 @@ async function renderJob(job: ExportJob): Promise<ExportMeasure> {
     display(null)
     return null
   }
-  await ensureDocumentFonts(doc)
+  // Polices et tracés d'icônes chargés avant le premier rendu mesuré.
+  await Promise.all([ensureDocumentFonts(doc), ensureDocumentIcons(doc)])
 
   let node = chain[chain.length - 1]!
   if (chain.length > 1 && (isFill(node.width) || isFill(node.height))) {

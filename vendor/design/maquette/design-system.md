@@ -49,8 +49,9 @@ in the same batch.
 
 If the `icon` element type is present in `appliquer`, use it for iconography (Lucide names: `home`,
 `settings`, `user`, `search`, `plus`, `x`, `pencil`, `trash-2`, `check`, `arrow-right`, `chevron-down`,
-`menu`, `layout-dashboard`, `folder`, `file`, `calendar`, `mail`, `bell`). Same size and stroke
-everywhere. Never draw icons from shapes.
+`menu`, `layout-dashboard`, `folder`, `file`, `calendar`, `mail`, `bell`), or one other set (`phosphor`,
+`feather`, `material-rounded`) for the whole design. Same set, size and stroke or weight everywhere.
+Never draw icons from shapes.
 
 ## Spacing reference
 

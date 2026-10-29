@@ -2,13 +2,13 @@ import { current, enablePatches, isDraft, produceWithPatches, type Patch } from 
 import { normalizeColor, normalizeColorValue } from './color'
 import { autoLayoutDefaults, createNode } from './defaults'
 import { alignTextSizing } from './fixes'
-import { FALLBACK_ICON, resolveIcon } from './icons/lucide'
+import { FALLBACK_ICONS, normalizeIconWeight, resolveIconIn, toIconSet } from './icons/sets'
 import { newId } from './ids'
 import { isGradient, isImageFill, normalizeFill } from './paint'
 import { validateDocument, validateNodes, type Issue } from './rules'
 import { containsId, findNodeIn, isFill, isHug, takenIds, walk, type NodeLocation } from './tree'
 import { pathBounds } from './vector'
-import type { AutoLayout, Axis, Color, FrameNode, MaquetteDocument, Node, NodeInput, Page, Rect, TextNode, TextStyle } from './types'
+import type { AutoLayout, Axis, Color, FrameNode, IconNode, IconSet, MaquetteDocument, Node, NodeInput, Page, Rect, TextNode, TextStyle } from './types'
 
 enablePatches()
 
@@ -188,7 +188,7 @@ function applyOne(ctx: Ctx, op: Op, i: number): void {
       const { id: requested, ...rawInput } = op.node
       const input = resolveRefs(ctx, rawInput, i, 'node') as Record<string, unknown>
       normalizeColorFields(input, i, 'node')
-      normalizeIconField(ctx, input)
+      if (input.type === 'icon') normalizeIconFields(ctx, input, null)
       if (input.type === 'vector') fitViewBox(input, i, 'node')
       const node = createNode(input as NodeInput, allocate(ctx, requested, i, 'node.id'))
       if (isAutoContainer(c) && node.position === 'flow') ignoreFlowXY(ctx, node)
@@ -213,7 +213,7 @@ function applyOne(ctx: Ctx, op: Op, i: number): void {
       // resolveRefs reconstruit objets et tableaux : `set` est une copie, jamais partagée avec l'appelant.
       const set = resolveRefs(ctx, op.set, i, 'set')
       normalizeColorFields(set, i, 'set')
-      normalizeIconField(ctx, set)
+      if (node.type === 'icon') normalizeIconFields(ctx, set, node)
       if (node.type === 'vector') fitViewBox(set, i, 'set')
       // Le calque nommé d'après son icône suit l'icône.
       if (node.type === 'icon' && typeof set.icon === 'string' && !('name' in set) && node.name === node.icon) set.name = set.icon
@@ -468,17 +468,46 @@ function normalizeColorFields(bag: Record<string, unknown>, i: number, prefix: s
   if (bag.color !== undefined && bag.color !== null) bag.color = norm(bag.color, `${prefix}.color`)
 }
 
-/** Nom d'icône écrit autrement ou ancien nom → nom du jeu ; inconnu → icône de repli (jamais de refus). */
-function normalizeIconField(ctx: Ctx, bag: Record<string, unknown>): void {
-  if (typeof bag.icon !== 'string') return
-  const resolved = resolveIcon(bag.icon)
-  if (resolved === bag.icon) return
-  if (resolved) {
-    bag.icon = resolved
-    return
+/**
+ * Icône créée (`current` null) ou modifiée : jeu nommé librement → jeu du modèle (inconnu → Lucide),
+ * nom écrit autrement ou ancien → nom du jeu, inconnu → icône de repli (jamais de refus), variante
+ * ramenée au jeu (convertie quand le jeu change, retirée s'il n'en a pas). Pour une modification,
+ * une clé à `null` retire la propriété.
+ */
+function normalizeIconFields(ctx: Ctx, bag: Record<string, unknown>, current: IconNode | null): void {
+  const drop = (key: string) => {
+    if (current) bag[key] = null
+    else delete bag[key]
   }
-  ctx.fixes.push(`icône inconnue « ${bag.icon} » : remplacée par ${FALLBACK_ICON} (chercher le bon nom avec l’outil icones)`)
-  bag.icon = FALLBACK_ICON
+  let set: IconSet = current?.set ?? 'lucide'
+  const changed = 'set' in bag && bag.set !== undefined
+  if (changed) {
+    const to = bag.set === null ? 'lucide' : toIconSet(bag.set)
+    if (!to) ctx.fixes.push(`jeu d’icônes inconnu « ${String(bag.set)} » : lucide (jeux : lucide, phosphor, feather, material-rounded)`)
+    set = to ?? 'lucide'
+    bag.set = set
+  }
+  const switched = changed && current !== null && set !== current.set
+  const name = typeof bag.icon === 'string' ? bag.icon : switched ? current.icon : undefined
+  if (name !== undefined) {
+    const resolved = resolveIconIn(set, name)
+    if (resolved !== name) {
+      if (!resolved) ctx.fixes.push(`icône inconnue « ${name} » dans ${set} : remplacée par ${FALLBACK_ICONS[set]} (chercher le bon nom avec l’outil icones)`)
+      bag.icon = resolved ?? FALLBACK_ICONS[set]
+    } else if (switched) bag.icon = name
+  }
+  const weight = 'weight' in bag ? bag.weight : switched ? current.weight : undefined
+  if (weight !== undefined && weight !== null) {
+    const w = normalizeIconWeight(set, weight)
+    if (w === undefined) {
+      if ('weight' in bag) ctx.fixes.push(`weight « ${String(weight)} » ignoré pour ${set}`)
+      drop('weight')
+    } else bag.weight = w
+  }
+  if (set !== 'material-rounded' && (bag.filled !== undefined || (switched && current.filled !== undefined))) {
+    if (bag.filled) ctx.fixes.push(`filled ignoré pour ${set} (Material seulement)`)
+    drop('filled')
+  }
 }
 
 /** Vecteur : un tracé donné sans `viewBox` prend sa boîte englobante (la taille par défaut en découle). */

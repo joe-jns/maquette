@@ -1,13 +1,13 @@
 import { normalizeColor, normalizeColorValue } from './color'
 import { autoLayoutDefaults, createNode } from './defaults'
 import { alignTextSizing } from './fixes'
-import { FALLBACK_ICON, resolveIcon } from './icons/lucide'
+import { FALLBACK_ICONS, isIconSet, normalizeIconWeight, resolveIconIn, toIconSet } from './icons/sets'
 import { newId } from './ids'
 import { isImageFill, normalizeFill, parseImageFill } from './paint'
 import { formatPath, type Issue } from './rules'
 import { HEX_COLOR } from './schema'
 import { isFill, isHug } from './tree'
-import type { Axis, Color, Fill, NodeInput, NodeType, Size, TextNode } from './types'
+import type { Axis, Color, Fill, IconSet, NodeInput, NodeType, Size, TextNode } from './types'
 import { isValidPath, pathBounds } from './vector'
 
 /**
@@ -39,7 +39,7 @@ const NODE_KEYS: Record<NodeType, ReadonlySet<string>> = {
   ]),
   shape: new Set([...COMMON_KEYS, ...BLUR_KEYS, 'shape', 'fills', 'stroke', 'radius', 'shadows']),
   image: new Set([...COMMON_KEYS, ...BLUR_KEYS, 'src', 'fit', 'radius', 'stroke', 'shadows']),
-  icon: new Set([...COMMON_KEYS, 'icon', 'set', 'color', 'strokeWidth']),
+  icon: new Set([...COMMON_KEYS, 'icon', 'set', 'weight', 'filled', 'color', 'strokeWidth']),
   vector: new Set([...COMMON_KEYS, ...BLUR_KEYS, 'path', 'viewBox', 'fillRule', 'fills', 'stroke', 'shadows']),
 }
 const AUTO_LAYOUT_KEYS = new Set(['mode', 'direction', 'gap', 'padding', 'justify', 'align', 'wrap', 'rowGap', 'reverseZ'])
@@ -287,15 +287,31 @@ export function repairDocument(raw: Record<string, unknown>): { doc: unknown; wa
     if (type === 'vector') repairVector(node, given, s)
     if (type === 'text' || type === 'icon') node.color = fixColor(node.color, [...s, 'color'])
     if (type === 'icon') {
-      const known = typeof node.icon === 'string' ? resolveIcon(node.icon) : null
+      if (!isIconSet(node.set)) {
+        const to = toIconSet(node.set) ?? 'lucide'
+        warn([...s, 'set'], `unknown icon set ${show(node.set)}: replaced with ${show(to)}`)
+        node.set = to
+      }
+      const set = node.set as IconSet
+      const known = typeof node.icon === 'string' ? resolveIconIn(set, node.icon) : null
       if (known !== node.icon) {
-        const to = known ?? FALLBACK_ICON
+        const to = known ?? FALLBACK_ICONS[set]
         warn([...s, 'icon'], known ? `icon ${show(node.icon)} renamed to ${show(to)}` : `unknown icon ${show(node.icon)}: replaced with ${show(to)}`)
         node.icon = to
       }
-      if (node.set !== 'lucide') {
-        warn([...s, 'set'], `unknown icon set ${show(node.set)}: replaced with "lucide"`)
-        node.set = 'lucide'
+      if (node.weight !== undefined) {
+        const w = normalizeIconWeight(set, node.weight)
+        if (w === undefined) {
+          warn([...s, 'weight'], `weight ${show(node.weight)} does not apply to ${set} icons: removed`)
+          delete node.weight
+        } else if (w !== node.weight) {
+          warn([...s, 'weight'], `weight ${show(node.weight)} changed to ${show(w)}`)
+          node.weight = w
+        }
+      }
+      if (node.filled !== undefined && (set !== 'material-rounded' || typeof node.filled !== 'boolean')) {
+        warn([...s, 'filled'], set === 'material-rounded' ? 'unreadable filled: removed' : `filled does not apply to ${set} icons: removed`)
+        delete node.filled
       }
     }
     if (isObj(node.stroke)) {

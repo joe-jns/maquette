@@ -55,7 +55,7 @@ const RAW: Record<string, string> = {
   doigt: 'pointer hand', curseur: 'mouse-pointer cursor', cible: 'target', boussole: 'compass', ancre: 'anchor',
   parapluie: 'umbrella', chien: 'dog', chat: 'cat message', oiseau: 'bird', poisson: 'fish', patte: 'paw-print',
   sport: 'dumbbell trophy', haltere: 'dumbbell', ballon: 'volleyball ball', palette: 'palette', pinceau: 'brush paintbrush',
-  peinture: 'paint palette brush', couleur: 'palette', ciseaux: 'scissors', regle: 'ruler', marteau: 'hammer',
+  peinture: 'paint palette brush', couleur: 'palette', ciseaux: 'scissors cut', regle: 'ruler', marteau: 'hammer',
   qr: 'qr-code', scanner: 'scan', empreinte: 'fingerprint',
   banque: 'landmark bank', facture: 'receipt file-text', recu: 'receipt', ticket: 'ticket',
   euro: 'euro', dollar: 'dollar', pourcentage: 'percent', calculatrice: 'calculator', horaire: 'clock calendar',

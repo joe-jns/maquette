@@ -12,7 +12,7 @@
 /** Emplacement des outils ajoutés plus tard (images, icônes…) : une ligne par outil, ou rien. */
 export const EXTENSIONS: string[] = [
   'images({cherche}) returns a numbered contact sheet: look at it, pick, then images({poser: n, dans: id}) (one undo, credit kept), one at a time. Query the subject inventory (its street, materials, trade, region), not the category; at least 4 real pictures on a page. Pick like a photo editor: one light and grade, the same world; reject snapshots (flash, clutter, tilt, posing), catalogue objects on white, another country or trade. If it asks for a saved document, tell the user to save (Ctrl+S).',
-  'icones({cherche}) gives Lucide names; create {type:"icon", icon, color, width/height 16-24}. Icons support text, never replace it.',
+  'icones({cherche, jeu?}) gives icon names (lucide by default; phosphor, feather, material-rounded); create {type:"icon", icon, set (same jeu), color, width/height 16-24}. One icon set per design. Icons support text, never replace it.',
 ]
 
 export interface ConsigneOptions {
