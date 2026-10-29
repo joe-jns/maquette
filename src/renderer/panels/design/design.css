@@ -226,6 +226,16 @@
   position: absolute; z-index: 30; top: 100%; left: 0; right: 0; margin-top: 4px; display: flex; flex-direction: column;
   background: var(--panel-bg); border-radius: var(--radius-lg); box-shadow: var(--elevation-200); padding: 8px;
 }
+/* Jeu d'icônes, puis variante Phosphor ou forme pleine Material sur la même ligne. */
+.icon-picker-sets { display: flex; gap: 4px; margin-bottom: 8px; }
+.icon-picker-sets > * { flex: 1 1 0; }
+.icon-picker-toggle {
+  min-width: 0; height: var(--field-h); border: 1px solid transparent; border-radius: var(--radius); background: var(--field-bg);
+  font: inherit; letter-spacing: inherit; color: var(--panel-muted); cursor: pointer; padding: 0 8px;
+}
+.icon-picker-toggle:hover { color: var(--panel-text); }
+.icon-picker-toggle[aria-pressed='true'] { background: var(--accent-soft); color: var(--accent-text); }
+.icon-picker-toggle:focus-visible { outline: var(--focus-ring); outline-offset: calc(-1 * var(--focus-offset)); }
 .icon-picker input {
   flex: none; height: var(--field-h); border: 1px solid transparent; border-radius: var(--radius); padding: 0 8px; font: inherit;
   letter-spacing: inherit; margin-bottom: 8px; background: var(--field-bg); min-width: 0; width: 100%; color: var(--panel-text);

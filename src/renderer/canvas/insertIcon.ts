@@ -1,4 +1,5 @@
 import type { Op } from '../../core/ops'
+import type { IconSet, IconWeight } from '../../core/types'
 import { findNode } from '../../core/tree'
 import { docStore } from '../state/store'
 import { uiStore } from '../state/ui'
@@ -7,14 +8,22 @@ import { worldRectOf } from './rects'
 const SIZE = 24
 
 /**
- * Insère une icône choisie à la main : dans le cadre sélectionné (au centre s'il est libre, à la
+ * Insère une icône choisie à la main (avec son jeu et sa variante) : dans le cadre sélectionné (au centre s'il est libre, à la
  * suite s'il est automatique), sinon sur la page au centre de la vue. L'icône est sélectionnée.
  */
-export function insertIcon(icon: string): void {
+export function insertIcon(icon: string, style: { set: IconSet; weight?: IconWeight; filled?: boolean } = { set: 'lucide' }): void {
   const doc = docStore.getState().doc
   const ui = uiStore.getState()
   const selected = ui.selection.length === 1 ? findNode(doc, ui.selection[0]!) : null
-  const node: { id: string; type: 'icon'; icon: string; x?: number; y?: number } = { id: '$icon', type: 'icon', icon }
+  const node: { id: string; type: 'icon'; icon: string; set: IconSet; weight?: IconWeight; filled?: boolean; x?: number; y?: number } = {
+    id: '$icon',
+    type: 'icon',
+    icon,
+    set: style.set,
+    // Variante par défaut (Phosphor regular, Material en contour) : rien d'enregistré.
+    ...(style.weight !== undefined && style.weight !== 'regular' ? { weight: style.weight } : {}),
+    ...(style.filled ? { filled: true } : {}),
+  }
   let parent = docStore.getState().pageId
   if (selected?.node.type === 'frame') {
     parent = selected.node.id
