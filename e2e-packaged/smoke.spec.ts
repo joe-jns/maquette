@@ -37,3 +37,33 @@ test('app installable : le relais MCP démarre depuis l’archive de l’app', a
   await expect.poll(() => out, { timeout: 15000 }).toContain('"serverInfo":{"name":"maquette"')
   relay.kill()
 })
+
+test('app installable fermée : le relais lance Maquette.exe sans fenêtre, puis elle s’arrête seule', async () => {
+  test.setTimeout(60_000)
+  const { Client } = await import('@modelcontextprotocol/sdk/client/index.js')
+  const { StdioClientTransport } = await import('@modelcontextprotocol/sdk/client/stdio.js')
+  const { mkdtempSync } = await import('node:fs')
+  const { tmpdir } = await import('node:os')
+  const { join } = await import('node:path')
+  const env = {
+    ...(process.env as Record<string, string>),
+    ELECTRON_RUN_AS_NODE: '1',
+    MAQUETTE_USER_DATA: mkdtempSync(join(tmpdir(), 'maquette-packaged-')),
+    MAQUETTE_PIPE: `\\\\.\\pipe\\maquette-packaged-${process.pid}`,
+    MAQUETTE_HEADLESS_IDLE_MS: '3000',
+  }
+  const c = new Client({ name: 'packaged', version: '1' })
+  await c.connect(new StdioClientTransport({ command: resolve('dist/win-unpacked/Maquette.exe'), args: [resolve('dist/win-unpacked/resources/app.asar/out/main/relay.js')], env }))
+  try {
+    const r = await c.callTool({ name: 'fichier', arguments: { action: 'etat' } })
+    const text = (r.content as { text?: string }[])[0]?.text ?? ''
+    expect(JSON.parse(text)).toMatchObject({ visible: false })
+  } finally {
+    await c.close()
+  }
+  // Sans appel, l'app cachée s'arrête : plus aucun Maquette.exe lancé depuis ce dossier.
+  await new Promise((r) => setTimeout(r, 8000))
+  const { execSync } = await import('node:child_process')
+  const list = execSync('powershell -NoProfile -Command "(Get-CimInstance Win32_Process -Filter \\"Name=\'Maquette.exe\'\\" | Where-Object { $_.ExecutablePath -like \'*win-unpacked*\' }).Count"').toString().trim()
+  expect(Number(list || 0)).toBe(0)
+})
