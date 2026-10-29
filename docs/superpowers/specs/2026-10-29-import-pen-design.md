@@ -36,6 +36,19 @@ flou 4. 22 fichiers ont des `variables`, 2 des `themes`. Versions 2.6, 2.17, 2.1
 5. Schéma, règles, réparation (`repair.ts`), sérialisation, export PNG, rendu chat/MCP (`lire_elements`),
    outils de Claude (création/modification de ces propriétés) et description des outils mis à jour.
 
+## Étape 1 bis — Jeux d'icônes Phosphor, Feather, Material Symbols Rounded
+
+Demandé par l'utilisateur le 2026-10-29. Ses .pen utilisent 115 icônes hors Lucide (Phosphor en graisses
+400/500/600/700 et sans graisse, Feather `clock`, Material Symbols Rounded `grass`, `content_cut`, `yard`,
+`forest`, `compost`, `inventory_2`).
+- `IconNode.set` : `'lucide' | 'phosphor' | 'feather' | 'material-rounded'`, plus `weight?` pour les jeux qui
+  en ont (Phosphor : thin/light/regular/bold/fill/duotone ; Material : graisse et plein/contour). Les
+  graisses numériques de Pen (100–700) sont converties vers la variante la plus proche.
+- Tracés réels des paquets officiels (vérifier la dernière version avec `npm view` : @phosphor-icons/core,
+  feather-icons, @material-symbols/svg-*), chargés sans alourdir le démarrage (paresseux ou par jeu).
+- Sélecteur d'icônes : choix du jeu, recherche par nom, graisse. Rendu, export PNG, outils de Claude
+  (créer une icône d'un jeu donné) et lecture.
+
 ## Étape 2 — Composants
 
 Modèle « copie liée » :
@@ -78,8 +91,8 @@ Modèle « copie liée » :
   valeurs, justify/align, `fill_container`/`fit_content` → fill/hug avec repli numérique, `clip`,
   `layoutPosition:absolute`) ; group → cadre libre ; rectangle/ellipse → forme ; path/line/polygon →
   vector ; text (lineHeight ratio → px arrondi, « auto » → ratio par défaut de la police ou 1.2, textGrowth
-  auto/fixed-width/fixed-width-height → auto/auto-height/fixed, fontWeight chaîne → nombre) ; icon lucide →
-  icon, autres bibliothèques → lucide du même nom sinon carré gris nommé et signalé ; remplissages
+  auto/fixed-width/fixed-width-height → auto/auto-height/fixed, fontWeight chaîne → nombre) ; icon → icon du
+  même jeu (Lucide, Phosphor, Feather, Material Rounded) avec sa graisse ; jeu inconnu → carré gris signalé ; remplissages
   hex/variable/gradient (linear/radial/angular→conique)/image ; contours (alignement inner/center/outer,
   largeur par côté → plus grande valeur, signalée) ; ombres (sans spread) ; blur/background_blur ;
   `reusable` → composant ; `ref` + `descendants` (surcharges par chemin d'ids, remplacement de sous-arbre)
