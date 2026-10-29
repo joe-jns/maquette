@@ -1,6 +1,6 @@
 import TAGS from 'lucide-static/tags.json'
 import ALIASES from './lucideAliases.json'
-import { FRENCH } from './french'
+import { rankIcons } from './search'
 
 /**
  * Jeu d'icônes Lucide (lucide-static, licence ISC) : noms, anciens noms, recherche.
@@ -50,57 +50,14 @@ export function resolveIcon(raw: string): string | null {
 
 // ——— Recherche ———
 
-const fold = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
-
-/** Mots cherchés : le mot, sa traduction anglaise (français courant), son singulier. */
-function variants(word: string): string[] {
-  const out = new Set([word])
-  const singular = word.length > 3 && /[sx]$/.test(word) ? word.slice(0, -1) : null
-  for (const w of [word, singular]) {
-    if (!w) continue
-    out.add(w)
-    for (const en of FRENCH[w] ?? []) out.add(en)
-  }
-  return [...out]
-}
-
-function wordScore(name: string, parts: string[], tags: string[], word: string): number {
-  if (name === word) return 100
-  if (parts.includes(word)) return 60
-  if (name.startsWith(word)) return 45
-  if (tags.includes(word)) return 35
-  if (name.includes(word)) return 25
-  if (tags.some((t) => t.split(/[\s-]+/).includes(word))) return 20
-  if (word.length >= 4 && tags.some((t) => t.includes(word))) return 10
-  return 0
-}
-
 /**
  * Icônes qui correspondent à une recherche (anglais, ou français courant : « flèche droite »,
  * « panier »). Tous les mots doivent correspondre (au nom ou aux étiquettes Lucide). Les noms
  * exacts et les noms qui commencent par le mot passent devant.
  */
 export function searchIcons(query: string, limit = 40): string[] {
-  const words = fold(query).split(/[\s,;/]+/).map((w) => w.replace(/^-+|-+$/g, '')).filter(Boolean)
-  if (words.length === 0) return ICON_NAMES.slice(0, limit)
-  const direct = resolveIcon(query)
-  const scored: { name: string; score: number }[] = []
-  for (const name of ICON_NAMES) {
-    const parts = name.split('-')
-    const tags = TAG_MAP[name] ?? []
-    let total = 0
-    for (const word of words) {
-      let best = 0
-      for (const v of variants(word)) best = Math.max(best, wordScore(name, parts, tags, v))
-      if (best === 0) {
-        total = 0
-        break
-      }
-      total += best
-    }
-    if (name === direct) total += 1000
-    if (total > 0) scored.push({ name, score: total })
-  }
-  scored.sort((a, b) => b.score - a.score || a.name.length - b.name.length || a.name.localeCompare(b.name))
-  return scored.slice(0, limit).map((s) => s.name)
+  return rankIcons(ICON_NAMES, (name) => TAG_MAP[name] ?? [], query, resolveIcon(query), limit)
 }
+
+/** Étiquettes Lucide d'une icône (servent aussi aux noms Feather, qui en descendent). */
+export const lucideTags = (name: string): readonly string[] => TAG_MAP[name] ?? []
