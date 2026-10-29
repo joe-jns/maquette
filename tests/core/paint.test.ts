@@ -30,7 +30,16 @@ describe('dégradés : lecture tolérante', () => {
 
   it('CSS illisible : null', () => {
     expect(parseCssGradient('linear-gradient(nimporte, quoi)')).toBeNull()
-    expect(parseCssGradient('conic-gradient(red, blue)')).toBeNull()
+    expect(parseCssGradient('conic-gradient(nimporte, quoi)')).toBeNull()
+    expect(parseCssGradient('conic-gradient(from zut, red, blue)')).toBeNull()
+  })
+
+  it('CSS conique : angle de départ (« from »), centre ignoré, 0 par défaut', () => {
+    const stops = [{ color: '#FF0000', position: 0 }, { color: '#0000FF', position: 1 }]
+    expect(parseCssGradient('conic-gradient(red, blue)')).toEqual({ type: 'conic', angle: 0, stops })
+    expect(parseCssGradient('conic-gradient(from 90deg at 50% 50%, red, blue)')).toEqual({ type: 'conic', angle: 90, stops })
+    expect(parseCssGradient('conic-gradient(at 30% 40%, red, blue)')).toEqual({ type: 'conic', angle: 0, stops })
+    expect(parseCssGradient('conic-gradient(from 0.5turn, red, blue)')).toMatchObject({ angle: 180 })
   })
 
   it('formes Figma et Pen', () => {
@@ -41,6 +50,11 @@ describe('dégradés : lecture tolérante', () => {
     expect(normalizeFill({ type: 'gradient', gradientType: 'radial', colors: [{ color: '#111', position: 0 }, { color: '#eee', position: 1 }] }))
       .toEqual({ type: 'radial', stops: [{ color: '#111111', position: 0 }, { color: '#EEEEEE', position: 1 }] })
     expect(normalizeFill({ type: 'linear', angle: 90, from: '#000', to: 'white' })).toEqual(linear(90, ['#000000', 0], ['#FFFFFF', 1]))
+    // Conique : Figma GRADIENT_ANGULAR, Pen gradientType "angular" ; sans angle, départ en haut.
+    expect(normalizeFill({ type: 'GRADIENT_ANGULAR', gradientStops: [{ color: { r: 1, g: 0, b: 0, a: 1 }, position: 0 }, { color: { r: 0, g: 0, b: 1, a: 1 }, position: 1 }] }))
+      .toEqual({ type: 'conic', angle: 0, stops: [{ color: '#FF0000', position: 0 }, { color: '#0000FF', position: 1 }] })
+    expect(normalizeFill({ type: 'gradient', gradientType: 'angular', rotation: 45, colors: ['#000', '#fff'] }))
+      .toEqual({ type: 'conic', angle: 45, stops: [{ color: '#000000', position: 0 }, { color: '#FFFFFF', position: 1 }] })
   })
 
   it('positions en pourcentage, manquantes, désordonnées ; couleur nommée gardée', () => {
@@ -66,6 +80,8 @@ describe('dégradés : rendu CSS', () => {
     })
     const radial: Fill = { type: 'radial', stops: [{ color: '#000000', position: 0.25 }, { color: '#FFFFFF', position: 1 }] }
     expect(nodeCss(rect('r00001', { x: 0, y: 0, fills: [radial] }), null, styles).backgroundImage).toBe('radial-gradient(#000000 25%, #FFFFFF 100%)')
+    const conic: Fill = { type: 'conic', angle: 90, stops: [{ color: { style: 'c00001' }, position: 0 }, { color: '#FFFFFF', position: 0.5 }] }
+    expect(fillsCss([conic], styles)).toEqual({ backgroundImage: 'conic-gradient(from 90deg, #C2410C 0%, #FFFFFF 50%)' })
   })
 })
 
@@ -80,6 +96,18 @@ describe('dégradés : document', () => {
     expect((r.doc.pages[0]!.children[0] as ShapeNode).fills).toEqual([linear(180, ['#FFFFFF', 0], ['#000000', 1])])
     const bad = applyOps(doc, [{ op: 'update', id: 'r00001', set: { fills: ['linear-gradient(zut)'] } }])
     expect(bad.ok).toBe(false)
+  })
+
+  it('dégradé conique : accepté par appliquer et le schéma, angle requis', () => {
+    const doc = base()
+    const r = applyOps(doc, [{ op: 'update', id: 'r00001', set: { fills: ['conic-gradient(from 45deg, #fff, #000)'] } }])
+    expect(r.ok).toBe(true)
+    if (!r.ok) return
+    expect((r.doc.pages[0]!.children[0] as ShapeNode).fills).toEqual([{ type: 'conic', angle: 45, stops: [{ color: '#FFFFFF', position: 0 }, { color: '#000000', position: 1 }] }])
+    expect(validateDocument(r.doc)).toEqual([])
+    const copy = structuredClone(r.doc)
+    ;(copy.pages[0]!.children[0] as ShapeNode).fills = [{ type: 'conic', stops: [{ color: '#000000', position: 0 }, { color: '#FFFFFF', position: 1 }] } as unknown as Fill]
+    expect(validateDocument(copy).length).toBeGreaterThan(0)
   })
 
   it('un dégradé d’un seul arrêt est refusé par le schéma', () => {

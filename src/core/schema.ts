@@ -10,6 +10,7 @@ const StopSchema = z.strictObject({ color: ColorSchema, position: z.number().min
 const GradientSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('linear'), angle: z.number(), stops: z.array(StopSchema).min(2, 'un dégradé a au moins 2 arrêts') }),
   z.strictObject({ type: z.literal('radial'), stops: z.array(StopSchema).min(2, 'un dégradé a au moins 2 arrêts') }),
+  z.strictObject({ type: z.literal('conic'), angle: z.number(), stops: z.array(StopSchema).min(2, 'un dégradé a au moins 2 arrêts') }),
 ])
 const FillSchema = z.union([ColorSchema, GradientSchema])
 const SizeSchema = z.union([Px, z.strictObject({ mode: z.literal('hug') }), z.strictObject({ mode: z.literal('fill') })])

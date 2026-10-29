@@ -9,7 +9,9 @@ export interface GradientStop { color: Color; position: number }
 export interface LinearGradient { type: 'linear'; angle: number; stops: GradientStop[] }
 /** Dégradé radial, du centre vers les coins. */
 export interface RadialGradient { type: 'radial'; stops: GradientStop[] }
-export type Gradient = LinearGradient | RadialGradient
+/** Dégradé conique autour du centre : `angle` = départ en degrés (0 = en haut, sens horaire), comme `conic-gradient(from …)`. */
+export interface ConicGradient { type: 'conic'; angle: number; stops: GradientStop[] }
+export type Gradient = LinearGradient | RadialGradient | ConicGradient
 /** Remplissage d'un cadre ou d'une forme : une couleur ou un dégradé. */
 export type Fill = Color | Gradient
 
