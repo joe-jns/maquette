@@ -13,7 +13,7 @@ export type CommandId =
   | 'zoomIn' | 'zoomOut' | 'zoom100' | 'zoomFit' | 'zoomSelection'
   | 'nudgeLeft' | 'nudgeRight' | 'nudgeUp' | 'nudgeDown'
   | 'nudgeLeft10' | 'nudgeRight10' | 'nudgeUp10' | 'nudgeDown10'
-  | 'help' | 'tasteCheck' | 'toggleChat' | 'insertIcon'
+  | 'help' | 'tasteCheck' | 'toggleChat' | 'insertIcon' | 'createComponent'
 
 export interface Shortcut {
   id: CommandId
@@ -57,6 +57,7 @@ const TABLE: Record<CommandId, Omit<Shortcut, 'id'>> = {
 
   wrapInFrame: { keys: 'Ctrl+Alt+G', label: 'Frame selection', group: 'Arrange' },
   addAutoLayout: { keys: 'Shift+A', label: 'Add auto layout', group: 'Arrange' },
+  createComponent: { keys: 'Ctrl+Alt+K', label: 'Create component', group: 'Arrange' },
   forward: { keys: 'Ctrl+]', label: 'Bring forward', group: 'Arrange' },
   backward: { keys: 'Ctrl+[', label: 'Send backward', group: 'Arrange' },
   front: { keys: 'Ctrl+Shift+]', label: 'Bring to front', group: 'Arrange' },
@@ -127,6 +128,7 @@ const BINDINGS: Binding[] = [
 
   letter('wrapInFrame', 'g', { ctrl: true, alt: true }),
   letter('tasteCheck', 'v', { ctrl: true, alt: true }),
+  letter('createComponent', 'k', { ctrl: true, alt: true }),
   letter('toggleChat', 'l', { ctrl: true }),
   letter('addAutoLayout', 'a', { shift: true }),
   code('forward', ['BracketRight'], { ctrl: true }),
