@@ -319,6 +319,12 @@ describe('import Pen : contours et effets', () => {
     expect(labels(r)).toMatchObject({ 'Strokes on some sides only, drawn as shadows': 1 })
   })
 
+  it('contour sans strokeWidth : pas de contour (comme Pen)', () => {
+    const { doc } = run([{ type: 'frame', id: 'a', x: 0, y: 0, width: 1, height: 1, stroke: '#111111', strokeAlignment: 'inner' }])
+    expect(get<FrameNode>(doc, 'a').stroke).toBeUndefined()
+    expect(get<FrameNode>(doc, 'a').shadows).toEqual([])
+  })
+
   it('contour en dégradé : première couleur, signalé', () => {
     const r = run([{ type: 'rectangle', id: 'a', x: 0, y: 0, width: 1, height: 1, strokeWidth: 1, stroke: { type: 'gradient', colors: [{ color: '#123456', position: 0 }, { color: '#FFFFFF', position: 1 }] } }])
     expect(get(r.doc, 'a')).toMatchObject({ stroke: { color: '#123456' } })

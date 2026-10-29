@@ -597,7 +597,8 @@ class Importer {
       if (left > 0) shadows.push({ x: -k * left, y: 0, blur: 0, spread: 0, color, inset })
       return { shadows }
     }
-    const width = Math.max(0, this.num(wv, ctx, 1))
+    // Sans strokeWidth, Pen ne dessine pas le contour.
+    const width = Math.max(0, this.num(wv, ctx, 0))
     return width > 0 ? { stroke: { color, width: round2(width), align }, shadows: [] } : { shadows: [] }
   }
 
