@@ -190,3 +190,42 @@ describe('outil fichier', () => {
     expect(JSON.parse((await runTool(h, 'chercher', { type: 'vector' })).text).resultats).toEqual([[id, 'vector', 'Vector', null]])
   })
 })
+
+describe('outils MCP : composants', () => {
+  it('Claude crée un composant, pose une instance avec surcharges, lit le lien, détache', async () => {
+    const h = host(scene())
+    const page = h.current().pages[0]!.id
+    let r = await runTool(h, 'appliquer', { operations: [
+      { op: 'update', id: 'F1', set: { component: true } },
+      { op: 'create', parent: page, node: { id: '$i', type: 'frame', instanceOf: 'F1', x: 800, y: 40, descendants: { T1: { content: 'Salut' } } } },
+    ] })
+    expect(r.isError, r.text).toBeFalsy()
+    const inst = (JSON.parse(r.text) as { ids: Record<string, string> }).ids.$i!
+    const doc = JSON.parse((await runTool(h, 'lire_document', {})).text) as { pages: { elements: Record<string, unknown>[] }[] }
+    expect(doc.pages[0]!.elements).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'F1', composant: true }), expect.objectContaining({ id: inst, instanceOf: 'F1' }),
+    ]))
+    const read = JSON.parse((await runTool(h, 'lire_elements', { ids: [inst] })).text) as { elements: { instanceOf: string; children: { source: string; content?: string; overrides?: string[] }[] }[] }
+    expect(read.elements[0]!.instanceOf).toBe('F1')
+    expect(read.elements[0]!.children[0]).toMatchObject({ source: 'T1', content: 'Salut', overrides: ['content'] })
+    // Ajouter dans une instance : refus clair.
+    r = await runTool(h, 'appliquer', { operations: [{ op: 'create', parent: inst, node: { type: 'text' } }] })
+    expect(r.isError).toBe(true)
+    expect(r.text).toContain('est une instance')
+    r = await runTool(h, 'appliquer', { operations: [{ op: 'update', id: inst, set: { instanceOf: null } }] })
+    expect(r.isError, r.text).toBeFalsy()
+    expect((h.current().pages[0]!.children.find((n) => n.id === inst) as FrameNode).instanceOf).toBeUndefined()
+  })
+
+  it('formes de Pen : type "ref" + ref → instance, reusable → composant', async () => {
+    const h = host(scene())
+    const page = h.current().pages[0]!.id
+    const r = await runTool(h, 'appliquer', { operations: [
+      { op: 'update', id: 'F1', set: { reusable: true } },
+      { op: 'create', parent: page, node: { id: '$i', type: 'ref', ref: 'F1', x: 0, y: 600 } },
+    ] })
+    expect(r.isError, r.text).toBeFalsy()
+    const inst = (JSON.parse(r.text) as { ids: Record<string, string> }).ids.$i!
+    expect((h.current().pages[0]!.children.find((n) => n.id === inst) as FrameNode).instanceOf).toBe('F1')
+  })
+})

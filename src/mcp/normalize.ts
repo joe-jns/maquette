@@ -133,6 +133,9 @@ const ALIAS_RULES: Record<string, Alias> = {
   d: { target: 'path', convert: (v, k) => (typeof v === 'string' && (k === 'vector' || k === undefined) ? v : undefined) },
   geometry: { target: 'path', convert: (v, k) => (typeof v === 'string' && (k === 'vector' || k === undefined) ? v : undefined) },
   windingRule: { target: 'fillRule', convert: (v) => fillRule(v) },
+  // Composants à la Pen : reusable (principal), ref (instance de).
+  reusable: boolean('component'),
+  ref: { target: 'instanceOf', convert: (v) => (typeof v === 'string' ? v : undefined) },
 }
 
 /** Noms devinés (CSS, Figma) → nom de Maquette, pour l'indice des messages d'erreur. */
@@ -144,6 +147,9 @@ const LAYOUT_KEYS = new Set(['mode', 'direction', 'gap', 'padding', 'justify', '
 
 /** Types d'élément devinés pour un vecteur (Pen : path ; SVG). */
 const VECTOR_TYPES = new Set(['path', 'svg', 'svg_path'])
+
+/** Types d'élément devinés pour une instance (Pen : ref) ou un composant : des cadres. */
+const INSTANCE_TYPES = new Set(['ref', 'instance', 'component'])
 
 /** Types d'élément devinés pour une icône (Pen : icon_font). */
 const ICON_TYPES = new Set(['icon', 'icon_font', 'iconfont', 'lucide'])
@@ -329,6 +335,10 @@ export function normalizeOperations(operations: unknown[], typeOf: (id: string) 
     } else if (rawType !== undefined && VECTOR_TYPES.has(rawType)) {
       notes.add(`type ${rawType}→vector`)
       node.type = 'vector'
+    } else if (rawType !== undefined && INSTANCE_TYPES.has(rawType)) {
+      notes.add(`type ${rawType}→frame`)
+      node.type = 'frame'
+      if (rawType === 'component' && node.component === undefined && node.reusable === undefined) node.component = true
     }
     const kind = kindOf(node.type)
     for (const n of normalizeBag(node, kind, true)) notes.add(n)
