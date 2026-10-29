@@ -417,7 +417,7 @@ function componentKeys(ctx: Ctx, loc: NodeLocation, set: Record<string, unknown>
       if (node.source !== undefined) fail(i, `${field}.component`, 'un calque d’instance ne peut pas devenir un composant (détacher l’instance d’abord)')
       node.component = true
     } else if (v === false || v === null) {
-      if (isMain(node)) {
+      if (node.type === 'frame' && node.component) {
         delete node.component
         detachInstancesOf(ctx, new Set([node.id]))
       }

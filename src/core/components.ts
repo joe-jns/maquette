@@ -35,9 +35,9 @@ export const ROOT_LOCAL_KEYS: ReadonlySet<string> = new Set([
 /** Surcharge d'une liste d'enfants : la synchronisation n'ajoute, ne retire ni ne réordonne plus rien. */
 export const CHILDREN_OVERRIDE = 'children'
 
-export const isMain = (n: Node | undefined | null): n is FrameNode => n?.type === 'frame' && n.component === true
+export const isMain = (n: Node | undefined | null): n is FrameNode & { component: true } => n?.type === 'frame' && n.component === true
 /** Racine d'instance : suit un principal sans être elle-même la copie d'un calque (instance imbriquée). */
-export const isInstanceRoot = (n: Node | undefined | null): n is FrameNode =>
+export const isInstanceRoot = (n: Node | undefined | null): n is FrameNode & { instanceOf: string } =>
   n?.type === 'frame' && n.instanceOf !== undefined && n.source === undefined
 /** Calque qui appartient à une instance (racine ou copie). */
 export const inInstance = (n: Node): boolean => n.source !== undefined || isInstanceRoot(n)
