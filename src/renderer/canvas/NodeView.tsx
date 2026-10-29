@@ -38,8 +38,8 @@ export const NodeView = memo(function NodeView({ node, parent, index }: { node: 
       return <VectorView node={node} style={style} styles={styles} nodeRef={nodeRef(node.id)} />
     case 'icon':
       return (
-        <div ref={nodeRef(node.id)} data-node-id={node.id} data-icon-name={node.icon} style={style}>
-          <IconSvg name={node.icon} strokeWidth={node.strokeWidth} />
+        <div ref={nodeRef(node.id)} data-node-id={node.id} data-icon-name={node.icon} data-icon-set={node.set} style={style}>
+          <IconSvg name={node.icon} set={node.set} weight={node.weight} filled={node.filled} strokeWidth={node.strokeWidth} />
         </div>
       )
   }
