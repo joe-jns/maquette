@@ -16,6 +16,10 @@ import { registerDesignIpc } from './design'
 import { buildMenu, setRecentFiles } from './menu'
 import { isHidden, revealWindow, startedHeadless, watchIdle } from './headless'
 import { initOpenFiles, openInWindow } from './openFiles'
+import { fixShellPath } from './shellPath'
+
+// macOS : le chat et « Connect to Claude Code » doivent trouver `claude` même lancés depuis le Finder.
+fixShellPath()
 
 // Dossier de données imposé (tests, relais MCP de test) : jeton, copies de secours, fichiers récents.
 if (process.env.MAQUETTE_USER_DATA) app.setPath('userData', process.env.MAQUETTE_USER_DATA)
@@ -37,6 +41,13 @@ app.on('second-instance', (_event, argv) => {
     if (win.isMinimized()) win.restore()
     win.focus()
   }
+})
+
+// macOS : un fichier ouvert depuis le Finder arrive par cet événement, pas par la ligne de commande.
+// Avant que la fenêtre soit prête, openInWindow le garde en attente.
+app.on('open-file', (event, path) => {
+  event.preventDefault()
+  if (/\.(maquette|pen)$/i.test(path)) void openInWindow(path)
 })
 
 /** Tests : fenêtre hors de l'écran, sans bouton dans la barre des tâches ni focus, pour laisser le PC utilisable. */
