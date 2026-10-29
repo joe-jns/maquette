@@ -149,7 +149,7 @@ function nodeRules(doc: MaquetteDocument, add: (path: string, message: string) =
 }
 
 function checkPaint(node: Node, path: string, checkColor: (c: Color, path: string) => void): void {
-  if (node.type === 'frame' || node.type === 'shape') {
+  if (node.type === 'frame' || node.type === 'shape' || node.type === 'vector') {
     node.fills.forEach((f, i) => {
       if (isImageFill(f)) return
       if (isGradient(f)) f.stops.forEach((s, k) => checkColor(s.color, `${path}.fills[${i}].stops[${k}].color`))

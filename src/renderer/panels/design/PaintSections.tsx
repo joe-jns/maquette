@@ -44,12 +44,12 @@ const GradientGlyph = () => (
 /** Remplissages d'un cadre, d'une forme ou d'un vecteur : couleurs, dégradés et (sauf vecteur) images. */
 export function FillSection() {
   const { nodes } = useSelection()
-  const painted = nodes.filter((n) => n.type === 'frame' || n.type === 'shape')
+  const painted = nodes.filter((n) => n.type === 'frame' || n.type === 'shape' || n.type === 'vector')
   if (painted.length === 0 || painted.length !== nodes.length) return null
-  return <Fills painted={painted} />
+  return <Fills painted={painted} images={!painted.some((n) => n.type === 'vector')} />
 }
 
-function Fills({ painted }: { painted: { id: string; fills: Fill[] }[] }) {
+function Fills({ painted, images }: { painted: { id: string; fills: Fill[] }[]; images: boolean }) {
   const styles = useDoc((s) => s.doc.styles)
   const imagePicker = useImagePicker((src) => commit(set([...list, { type: 'image', src, fit: 'cover' }]), 'Remplissage image'))
   const ids = painted.map((n) => n.id)
@@ -76,7 +76,7 @@ function Fills({ painted }: { painted: { id: string; fills: Fill[] }[] }) {
               <GradientGlyph />
             </IconButton>
           )}
-          {fills !== 'mixed' && (
+          {fills !== 'mixed' && images && (
             <IconButton label="Add image fill" tooltip="Image" onClick={imagePicker.pick}>
               <Icon d={IMAGE_GLYPH} />
             </IconButton>

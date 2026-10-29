@@ -7,6 +7,7 @@ import { newId } from './ids'
 import { isGradient, isImageFill, normalizeFill } from './paint'
 import { validateDocument, validateNodes, type Issue } from './rules'
 import { containsId, findNodeIn, isFill, isHug, takenIds, walk, type NodeLocation } from './tree'
+import { pathBounds } from './vector'
 import type { AutoLayout, Axis, Color, FrameNode, MaquetteDocument, Node, NodeInput, Page, Rect, TextNode, TextStyle } from './types'
 
 enablePatches()
@@ -188,6 +189,7 @@ function applyOne(ctx: Ctx, op: Op, i: number): void {
       const input = resolveRefs(ctx, rawInput, i, 'node') as Record<string, unknown>
       normalizeColorFields(input, i, 'node')
       normalizeIconField(ctx, input)
+      if (input.type === 'vector') fitViewBox(input, i, 'node')
       const node = createNode(input as NodeInput, allocate(ctx, requested, i, 'node.id'))
       if (isAutoContainer(c) && node.position === 'flow') ignoreFlowXY(ctx, node)
       else {
@@ -212,6 +214,7 @@ function applyOne(ctx: Ctx, op: Op, i: number): void {
       const set = resolveRefs(ctx, op.set, i, 'set')
       normalizeColorFields(set, i, 'set')
       normalizeIconField(ctx, set)
+      if (node.type === 'vector') fitViewBox(set, i, 'set')
       // Le calque nommé d'après son icône suit l'icône.
       if (node.type === 'icon' && typeof set.icon === 'string' && !('name' in set) && node.name === node.icon) set.name = set.icon
       for (const [key, value] of Object.entries(set)) {
@@ -476,6 +479,12 @@ function normalizeIconField(ctx: Ctx, bag: Record<string, unknown>): void {
   }
   ctx.fixes.push(`icône inconnue « ${bag.icon} » : remplacée par ${FALLBACK_ICON} (chercher le bon nom avec l’outil icones)`)
   bag.icon = FALLBACK_ICON
+}
+
+/** Vecteur : un tracé donné sans `viewBox` prend sa boîte englobante (la taille par défaut en découle). */
+function fitViewBox(bag: Record<string, unknown>, i: number, prefix: string): void {
+  if (typeof bag.path !== 'string' || bag.viewBox !== undefined) return
+  bag.viewBox = pathBounds(bag.path) ?? fail(i, `${prefix}.path`, `tracé SVG illisible : ${JSON.stringify(bag.path.slice(0, 80))}`)
 }
 
 /** §6.1 : un enfant en flux d'un cadre automatique n'a pas de x/y ; ils sont retirés, pas refusés. */

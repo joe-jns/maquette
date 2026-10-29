@@ -105,6 +105,14 @@ export function nodeCss(node: Node, parent: FrameNode | null, styles: DocStyles,
       css.objectFit = node.fit
       css.display = 'block'
       break
+    case 'vector': {
+      // Remplissages et contour sont dessinés par le SVG du calque (vectorPaint) ; les ombres suivent
+      // la forme du tracé (drop-shadow), sans étalement ni ombre intérieure.
+      const drops = node.shadows.filter((s) => !s.inset).map((s) => `drop-shadow(${px(s.x)} ${px(s.y)} ${px(s.blur)} ${resolveColor(s.color, styles)})`)
+      if (drops.length) css.filter = drops.join(' ')
+      css.display = 'block'
+      break
+    }
     case 'icon':
       // Le tracé (SVG en currentColor) prend la couleur de sa boîte.
       css.color = resolveColor(node.color, styles)

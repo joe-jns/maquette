@@ -7,7 +7,7 @@
  */
 
 export type IconName =
-  | 'move' | 'hand' | 'frame' | 'rect' | 'ellipse' | 'line' | 'text' | 'image' | 'icon'
+  | 'move' | 'hand' | 'frame' | 'rect' | 'ellipse' | 'line' | 'text' | 'image' | 'icon' | 'vector'
   | 'chevronDown' | 'chevronRight' | 'chevronLeft' | 'chevronDownSmall' | 'more'
   | 'eye' | 'eyeOff' | 'lock' | 'unlock'
   | 'autoRow' | 'autoCol' | 'group' | 'page'
@@ -28,6 +28,8 @@ const PATHS: Record<IconName, string[]> = {
   line: ['M5.5 18.5 18.5 5.5'],
   text: ['M6 7V5.5h12V7', 'M12 5.5v13', 'M9.75 18.5h4.5'],
   icon: ['M12 5.25l1.95 3.95 4.35.63-3.15 3.07.74 4.33L12 15.18l-3.89 2.05.74-4.33L5.7 9.83l4.35-.63z'],
+  // Vecteur : une courbe entre deux points d'ancrage.
+  vector: ['M6 17C8 8 16 16 18 7', 'M4.5 16h3v3h-3z', 'M16.5 5h3v3h-3z'],
   image: ['M5 5.5h14v13H5z', 'M5 16l4-4 3.5 3.5 2-2L19 18', 'M15.25 8.25a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 1 0 0-2.5z'],
   chevronDown: ['M8 10l4 4 4-4'],
   chevronRight: ['M10 8l4 4-4 4'],

@@ -31,6 +31,8 @@ function iconOf(node: Node): IconName {
       return 'image'
     case 'icon':
       return 'icon'
+    case 'vector':
+      return 'vector'
     case 'shape':
       return node.shape === 'ellipse' ? 'ellipse' : 'rect'
     default:

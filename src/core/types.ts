@@ -124,7 +124,22 @@ export interface IconNode extends BaseNode {
   strokeWidth: number
 }
 
-export type Node = FrameNode | TextNode | ShapeNode | ImageNode | IconNode
+/**
+ * Tracé vectoriel (attribut « d » d'un chemin SVG) étiré dans sa boîte : `viewBox` [x, y, largeur, hauteur]
+ * est la zone du tracé qui remplit la boîte. Le contour garde son épaisseur en px quelle que soit la taille.
+ */
+export interface VectorNode extends BaseNode, Blurs {
+  type: 'vector'
+  path: string
+  viewBox: [number, number, number, number]
+  fillRule: 'nonzero' | 'evenodd'
+  /** Couleurs et dégradés (pas d'image). */
+  fills: Paint[]
+  stroke?: Stroke
+  shadows: Shadow[]
+}
+
+export type Node = FrameNode | TextNode | ShapeNode | ImageNode | IconNode | VectorNode
 export type NodeType = Node['type']
 
 type Without<T> = Omit<T, 'id' | 'type' | 'children' | 'layout'>
@@ -135,6 +150,7 @@ export type NodeInput =
   | ({ type: 'shape' } & Partial<Without<ShapeNode>>)
   | ({ type: 'image' } & Partial<Without<ImageNode>>)
   | ({ type: 'icon' } & Partial<Without<IconNode>>)
+  | ({ type: 'vector' } & Partial<Without<VectorNode>>)
 
 export interface ColorStyle { id: Id; name: string; value: string }
 export interface TextStyle {

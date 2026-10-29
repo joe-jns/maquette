@@ -7,6 +7,7 @@ import { assetUrl } from './assetUrl'
 import { IconSvg } from './IconSvg'
 import { registerNode } from './rects'
 import { TextEditor } from './TextEditor'
+import { VectorView } from './VectorView'
 
 /**
  * Un élément du document en vraie balise HTML. Mémoïsé : grâce au partage de structure d'Immer, un
@@ -33,6 +34,8 @@ export const NodeView = memo(function NodeView({ node, parent, index }: { node: 
       return <div ref={nodeRef(node.id)} data-node-id={node.id} style={style} />
     case 'image':
       return <ImageView node={node} style={style} />
+    case 'vector':
+      return <VectorView node={node} style={style} styles={styles} nodeRef={nodeRef(node.id)} />
     case 'icon':
       return (
         <div ref={nodeRef(node.id)} data-node-id={node.id} data-icon-name={node.icon} style={style}>

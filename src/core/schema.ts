@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type { MaquetteDocument, Node } from './types'
+import { isValidPath } from './vector'
 
 export const HEX_COLOR = /^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/
 
@@ -14,6 +15,7 @@ const GradientSchema = z.discriminatedUnion('type', [
 ])
 const ImageFillSchema = z.strictObject({ type: z.literal('image'), src: z.string(), fit: z.enum(['cover', 'contain', 'fill']) })
 const FillSchema = z.union([ColorSchema, GradientSchema, ImageFillSchema])
+const PaintSchema = z.union([ColorSchema, GradientSchema], 'remplissage d’un vecteur attendu : couleur ou dégradé (pas d’image)')
 const SizeSchema = z.union([Px, z.strictObject({ mode: z.literal('hug') }), z.strictObject({ mode: z.literal('fill') })])
 const StrokeSchema = z.strictObject({ color: ColorSchema, width: z.number().positive(), align: z.enum(['inside', 'outside', 'center']) })
 const ShadowSchema = z.strictObject({
@@ -116,8 +118,20 @@ const IconSchema = z.strictObject({
   strokeWidth: z.number().positive().max(24),
 })
 
+const VectorSchema = z.strictObject({
+  ...base,
+  type: z.literal('vector'),
+  ...blurs,
+  path: z.string().refine(isValidPath, 'tracé SVG illisible (attribut « d » attendu, commençant par M)'),
+  viewBox: z.tuple([z.number(), z.number(), z.number().positive(), z.number().positive()]),
+  fillRule: z.enum(['nonzero', 'evenodd']),
+  fills: z.array(PaintSchema),
+  stroke: StrokeSchema.optional(),
+  shadows: z.array(ShadowSchema),
+})
+
 export const NodeSchema: z.ZodType<Node> = z.lazy(() =>
-  z.discriminatedUnion('type', [FrameSchema, TextSchema, ShapeSchema, ImageSchema, IconSchema]),
+  z.discriminatedUnion('type', [FrameSchema, TextSchema, ShapeSchema, ImageSchema, IconSchema, VectorSchema]),
 )
 
 const ColorStyleSchema = z.strictObject({ id: Id, name: z.string().min(1), value: z.string().regex(HEX_COLOR) })

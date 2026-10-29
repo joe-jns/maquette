@@ -20,6 +20,9 @@ export function newDocument(): MaquetteDocument {
 /** Icône d'un élément `icon` créé sans nom d'icône. */
 export const DEFAULT_ICON = 'star'
 
+/** Tracé d'un vecteur créé sans tracé : un triangle dans un carré de 100. */
+export const DEFAULT_PATH = 'M50 0L100 100H0Z'
+
 const common = { visible: true, locked: false, opacity: 1, position: 'flow' as const }
 
 /** Crée un élément complet à partir d'une saisie partielle. `id` est imposé. */
@@ -56,6 +59,12 @@ export function createNode(input: NodeInput, id: string): Node {
         ...common, name: 'Image', width: 200, height: 150,
         src: '', fit: 'cover', radius: 0, shadows: [],
         ...input, id, type: 'image',
+      }
+    case 'vector':
+      return {
+        ...common, name: 'Vector', width: input.viewBox?.[2] ?? 100, height: input.viewBox?.[3] ?? 100,
+        path: DEFAULT_PATH, viewBox: [0, 0, 100, 100], fillRule: 'nonzero', fills: ['#D9D9D9'], shadows: [],
+        ...input, id, type: 'vector',
       }
     case 'icon': {
       const icon = input.icon ?? DEFAULT_ICON

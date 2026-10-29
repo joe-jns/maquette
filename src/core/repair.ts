@@ -3,11 +3,12 @@ import { autoLayoutDefaults, createNode } from './defaults'
 import { alignTextSizing } from './fixes'
 import { FALLBACK_ICON, resolveIcon } from './icons/lucide'
 import { newId } from './ids'
-import { normalizeFill, parseImageFill } from './paint'
+import { isImageFill, normalizeFill, parseImageFill } from './paint'
 import { formatPath, type Issue } from './rules'
 import { HEX_COLOR } from './schema'
 import { isFill, isHug } from './tree'
 import type { Axis, Color, Fill, NodeInput, NodeType, Size, TextNode } from './types'
+import { isValidPath, pathBounds } from './vector'
 
 /**
  * Ouverture tolérante (spec §6.2) : ramène un document lu sur disque à l'état valide le plus proche.
@@ -23,7 +24,7 @@ const MAGENTA = '#FF00FF'
 const FALLBACK_SIZE = 100
 const ID = /^[^/$][^/]*$/
 const AXES: Axis[] = ['width', 'height']
-const NODE_TYPES: readonly NodeType[] = ['frame', 'text', 'shape', 'image', 'icon']
+const NODE_TYPES: readonly NodeType[] = ['frame', 'text', 'shape', 'image', 'icon', 'vector']
 
 const COMMON_KEYS = [
   'id', 'type', 'name', 'visible', 'locked', 'opacity', 'width', 'height', 'x', 'y', 'position', 'alignSelf',
@@ -39,6 +40,7 @@ const NODE_KEYS: Record<NodeType, ReadonlySet<string>> = {
   shape: new Set([...COMMON_KEYS, ...BLUR_KEYS, 'shape', 'fills', 'stroke', 'radius', 'shadows']),
   image: new Set([...COMMON_KEYS, ...BLUR_KEYS, 'src', 'fit', 'radius', 'stroke', 'shadows']),
   icon: new Set([...COMMON_KEYS, 'icon', 'set', 'color', 'strokeWidth']),
+  vector: new Set([...COMMON_KEYS, ...BLUR_KEYS, 'path', 'viewBox', 'fillRule', 'fills', 'stroke', 'shadows']),
 }
 const AUTO_LAYOUT_KEYS = new Set(['mode', 'direction', 'gap', 'padding', 'justify', 'align', 'wrap', 'rowGap', 'reverseZ'])
 const STROKE_KEYS = new Set(['color', 'width', 'align'])
@@ -192,6 +194,37 @@ export function repairDocument(raw: Record<string, unknown>): { doc: unknown; wa
     return g
   }
 
+  /**
+   * Vecteur : tracé illisible remplacé par un rectangle, viewBox absente calculée d'après le tracé
+   * (illisible : idem, signalée), règle de remplissage inconnue ramenée à nonzero, images retirées.
+   */
+  const repairVector = (node: Obj, given: Obj, s: Segs): void => {
+    const box = (v: unknown): v is number[] =>
+      Array.isArray(v) && v.length === 4 && v.every((n) => typeof n === 'number' && Number.isFinite(n)) && v[2] > 0 && v[3] > 0
+    if (typeof node.path !== 'string' || !isValidPath(node.path)) {
+      const [x, y, w, h] = box(given.viewBox) ? given.viewBox : [0, 0, 100, 100]
+      const rect = `M${x} ${y}h${w}v${h}h${-w}Z`
+      warn([...s, 'path'], `unreadable path (${show(node.path)}): replaced with a rectangle`)
+      node.path = rect
+    }
+    if (!box(given.viewBox)) {
+      const bounds = pathBounds(node.path as string) ?? [0, 0, 100, 100]
+      if (given.viewBox !== undefined) warn([...s, 'viewBox'], `invalid viewBox (${show(given.viewBox)}): replaced with the path bounds ${show(bounds)}`)
+      node.viewBox = bounds
+    }
+    if (node.fillRule !== 'nonzero' && node.fillRule !== 'evenodd') {
+      warn([...s, 'fillRule'], `unknown fillRule ${show(node.fillRule)}: replaced with "nonzero"`)
+      node.fillRule = 'nonzero'
+    }
+    if (Array.isArray(node.fills)) {
+      node.fills = (node.fills as Fill[]).filter((f, i) => {
+        if (!isImageFill(f)) return true
+        warn([...s, 'fills', i], 'image fill not possible on a vector: removed')
+        return false
+      })
+    }
+  }
+
   // 2. Pages (identifiants réservés avant ceux des éléments, comme dans validateDocument)
   const pageSrc: unknown[] = Array.isArray(src.pages) ? src.pages : []
   if (src.pages !== undefined && !Array.isArray(src.pages)) warn(['pages'], `unreadable page list (${show(src.pages)})`)
@@ -251,6 +284,7 @@ export function repairDocument(raw: Record<string, unknown>): { doc: unknown; wa
 
     // Couleurs et références de style
     if (Array.isArray(node.fills)) node.fills = node.fills.map((c, i) => fixFill(c, [...s, 'fills', i]))
+    if (type === 'vector') repairVector(node, given, s)
     if (type === 'text' || type === 'icon') node.color = fixColor(node.color, [...s, 'color'])
     if (type === 'icon') {
       const known = typeof node.icon === 'string' ? resolveIcon(node.icon) : null
