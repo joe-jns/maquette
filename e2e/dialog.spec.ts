@@ -39,9 +39,9 @@ async function spyNative(app: ElectronApplication, page: Page): Promise<() => Pr
   return async () => [...(await app.evaluate(() => (globalThis as unknown as { __native: string[] }).__native)), ...pageDialogs]
 }
 
-const DISCARD = 'Discard unsaved changes?'
+const DISCARD = 'Save changes to Untitled?'
 
-test('Nouveau avec un document modifié : question dans l’app ; Échap annule, « Abandonner » confirme', async () => {
+test('Nouveau avec un document modifié : question dans l’app ; Échap annule, « Ne pas enregistrer » confirme', async () => {
   const { app, page } = await launch()
   try {
     await expect(page.getByTestId('canvas')).toBeVisible()
@@ -53,8 +53,8 @@ test('Nouveau avec un document modifié : question dans l’app ; Échap annule,
     const dialog = page.getByRole('dialog', { name: DISCARD })
     await expect(dialog).toBeVisible()
     await expect(dialog).toHaveAttribute('aria-modal', 'true')
-    // Bouton par défaut : « Annuler » (rien n'est perdu sur Entrée).
-    await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeFocused()
+    // Bouton par défaut : « Enregistrer » (rien n'est perdu sur Entrée).
+    await expect(dialog.getByRole('button', { name: 'Save', exact: true })).toBeFocused()
     // Les raccourcis du canevas ne passent pas sous la question.
     await page.evaluate(() => {
       const s = (window as unknown as { __maquetteStore: Store }).__maquetteStore.getState()
@@ -67,7 +67,7 @@ test('Nouveau avec un document modifié : question dans l’app ; Échap annule,
     await expect(page).toHaveTitle(/•/)
 
     await menu(app, 'new')
-    await page.getByRole('dialog', { name: DISCARD }).getByRole('button', { name: 'Discard' }).click()
+    await page.getByRole('dialog', { name: DISCARD }).getByRole('button', { name: 'Don’t save' }).click()
     await expect(page.getByRole('dialog')).toHaveCount(0)
     await expect.poll(() => names(page)).toEqual([])
     await expect(page).not.toHaveTitle(/•/)
@@ -89,20 +89,23 @@ test('file d’attente, focus piégé, clic sur le fond et Entrée', async () =>
     // Une seule question affichée à la fois.
     await expect(page.getByRole('dialog')).toHaveCount(1)
     const dialog = page.getByRole('dialog', { name: DISCARD })
-    await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeFocused()
-    // Tab tourne entre les deux boutons sans sortir de la fenêtre.
+    await expect(dialog.getByRole('button', { name: 'Save', exact: true })).toBeFocused()
+    // Tab tourne entre les trois boutons sans sortir de la fenêtre.
     await page.keyboard.press('Tab')
-    await expect(dialog.getByRole('button', { name: 'Discard' })).toBeFocused()
+    await expect(dialog.getByRole('button', { name: 'Don’t save' })).toBeFocused()
     await page.keyboard.press('Tab')
     await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeFocused()
+    await page.keyboard.press('Tab')
+    await expect(dialog.getByRole('button', { name: 'Save', exact: true })).toBeFocused()
     await page.keyboard.press('Shift+Tab')
-    await expect(dialog.getByRole('button', { name: 'Discard' })).toBeFocused()
+    await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeFocused()
 
     // Clic sur le fond : annule ; la question suivante prend la place.
     await page.mouse.click(5, 5)
     await expect(page.getByRole('dialog', { name: DISCARD })).toBeVisible()
-    await expect(page.getByRole('dialog').getByRole('button', { name: 'Cancel' })).toBeFocused()
-    // Entrée : le bouton par défaut (Annuler).
+    await expect(page.getByRole('dialog').getByRole('button', { name: 'Save', exact: true })).toBeFocused()
+    // Entrée sur « Annuler ».
+    await page.keyboard.press('Shift+Tab')
     await page.keyboard.press('Enter')
     await expect(page.getByRole('dialog')).toHaveCount(0)
     expect(await names(page)).toEqual(['Toujours là'])

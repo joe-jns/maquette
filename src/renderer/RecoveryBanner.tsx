@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { RecoveryOffer } from '../shared/ipc'
 import { openDocument } from './state/openDocument'
 import { serializeDocument } from '../core/format'
-import { confirmDiscard } from './state/commands'
+import { confirmLeave } from './state/commands'
 import { docStore } from './state/store'
 
 const ago = (t: number) => {
@@ -25,7 +25,7 @@ export function RecoveryBanner({ ready }: { ready: boolean }) {
 
   const restore = async () => {
     // Le document affiché a des changements : on demande avant de le remplacer.
-    if (!(await confirmDiscard())) return
+    if (!(await confirmLeave())) return
     const file = await window.maquette.backup.restore(offer.id)
     next()
     if (!file || !(await openDocument(file))) return

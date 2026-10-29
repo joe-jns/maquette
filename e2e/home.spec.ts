@@ -129,7 +129,7 @@ test('ouvrir une carte (souris, puis clavier) ; aperçu fait à l’ouverture', 
   }
 })
 
-test('Fichier → Accueil puis Échap revient au document ; menu ▾ ; document modifié protégé', async () => {
+test('Fichier → Accueil puis Échap revient au document ; menu ▾ ; document modifié : enregistrer avant l’accueil', async () => {
   const { userData, older } = await prepare()
   const { app, page } = await launch([older], { MAQUETTE_USER_DATA: userData })
   try {
@@ -157,22 +157,50 @@ test('Fichier → Accueil puis Échap revient au document ; menu ▾ ; document 
     await home.getByRole('button', { name: 'Back to document' }).click()
     await expect(home).toHaveCount(0)
 
-    // Document modifié : ouvrir une carte demande d'abord ; Annuler garde tout, accueil compris.
-    await page.evaluate(() => {
-      const store = (window as unknown as { __maquetteStore: { getState(): { doc: { pages: { id: string }[] }; dispatch(ops: unknown[], label: string): unknown } } }).__maquetteStore
-      store.getState().dispatch([{ op: 'create', parent: store.getState().doc.pages[0]!.id, node: { type: 'shape', shape: 'rectangle', name: 'New', x: 0, y: 0, width: 10, height: 10 } }], 'test')
-    })
+    // Document modifié, enregistrement automatique actif : l'accueil enregistre le fichier sans question.
+    const dirty = () => page.evaluate(() => (window as unknown as { __maquetteStore: { getState(): { dirty: boolean } } }).__maquetteStore.getState().dirty)
+    const edit = () =>
+      page.evaluate(() => {
+        const store = (window as unknown as { __maquetteStore: { getState(): { doc: { pages: { id: string }[] }; dispatch(ops: unknown[], label: string): unknown } } }).__maquetteStore
+        store.getState().dispatch([{ op: 'create', parent: store.getState().doc.pages[0]!.id, node: { type: 'shape', shape: 'rectangle', name: 'New', x: 0, y: 0, width: 10, height: 10 } }], 'test')
+      })
+    await edit()
     await menu(app, 'home')
-    await card(page, 'Studio Été').locator('.home-card-open').click()
-    const dialog = page.getByRole('dialog', { name: 'Discard unsaved changes?' })
+    await expect(home).toBeVisible()
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    expect(await dirty()).toBe(false)
+    expect(await readFile(older, 'utf8')).toContain('"New"')
+    await page.keyboard.press('Escape')
+
+    // Sans enregistrement automatique : la question vient AVANT l'accueil. Annuler reste sur le document.
+    await page.getByTestId('file-header').getByRole('button').click()
+    await page.getByRole('menuitemradio', { name: 'Auto-save' }).click()
+    await edit()
+    await menu(app, 'home')
+    const dialog = page.getByRole('dialog', { name: 'Save changes to Boulangerie?' })
     await expect(dialog).toBeVisible()
+    await expect(home).toHaveCount(0)
     await dialog.getByRole('button', { name: 'Cancel' }).click()
     await expect(dialog).toHaveCount(0)
-    await expect(home).toBeVisible()
-    expect(await filePath(page)).toBe(older)
-    await page.keyboard.press('Escape')
     await expect(home).toHaveCount(0)
     await expect(page).toHaveTitle(/•/)
+
+    // « Enregistrer » : le fichier est écrit, puis l'accueil s'affiche.
+    await menu(app, 'home')
+    await dialog.getByRole('button', { name: 'Save', exact: true }).click()
+    await expect(home).toBeVisible()
+    expect(await dirty()).toBe(false)
+    await page.keyboard.press('Escape')
+
+    // « Ne pas enregistrer » : l'accueil, sans retour vers les changements abandonnés ; ouvrir une carte ne redemande rien.
+    await edit()
+    await menu(app, 'home')
+    await dialog.getByRole('button', { name: 'Don’t save' }).click()
+    await expect(home).toBeVisible()
+    await expect(home.getByRole('button', { name: 'Back to document' })).toHaveCount(0)
+    await card(page, 'Studio Été').locator('.home-card-open').click()
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    await expect(home).toHaveCount(0)
   } finally {
     await app.close()
   }

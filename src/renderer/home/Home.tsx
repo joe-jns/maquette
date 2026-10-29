@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react'
 import { filterEntries, gridMove, relativeDate, sortEntries, type RecentEntry } from '../../shared/home'
 import { dialogStore } from '../dialog/dialogStore'
-import { confirmDiscard, runCommand } from '../state/commands'
+import { confirmLeave, runCommand } from '../state/commands'
 import { openDocument } from '../state/openDocument'
 import { docStore } from '../state/store'
 import { Icon } from '../ui/icons'
@@ -152,7 +152,7 @@ export function Home() {
   }
 
   const open = async (entry: RecentEntry) => {
-    if (!(await confirmDiscard())) return
+    if (!(await confirmLeave())) return
     const file = await window.maquette.home.open(entry.path)
     if (!file) {
       docStore.getState().showError(`${entry.name} could not be found.`)

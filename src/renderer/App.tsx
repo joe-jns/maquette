@@ -14,7 +14,7 @@ import { homeStore, useHome } from './home/homeStore'
 import { RecoveryBanner } from './RecoveryBanner'
 import { startAutoSaveFile } from './state/autoSaveFile'
 import { startAutosave } from './state/autosave'
-import { confirmDiscard, runCommand } from './state/commands'
+import { confirmLeave, runCommand } from './state/commands'
 import { fileName, openDocument } from './state/openDocument'
 import { docStore, useDoc } from './state/store'
 import { Modals } from './ui/Modals'
@@ -51,7 +51,7 @@ export function App() {
   useEffect(
     () =>
       window.maquette.onOpenFile((file) => {
-        void confirmDiscard().then((ok) => ok && openDocument(file))
+        void confirmLeave().then((ok) => ok && openDocument(file))
       }),
     [],
   )

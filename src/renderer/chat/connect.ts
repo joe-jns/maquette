@@ -2,7 +2,7 @@ import { findNode } from '../../core/tree'
 import type { MaquetteDocument } from '../../core/types'
 import { DEFAULT_CHAT_OPTIONS, type ChatApi, type ChatOptions, type ConversationSwitch, type OtherConversation } from '../../shared/chat'
 import { ask } from '../dialog/dialogStore'
-import { confirmDiscard } from '../state/commands'
+import { confirmLeave } from '../state/commands'
 import { fileName, openDocument } from '../state/openDocument'
 import { docStore } from '../state/store'
 import { uiStore } from '../state/ui'
@@ -125,7 +125,7 @@ export async function removeConversation(id: string, title: string): Promise<boo
 /** Ouvre le fichier d'une autre conversation (avec la question habituelle), puis cette conversation. */
 export async function openOtherConversation(other: OtherConversation): Promise<boolean> {
   const api = chatApi()
-  if (!api || other.missing || !(await confirmDiscard())) return false
+  if (!api || other.missing || !(await confirmLeave())) return false
   const file = await api.openFile(other.path, other.id).catch(() => null)
   if (!file) {
     docStore.getState().showError(`${fileName(other.path)} could not be found.`)
