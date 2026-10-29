@@ -117,6 +117,7 @@ function detachMissingStyles(doc: MaquetteDocument, payload: ClipboardPayload, n
 
 /**
  * Coller (Ctrl+V) : recrée chaque sous-arbre (un `create` par élément, identifiants temporaires).
+ * Un principal ou une instance collé dans le document de son principal devient une instance.
  * Hors flux : positions relatives conservées, boîte des éléments collés placée à `at` (sinon
  * décalée de +10/+10). Dans un cadre automatique : en flux, à la fin, sans x/y.
  */
@@ -171,6 +172,6 @@ export function pasteOps(
     const o = origin(node)
     input.x = o.x + dx
     input.y = o.y + dy
-  }))
+  }, doc))
   return { ops, select }
 }

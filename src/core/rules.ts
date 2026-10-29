@@ -1,3 +1,4 @@
+import { componentIssues } from './components'
 import { isGradient, isImageFill } from './paint'
 import { DocumentSchema, NodeSchema } from './schema'
 import { isFill, isHug, walk } from './tree'
@@ -37,6 +38,7 @@ export function validateDocument(doc: MaquetteDocument): Issue[] {
     claim(node.id, `${path}.id`)
     rules(node, parent, path)
   })
+  issues.push(...componentIssues(doc))
 
   return issues
 }

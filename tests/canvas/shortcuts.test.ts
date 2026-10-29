@@ -23,6 +23,11 @@ describe('raccourcis', () => {
     expect(matchShortcut(k('2', 'Digit2', { shiftKey: true }))).toBe('zoomSelection')
   })
 
+  it('Ctrl+Alt+K crée un composant', () => {
+    expect(matchShortcut(k('k', 'KeyK', { ctrlKey: true, altKey: true }))).toBe('createComponent')
+    expect(SHORTCUTS.find((s) => s.id === 'createComponent')).toMatchObject({ keys: 'Ctrl+Alt+K', label: 'Create component' })
+  })
+
   it('Ctrl+L ouvre ou ferme le chat ; L seul ne fait rien', () => {
     expect(matchShortcut(k('l', 'KeyL', { ctrlKey: true }))).toBe('toggleChat')
     expect(matchShortcut(k('l', 'KeyL'))).toBeNull()

@@ -22,6 +22,11 @@ describe('arbre des calques', () => {
     expect(rows.find((r) => r.id === 'T1')).toMatchObject({ parentId: 'A1', auto: true })
   })
 
+  it('un composant principal et une instance ont leur icône (losanges, losange)', () => {
+    const p = docWith([frame('M1', { x: 0, y: 0, component: true }), frame('I1', { x: 0, y: 0, instanceOf: 'M1' })]).pages[0]!
+    expect(layerRows(p, new Set()).map((r) => [r.id, r.icon])).toEqual([['I1', 'instance'], ['M1', 'component']])
+  })
+
   it('un cadre replié cache ses enfants', () => {
     expect(layerRows(page, new Set()).map((r) => r.id)).toEqual(['R3', 'L1', 'A1'])
   })

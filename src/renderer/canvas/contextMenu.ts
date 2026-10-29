@@ -1,9 +1,11 @@
+import { isInstanceRoot, isMain } from '../../core/components'
 import { findNode } from '../../core/tree'
 import type { Node } from '../../core/types'
 import { runCommand } from '../state/commands'
 import { docStore } from '../state/store'
 import { uiStore } from '../state/ui'
 import { SEPARATOR, type MenuAction, type MenuEntry } from '../ui/menuModel'
+import { detachInstance, goToMain, hasOverrides, resetInstance } from './componentActions'
 import { runCanvasCommand, type ScreenPoint } from './interaction'
 import { shortcutKeys, type CommandId } from './shortcuts'
 
@@ -39,6 +41,20 @@ function toggles(nodes: Node[]): MenuEntry[] {
   ]
 }
 
+/** Composants : créer (sauf sur un principal), et pour une instance aller au principal, rétablir, détacher. */
+function componentEntries(nodes: Node[], single: Node | null): MenuEntry[] {
+  const entries: MenuEntry[] = []
+  if (!(single && isMain(single)) && !nodes.some((n) => n.source !== undefined)) entries.push(cmd('Create component', 'createComponent'))
+  if (single?.type === 'frame' && single.instanceOf !== undefined) {
+    entries.push({ label: 'Go to main component', onSelect: () => goToMain(single.id) })
+  }
+  if (single && (single.source !== undefined || isInstanceRoot(single)) && hasOverrides(single)) {
+    entries.push({ label: 'Reset changes', onSelect: () => resetInstance(single.id) })
+  }
+  if (isInstanceRoot(single)) entries.push({ label: 'Detach instance', onSelect: () => detachInstance(single.id) })
+  return entries
+}
+
 /**
  * Menu d'une sélection (canevas ou calques). `at` : point du clic droit sur le canevas (« Coller ici ») ;
  * `rename` : renommage sur place, proposé dans les calques.
@@ -60,6 +76,7 @@ export function selectionMenu({ at, rename }: { at?: ScreenPoint; rename?: () =>
     SEPARATOR,
     cmd('Frame selection', 'wrapInFrame'),
     cmd('Add auto layout', 'addAutoLayout'),
+    ...componentEntries(nodes, single),
     SEPARATOR,
     ...(rename && single ? [{ label: 'Rename', onSelect: rename }] : []),
     ...toggles(nodes),

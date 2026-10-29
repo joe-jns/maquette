@@ -1,0 +1,38 @@
+{
+  "format": "maquette",
+  "version": 1,
+  "styles": { "colors": [], "text": [] },
+  "pages": [
+    {
+      "id": "pComp",
+      "name": "Composants",
+      "children": [
+        {
+          "id": "fCarte",
+          "type": "frame",
+          "name": "Carte",
+          "x": 40,
+          "y": 40,
+          "width": 240,
+          "height": { "mode": "hug" },
+          "fills": ["#F2EEE8"],
+          "layout": { "mode": "auto", "direction": "column", "gap": 8, "padding": [16, 16, 16, 16], "justify": "start", "align": "start", "wrap": false, "reverseZ": false },
+          "children": [
+            { "id": "tCarte", "type": "text", "name": "Titre", "content": "Titre de carte", "fontFamily": "Arial", "fontSize": 20, "lineHeight": 24 },
+            { "id": "rPuce", "type": "shape", "shape": "rectangle", "name": "Puce", "width": 40, "height": 8, "fills": ["#C2410C"] }
+          ]
+        },
+        {
+          "id": "fAutre",
+          "type": "frame",
+          "name": "Autre",
+          "x": 400,
+          "y": 40,
+          "width": 200,
+          "height": 120,
+          "fills": ["#DDE7F0"]
+        }
+      ]
+    }
+  ]
+}

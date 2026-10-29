@@ -1,8 +1,8 @@
 # Design system composition
 
-Adapted from Pen's design-system guide. Maquette has no components or slots: a design system here is
-the document's named colours and text styles, plus elements built identically by construction. The
-layout patterns, spacing reference, button hierarchy and principles are Pen's.
+Adapted from Pen's design-system guide. A design system here is the document's named colours and text
+styles, plus components: frames made main with `component:true`, placed as instances (`instanceOf`;
+no variants or slots). The layout patterns, spacing reference, button hierarchy and principles are Pen's.
 
 ## Tokens = named colours and text styles
 
@@ -32,8 +32,8 @@ Radius: none for tables and sharp containers, medium for cards and modals, full 
 - **Table**: header (search, filters, actions) → rows → footer (count, pagination). See `guide('table')`.
 - **Pagination**: previous, page numbers (active, default, ellipsis), next.
 
-Build one instance, check it with `capture`, then build the others with exactly the same properties
-in the same batch.
+Build each pattern once, check it with `capture`, make it a component, then place instances of it
+(`create` with `instanceOf`, texts through `descendants` or `update` on the instance's layers).
 
 ## Screen layout patterns
 

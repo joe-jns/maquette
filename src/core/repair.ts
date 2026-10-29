@@ -1,4 +1,5 @@
 import { normalizeColor, normalizeColorValue } from './color'
+import { repairComponents } from './components'
 import { autoLayoutDefaults, createNode } from './defaults'
 import { alignTextSizing } from './fixes'
 import { FALLBACK_ICONS, isIconSet, normalizeIconWeight, resolveIconIn, toIconSet } from './icons/sets'
@@ -7,7 +8,7 @@ import { isImageFill, normalizeFill, parseImageFill } from './paint'
 import { formatPath, type Issue } from './rules'
 import { HEX_COLOR } from './schema'
 import { isFill, isHug } from './tree'
-import type { Axis, Color, Fill, IconSet, NodeInput, NodeType, Size, TextNode } from './types'
+import type { Axis, Color, Fill, IconSet, MaquetteDocument, NodeInput, NodeType, Size, TextNode } from './types'
 import { isValidPath, pathBounds } from './vector'
 
 /**
@@ -28,11 +29,11 @@ const NODE_TYPES: readonly NodeType[] = ['frame', 'text', 'shape', 'image', 'ico
 
 const COMMON_KEYS = [
   'id', 'type', 'name', 'visible', 'locked', 'opacity', 'width', 'height', 'x', 'y', 'position', 'alignSelf',
-  'minWidth', 'maxWidth', 'minHeight', 'maxHeight',
+  'minWidth', 'maxWidth', 'minHeight', 'maxHeight', 'source', 'overrides',
 ]
 const BLUR_KEYS = ['blur', 'backgroundBlur']
 const NODE_KEYS: Record<NodeType, ReadonlySet<string>> = {
-  frame: new Set([...COMMON_KEYS, ...BLUR_KEYS, 'children', 'layout', 'fills', 'stroke', 'radius', 'shadows', 'clip']),
+  frame: new Set([...COMMON_KEYS, ...BLUR_KEYS, 'children', 'layout', 'fills', 'stroke', 'radius', 'shadows', 'clip', 'component', 'instanceOf']),
   text: new Set([
     ...COMMON_KEYS, 'content', 'fontFamily', 'fontWeight', 'fontStyle', 'fontSize', 'lineHeight', 'letterSpacing',
     'textAlign', 'color', 'textStyle', 'textSizing',
@@ -282,6 +283,25 @@ export function repairDocument(raw: Record<string, unknown>): { doc: unknown; wa
       else warn([...s, 'layout'], 'unreadable layout: replaced with free layout')
     }
 
+    // Liens de composant : valeurs illisibles retirées (la cohérence est revue à la fin)
+    if (node.component !== undefined && node.component !== true) {
+      if (node.component !== false) warn([...s, 'component'], `invalid component flag (${show(node.component)}): removed`)
+      delete node.component
+    }
+    for (const k of ['instanceOf', 'source'] as const) {
+      if (node[k] !== undefined && !(typeof node[k] === 'string' && ID.test(node[k]))) {
+        warn([...s, k], `invalid ${k} (${show(node[k])}): removed`)
+        delete node[k]
+      }
+    }
+    if (node.overrides !== undefined) {
+      const list = Array.isArray(node.overrides) ? node.overrides : []
+      const kept = [...new Set(list.filter((k): k is string => typeof k === 'string' && k !== ''))]
+      if (!Array.isArray(node.overrides) || kept.length !== list.length) warn([...s, 'overrides'], 'unreadable overrides: cleaned')
+      if (kept.length) node.overrides = kept
+      else delete node.overrides
+    }
+
     // Couleurs et références de style
     if (Array.isArray(node.fills)) node.fills = node.fills.map((c, i) => fixFill(c, [...s, 'fills', i]))
     if (type === 'vector') repairVector(node, given, s)
@@ -429,5 +449,8 @@ export function repairDocument(raw: Record<string, unknown>): { doc: unknown; wa
     return page
   })
 
-  return { doc: { format: src.format, version: src.version, styles, pages: outPages }, warnings }
+  const doc = { format: src.format, version: src.version, styles, pages: outPages }
+  // 8. Composants : instances orphelines détachées, sources inconnues rendues locales, boucles coupées.
+  repairComponents(doc as unknown as MaquetteDocument, (path, message) => warnings.push({ path, message }))
+  return { doc, warnings }
 }

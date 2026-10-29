@@ -1,3 +1,4 @@
+import { instanceOverrides, isMain, ROOT_LOCAL_KEYS } from '../../core/components'
 import type { Measure, Op } from '../../core/ops'
 import { findNode, isFill, walk, type NodeLocation } from '../../core/tree'
 import type { FrameNode, MaquetteDocument, Node, NodeInput, Rect, Size } from '../../core/types'
@@ -48,17 +49,42 @@ export function rectIn(node: Node, measure?: Measure): Rect {
   return { x: node.x ?? m?.x ?? 0, y: node.y ?? m?.y ?? 0, width: size('width'), height: size('height') }
 }
 
-/** Saisie de création équivalente à un élément existant (sans id ni enfants). */
+/** Saisie de création équivalente à un élément existant (sans id ni enfants, sans lien d'instance). */
 function toInput(node: Node): NodeInput {
-  const { id: _id, ...rest } = structuredClone(node) as Node & { children?: Node[] }
+  const { id: _id, ...rest } = structuredClone(node) as Node & { children?: Node[]; instanceOf?: string }
   delete rest.children
+  delete rest.source
+  delete rest.overrides
+  delete rest.instanceOf
   return rest as NodeInput
+}
+
+/**
+ * Copie d'un principal ou d'une instance dont le principal est dans `doc` : saisie d'une instance de
+ * ce principal (propriétés locales de la racine, surcharges et `descendants`). Sinon null.
+ */
+function instanceInput(doc: MaquetteDocument | undefined, node: Node): Record<string, unknown> | null {
+  if (!doc || node.type !== 'frame') return null
+  const mainId = node.component ? node.id : node.instanceOf
+  if (mainId === undefined || !isMain(findNode(doc, mainId)?.node)) return null
+  const input: Record<string, unknown> = { type: 'frame', instanceOf: mainId }
+  for (const key of ROOT_LOCAL_KEYS) {
+    const value = (node as unknown as Record<string, unknown>)[key]
+    if (key !== 'instanceOf' && value !== undefined) input[key] = structuredClone(value)
+  }
+  if (!node.component) {
+    const { root, descendants } = instanceOverrides(doc, node)
+    Object.assign(input, root)
+    if (Object.keys(descendants).length) input.descendants = descendants
+  }
+  return input
 }
 
 /**
  * Recrée un sous-arbre : un `create` par élément, le parent des enfants étant l'identifiant
  * temporaire de leur cadre. `adjust` retouche la saisie de la racine seule. Renvoie l'identifiant
- * temporaire de la racine.
+ * temporaire de la racine. Avec `doc` (document où l'on recrée), la copie d'un principal ou d'une
+ * instance devient une instance du même principal ; sans son principal, une copie détachée.
  */
 export function createSubtreeOps(
   node: Node,
@@ -67,12 +93,20 @@ export function createSubtreeOps(
   tmp: () => string,
   ops: Op[],
   adjust?: (input: Record<string, unknown>) => void,
+  doc?: MaquetteDocument,
 ): string {
   const id = tmp()
+  const at = index === undefined ? {} : { index }
+  const linked = instanceInput(doc, node)
+  if (linked) {
+    adjust?.(linked)
+    ops.push({ op: 'create', parent, ...at, node: { ...(linked as NodeInput), id } })
+    return id
+  }
   const input = toInput(node) as unknown as Record<string, unknown>
   adjust?.(input)
-  ops.push({ op: 'create', parent, ...(index === undefined ? {} : { index }), node: { ...(input as NodeInput), id } })
-  if (node.type === 'frame') for (const child of node.children) createSubtreeOps(child, id, undefined, tmp, ops)
+  ops.push({ op: 'create', parent, ...at, node: { ...(input as NodeInput), id } })
+  if (node.type === 'frame') for (const child of node.children) createSubtreeOps(child, id, undefined, tmp, ops, undefined, doc)
   return id
 }
 
@@ -81,7 +115,10 @@ export function deleteOps(doc: MaquetteDocument, ids: readonly string[]): Comman
   return { ops: topLevel(doc, ids).map((loc) => ({ op: 'delete', id: loc.node.id })), select: [] }
 }
 
-/** Dupliquer (Ctrl+D) : hors flux, décalé de +10/+10 ; en flux, juste après l'original. */
+/**
+ * Dupliquer (Ctrl+D) : hors flux, décalé de +10/+10 ; en flux, juste après l'original. Dupliquer un
+ * principal ou une instance crée une instance.
+ */
 export function duplicateOps(doc: MaquetteDocument, ids: readonly string[]): CommandOps {
   const tmp = tempIds('d')
   const ops: Op[] = []
@@ -97,7 +134,7 @@ export function duplicateOps(doc: MaquetteDocument, ids: readonly string[]): Com
         input.x = (loc.node.x ?? 0) + 10
         input.y = (loc.node.y ?? 0) + 10
       }
-    }))
+    }, doc))
     inserted.set(parent, shift + 1)
   }
   return { ops, select }

@@ -12,6 +12,7 @@ import {
   addAutoLayoutOps, deleteOps, duplicateOps, inFlow, nudgeOps, topLevel, wrapInFrameOps, zOrderOps, type CommandOps,
 } from './canvasOps'
 import { copyNodes, pasteOps } from './clipboard'
+import { componentRefusal, createComponent, editableParent } from './componentActions'
 import { choosePaste, droppedImageUrls, gridLayout, importSize, type ClipboardRead } from './imagePaste'
 import { domMeasure } from './measure'
 import { createClickTracker } from './clicks'
@@ -860,8 +861,11 @@ export class InteractionController {
     if (built.ops.length === 0) return
     const result = docStore.getState().dispatch(built.ops, label)
     if (!result.ok) {
-      // Une commande ne doit jamais produire un lot refusé : c'est un bug à corriger.
-      console.error(`Commande « ${label} » refusée`, result.errors)
+      // Refus attendu (calques d'une instance, boucle de composants) : dit à l'utilisateur.
+      const message = componentRefusal(result)
+      if (message) docStore.getState().showError(message)
+      // Sinon, une commande ne doit jamais produire un lot refusé : c'est un bug à corriger.
+      else console.error(`Commande « ${label} » refusée`, result.errors)
       return
     }
     ui().select(built.select.map((id) => (id.startsWith('$') ? (result.ids[id] ?? id) : id)))
@@ -897,8 +901,11 @@ export class InteractionController {
     const d = doc()
     const [first, ...rest] = ui().selection
     const firstNode = first ? findNode(d, first)?.node : undefined
-    const parent =
-      firstNode?.type === 'frame' && rest.length === 0 ? firstNode.id : (first ? contextOf(d, first) : null) ?? docStore.getState().pageId
+    // Dans une instance on ne peut rien ajouter : on colle à côté de l'instance.
+    const parent = editableParent(
+      d,
+      firstNode?.type === 'frame' && rest.length === 0 ? firstNode.id : (first ? contextOf(d, first) : null) ?? docStore.getState().pageId,
+    )
     let place: Point | undefined
     if (at) {
       const world = this.toWorld(at)
@@ -999,6 +1006,9 @@ export class InteractionController {
         return true
       case 'wrapInFrame':
         if (first) this.apply(wrapInFrameOps(d, selection, domMeasure), 'Encadrer')
+        return true
+      case 'createComponent':
+        if (first) createComponent()
         return true
       case 'addAutoLayout':
         if (first) this.apply(addAutoLayoutOps(d, selection, domMeasure), 'Mise en page automatique')

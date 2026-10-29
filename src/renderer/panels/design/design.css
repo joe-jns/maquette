@@ -253,3 +253,15 @@
 .icon-picker-name {
   margin: 8px 0 0; padding: 0 4px; color: var(--panel-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+
+/* Composant de la sélection : principal ou instance, en violet ; actions en boutons discrets. */
+.component-line { display: flex; align-items: center; gap: 6px; margin: 0; color: var(--component-text); min-width: 0; }
+.component-line > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.component-line strong { font-weight: var(--fw-strong); }
+.component-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.component-button {
+  height: var(--field-h); padding: 0 10px; border: 1px solid var(--control-border); border-radius: var(--radius);
+  background: var(--panel-bg); color: var(--panel-text); font: inherit; letter-spacing: inherit; cursor: pointer;
+}
+.component-button:hover:not(:disabled) { background: var(--panel-hover); }
+.component-button:disabled { opacity: 0.4; cursor: default; }

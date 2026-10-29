@@ -54,6 +54,8 @@ const base = {
   maxWidth: Px.optional(),
   minHeight: Px.optional(),
   maxHeight: Px.optional(),
+  source: Id.optional(),
+  overrides: z.array(z.string().min(1)).optional(),
 }
 
 const blurs = { blur: Px.optional(), backgroundBlur: Px.optional() }
@@ -69,6 +71,8 @@ const FrameSchema = z.strictObject({
   radius: RadiusSchema,
   shadows: z.array(ShadowSchema),
   clip: z.boolean(),
+  component: z.literal(true).optional(),
+  instanceOf: Id.optional(),
 })
 
 const TextSchema = z.strictObject({

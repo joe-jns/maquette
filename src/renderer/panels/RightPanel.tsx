@@ -1,6 +1,7 @@
 import { useUi } from '../state/ui'
 import { AutoLayoutSection } from './design/AutoLayoutSection'
 import { CheckSection } from './design/CheckSection'
+import { ComponentSection } from './design/ComponentSection'
 import { IconSection } from './design/IconSection'
 import { EffectsSection, FillSection, ShadowSection, StrokeSection } from './design/PaintSections'
 import { PositionSection } from './design/PositionSection'
@@ -19,6 +20,7 @@ export function RightPanel() {
       {count > 0 ? (
         <div className="design" key="selection">
           <SelectionHeader />
+          <ComponentSection />
           <PositionSection />
           <AutoLayoutSection />
           <TextSection />

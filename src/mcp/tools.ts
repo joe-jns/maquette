@@ -93,19 +93,19 @@ export const TOOLS: ToolDef[] = [
   {
     name: 'lire_document',
     description:
-      'Résumé du document : pages et leurs éléments de premier niveau (l/h = largeur/hauteur en px, "hug" ou "fill" ; enfants = nombre), couleurs et styles de texte nommés (ids_styles : leurs identifiants, pour {"style":id} et textStyle). À lire d’abord.',
+      'Résumé : pages et éléments de premier niveau (l/h = largeur/hauteur px, "hug"|"fill" ; enfants = nombre ; composant, instance), couleurs et styles de texte nommés (ids_styles : leurs ids, pour {"style":id} et textStyle). À lire d’abord.',
     input: INPUTS.lire_document,
   },
   {
     name: 'lire_elements',
     description:
-      'Détail d’éléments par identifiant (1 à 20). Propriétés hors valeurs par défaut seulement. Au-delà de « profondeur » (0 à 5, défaut 1), children devient "enfants":N.',
+      'Détail d’éléments par id (1 à 20), hors valeurs par défaut. Au-delà de « profondeur » (0 à 5, défaut 1), children devient "enfants":N. Composants : update {component:true} ; instance = create {type:"frame",instanceOf,descendants?:{idDuPrincipal:{…}}}, source = calque du principal ; un set sur ses calques = surcharge ; set {overrides:null} rétablit, {instanceOf:null} détache.',
     input: INPUTS.lire_elements,
   },
   {
     name: 'chercher',
     description:
-      'Cherche dans toutes les pages par nom, type ou contenu de texte (sous-chaîne, sans casse ; critères cumulés). Renvoie [id, type, nom, parent|null] et "plus" = résultats non montrés.',
+      'Cherche dans toutes les pages par nom, type ou texte (sous-chaîne, sans casse ; critères cumulés) → [id, type, nom, parent|null], "plus" = non montrés.',
     input: INPUTS.chercher,
   },
   {
@@ -124,7 +124,7 @@ export const TOOLS: ToolDef[] = [
   },
   {
     name: 'capture',
-    description: 'Image JPEG pour vérifier un rendu ou étudier des références : id, ou ids (1 à 10, une image légendée par élément). largeur en px (défaut 800, 1024 pour une image).',
+    description: 'JPEG pour vérifier un rendu ou étudier des références : id, ou ids (1 à 10, une image légendée chacun). largeur px (défaut 800, 1024 pour une image).',
     input: INPUTS.capture,
   },
   {
@@ -134,7 +134,7 @@ export const TOOLS: ToolDef[] = [
   },
   {
     name: 'verifier_gout',
-    description: 'Contrôle des règles taste-skill sur le rendu réel d’un cadre : [niveau, règle, message, correction] (au plus 15), "page" = cadre de la taille d’une page. ecran:"app" pour un écran d’application (tableau de bord, mobile) : règles des pages publiques ignorées.',
+    description: 'Règles taste-skill sur le rendu réel d’un cadre : [niveau, règle, message, correction] (≤ 15) ; "page" = cadre pleine page. ecran:"app" (tableau de bord, mobile) : règles des pages publiques ignorées.',
     input: INPUTS.verifier_gout,
   },
   { name: 'images', description: IMAGES_DESCRIPTION, input: INPUTS.images },
@@ -232,6 +232,8 @@ function readDocument(host: ToolHost) {
         if (node.x) e.x = node.x
         if (node.y) e.y = node.y
         if (node.type === 'frame' && node.children.length) e.enfants = node.children.length
+        if (node.type === 'frame' && node.component) e.composant = true
+        if (node.type === 'frame' && node.instanceOf) e.instanceOf = node.instanceOf
         return e
       }),
     })),

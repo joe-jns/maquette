@@ -12,6 +12,7 @@ export type IconName =
   | 'eye' | 'eyeOff' | 'lock' | 'unlock'
   | 'autoRow' | 'autoCol' | 'group' | 'page'
   | 'plus' | 'minus' | 'check' | 'chat' | 'zoom' | 'fit' | 'variables' | 'direction'
+  | 'component' | 'instance'
 
 /** Tracés (coordonnées 24 × 24). Les remplissages pleins sont préfixés par « fill: ». */
 const PATHS: Record<IconName, string[]> = {
@@ -60,6 +61,12 @@ const PATHS: Record<IconName, string[]> = {
   fit: ['M5 9V5h4', 'M15 5h4v4', 'M19 15v4h-4', 'M9 19H5v-4'],
   // Variables : trois pastilles de couleur empilées (palette).
   variables: ['M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 1 0 0-5z', 'M16 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 1 0 0-5z', 'M12 13.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 1 0 0-5z'],
+  // Composant principal : quatre losanges (Figma) ; instance : un losange.
+  component: [
+    'M12 4.5l2.5 2.5-2.5 2.5-2.5-2.5z', 'M7 9.5l2.5 2.5L7 14.5 4.5 12z',
+    'M17 9.5l2.5 2.5-2.5 2.5-2.5-2.5z', 'M12 14.5l2.5 2.5-2.5 2.5-2.5-2.5z',
+  ],
+  instance: ['M12 5l7 7-7 7-7-7z'],
   // Direction : boussole.
   direction: ['M12 4.5a7.5 7.5 0 1 0 0 15 7.5 7.5 0 1 0 0-15z', 'M14.75 9.25l-1.5 4-4 1.5 1.5-4z'],
 }

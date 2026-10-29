@@ -47,17 +47,17 @@ type DesignTool = keyof typeof DESIGN_INPUTS
 export const DESIGN_TOOLS: ToolDef[] = [
   {
     name: 'guide',
-    description: 'Guides de design lus à la demande. Sans sujet : sommaire. guide("landing-page"), guide("methode"), guide("regles-maison"), guide("better-typography")…',
+    description: 'Guides de design à la demande. Sans sujet : sommaire. guide("landing-page"), guide("methode"), guide("regles-maison")…',
     input: DESIGN_INPUTS.guide,
   },
   {
     name: 'style',
-    description: 'Styles archétypes de Pen. Sans nom : liste ; style(nom) : variantes ; style(nom, variante) : fiche (identité, composition, polices et graisses, palette, arrondis, élévation, imagerie). appliquer:true crée couleurs nommées et styles de texte (une annulation).',
+    description: 'Archétypes de Pen. Sans nom : liste ; style(nom) : variantes ; style(nom, variante) : fiche (identité, composition, polices, palette, arrondis, élévation, imagerie). appliquer:true crée couleurs nommées et styles de texte (une annulation).',
     input: DESIGN_INPUTS.style,
   },
   {
     name: 'direction',
-    description: 'Direction artistique taste-skill : pour un secteur et un brief : 3 directions, puis choix:id pour la fiche (hero, typo, palette, sections). appliquer:true crée couleurs nommées et styles de texte (une annulation). sections : rôles dans l’ordre (intro, features, pricing, faq, footer…).',
+    description: 'Direction artistique taste-skill : secteur + brief → 3 directions, puis choix:id → fiche (hero, typo, palette, sections). appliquer:true crée couleurs nommées et styles de texte (une annulation). sections : rôles dans l’ordre (intro, features, pricing, faq…).',
     input: DESIGN_INPUTS.direction,
   },
 ]

@@ -59,6 +59,16 @@ export interface BaseNode {
   maxWidth?: number
   minHeight?: number
   maxHeight?: number
+  /**
+   * Calque copié dans une instance : identifiant du calque correspondant dans le composant principal
+   * (pour une instance imbriquée, dans le principal de l'instance qui la contient). Absent = calque local.
+   */
+  source?: Id
+  /**
+   * Instance : propriétés modifiées localement, que la synchronisation ne recopie plus du principal.
+   * `"children"` = enfants gérés localement (slot). Absent = aucune.
+   */
+  overrides?: string[]
 }
 
 /** Flous d'un cadre, d'une forme, d'une image ou d'un vecteur, en px (absents = aucun). */
@@ -78,6 +88,10 @@ export interface FrameNode extends BaseNode, Blurs {
   radius: Radius
   shadows: Shadow[]
   clip: boolean
+  /** Composant principal : ses instances le suivent. */
+  component?: true
+  /** Instance : identifiant du composant principal qu'elle suit. */
+  instanceOf?: Id
 }
 
 export interface TextNode extends BaseNode {
