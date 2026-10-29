@@ -20,6 +20,15 @@ jobs:
       # Les tests disent ce qui casse sur Mac, sans empêcher la construction.
       - run: npm test
         continue-on-error: true
+      # Icône des fichiers .maquette dans le Finder : un .icns, fait ici avec les outils du Mac.
+      - name: Icône .icns
+        run: |
+          mkdir -p build/icon.iconset
+          for s in 16 32 128 256 512; do
+            sips -z $s $s build/icon.png --out build/icon.iconset/icon_${s}x${s}.png
+            sips -z $((s*2)) $((s*2)) build/icon.png --out build/icon.iconset/icon_${s}x${s}@2x.png
+          done
+          iconutil -c icns build/icon.iconset -o build/icon.icns
       - run: npm run dist:mac
       - uses: actions/upload-artifact@v7
         with:
