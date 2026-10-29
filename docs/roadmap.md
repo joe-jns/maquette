@@ -21,7 +21,7 @@ Décidée avec l'utilisateur le 2026-10-28. Le nouveau look passe en dernier et 
    - sections réutilisables d'un fichier à l'autre, utilisables par Claude ;
    - marque par client (couleurs, polices, logo) appliquée à chaque nouvelle page.
 9. **Livrer** :
-   - export HTML en un seul fichier (pour WordPress, projet Devi « Avance pour toi ») ;
+   - export HTML en un seul fichier (pour WordPress) ;
    - export Astro + Tailwind ;
    - présentation client : prototype cliquable desktop + mobile, à envoyer par lien ;
    - mises en scène dans des appareils (ordinateur, téléphone, tablette).
