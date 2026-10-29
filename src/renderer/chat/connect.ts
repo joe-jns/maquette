@@ -145,7 +145,7 @@ export function changeOptions(patch: Partial<ChatOptions>): void {
   )
 }
 
-const TYPE_LABEL: Record<string, string> = { frame: 'frame', text: 'text', shape: 'shape', image: 'image', icon: 'icon' }
+const TYPE_LABEL: Record<string, string> = { frame: 'frame', text: 'text', shape: 'shape', image: 'image', icon: 'icon', vector: 'vector' }
 
 /** Les images de la sélection (références d'inspiration collées sur le canevas). */
 const imagesOf = (doc: MaquetteDocument, ids: string[]) =>

@@ -92,6 +92,8 @@ function usedSources(doc: MaquetteDocument): Set<string> {
   const used = new Set<string>()
   walk(doc, ({ node }) => {
     if (node.type === 'image') used.add(node.src)
+    // Images en remplissage d'un cadre ou d'une forme.
+    if (node.type === 'frame' || node.type === 'shape') for (const f of node.fills) if (typeof f === 'object' && 'type' in f && f.type === 'image') used.add(f.src)
   })
   return used
 }

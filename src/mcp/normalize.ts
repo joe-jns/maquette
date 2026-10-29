@@ -8,7 +8,7 @@ import { normalizeColor } from '../core/color'
 import { resolveIcon } from '../core/icons/lucide'
 
 type Obj = Record<string, unknown>
-type NodeKind = 'frame' | 'text' | 'shape' | 'image' | 'icon' | undefined
+type NodeKind = 'frame' | 'text' | 'shape' | 'image' | 'icon' | 'vector' | undefined
 
 const isObj = (v: unknown): v is Obj => typeof v === 'object' && v !== null && !Array.isArray(v)
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
@@ -88,6 +88,11 @@ interface Alias {
 }
 
 const keep = (v: unknown) => v
+/** Règle de remplissage écrite à la Figma (EVENODD, NONZERO) ou en CSS (evenodd) → nonzero|evenodd. */
+const fillRule = (v: unknown) => {
+  const s = typeof v === 'string' ? v.toLowerCase().replace(/[-_\s]/g, '') : ''
+  return s === 'evenodd' || s === 'nonzero' ? s : undefined
+}
 const radius = (v: unknown) => (isPx(v) || (Array.isArray(v) && v.length === 4 && v.every(isPx)) ? v : undefined)
 const fills: Alias = { target: 'fills', convert: (v) => asList(v) }
 const shadows: Alias = { target: 'shadows', convert: (v) => (typeof v === 'string' ? undefined : asList(v)) }
@@ -122,6 +127,12 @@ const ALIAS_RULES: Record<string, Alias> = {
   hidden: boolean('visible', true),
   clipsContent: boolean('clip'),
   overflow: { target: 'clip', convert: (v) => (v === 'hidden' ? true : v === 'visible' ? false : undefined) },
+  layerBlur: { target: 'blur', convert: (v) => (isPx(v) ? v : undefined) },
+  backdropBlur: { target: 'backgroundBlur', convert: (v) => (isPx(v) ? v : undefined) },
+  background_blur: { target: 'backgroundBlur', convert: (v) => (isPx(v) ? v : undefined) },
+  d: { target: 'path', convert: (v, k) => (typeof v === 'string' && (k === 'vector' || k === undefined) ? v : undefined) },
+  geometry: { target: 'path', convert: (v, k) => (typeof v === 'string' && (k === 'vector' || k === undefined) ? v : undefined) },
+  windingRule: { target: 'fillRule', convert: (v) => fillRule(v) },
 }
 
 /** Noms devinés (CSS, Figma) → nom de Maquette, pour l'indice des messages d'erreur. */
@@ -130,6 +141,9 @@ export const ALIASES: Record<string, string> = Object.fromEntries(Object.entries
 const LAYOUT_KEYS = new Set(['mode', 'direction', 'gap', 'padding', 'justify', 'align', 'wrap', 'rowGap', 'reverseZ'])
 
 // ——— Icônes ———
+
+/** Types d'élément devinés pour un vecteur (Pen : path ; SVG). */
+const VECTOR_TYPES = new Set(['path', 'svg', 'svg_path'])
 
 /** Types d'élément devinés pour une icône (Pen : icon_font). */
 const ICON_TYPES = new Set(['icon', 'icon_font', 'iconfont', 'lucide'])
@@ -229,6 +243,7 @@ function normalizeBag(bag: Obj, kind: NodeKind, creating = false): string[] {
   if (bag.fills !== undefined && !Array.isArray(bag.fills) && (typeof bag.fills === 'string' || isObj(bag.fills))) bag.fills = [bag.fills]
   if (Array.isArray(bag.fills)) bag.fills = bag.fills.map(paint)
   if (bag.color !== undefined) bag.color = paint(bag.color)
+  if (bag.fillRule !== undefined) bag.fillRule = fillRule(bag.fillRule) ?? bag.fillRule
   if (bag.stroke !== undefined && bag.stroke !== null) {
     const s = stroke(bag.stroke)
     if (s !== undefined) bag.stroke = isObj(s) ? { ...s, color: paint(s.color) } : s
@@ -263,7 +278,7 @@ function collectTempIds(v: unknown, into: Set<string>): Set<string> {
 }
 
 const kindOf = (v: unknown): NodeKind =>
-  v === 'frame' || v === 'text' || v === 'shape' || v === 'image' || v === 'icon' ? v : undefined
+  v === 'frame' || v === 'text' || v === 'shape' || v === 'image' || v === 'icon' || v === 'vector' ? v : undefined
 
 /**
  * Normalise un lot d'opérations. `typeOf` donne le type d'un élément existant (pour adapter un
@@ -298,6 +313,9 @@ export function normalizeOperations(operations: unknown[], typeOf: (id: string) 
     if ((rawType !== undefined && rawType !== 'icon' && ICON_TYPES.has(rawType)) || (node.type === undefined && typeof node.icon === 'string')) {
       notes.add(`type ${rawType ?? '(absent)'}→icon`)
       node.type = 'icon'
+    } else if (rawType !== undefined && VECTOR_TYPES.has(rawType)) {
+      notes.add(`type ${rawType}→vector`)
+      node.type = 'vector'
     }
     const kind = kindOf(node.type)
     for (const n of normalizeBag(node, kind, true)) notes.add(n)

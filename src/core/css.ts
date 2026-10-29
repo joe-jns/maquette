@@ -1,4 +1,4 @@
-import { gradientCss, isGradient } from './paint'
+import { gradientCss, isGradient, isImageFill } from './paint'
 import type { Axis, Color, DocStyles, Fill, FrameNode, Node, Radius, Shadow, Stroke } from './types'
 
 export type CSS = Record<string, string | number>
@@ -22,8 +22,15 @@ const radiusCss = (r: Radius) => (typeof r === 'number' ? px(r) : r.map(px).join
 const shadowCss = (s: Shadow, styles: DocStyles) =>
   `${s.inset ? 'inset ' : ''}${px(s.x)} ${px(s.y)} ${px(s.blur)} ${px(s.spread)} ${resolveColor(s.color, styles)}`
 
-/** Styles CSS d'un élément. `parent === null` : élément posé directement sur la page. */
-export function nodeCss(node: Node, parent: FrameNode | null, styles: DocStyles, index = 0): CSS {
+/** Adresse d'une image du document (`src` « assets/… ») ; par défaut le chemin tel quel. */
+export type AssetUrl = (src: string) => string
+const sameUrl: AssetUrl = (src) => src
+
+/**
+ * Styles CSS d'un élément. `parent === null` : élément posé directement sur la page. `url` résout
+ * les images en remplissage (le canevas les sert par masset://).
+ */
+export function nodeCss(node: Node, parent: FrameNode | null, styles: DocStyles, index = 0, url: AssetUrl = sameUrl): CSS {
   const css: CSS = { boxSizing: 'border-box' }
   const parentAuto = parent?.layout.mode === 'auto' ? parent.layout : null
   const inFlow = parentAuto !== null && node.position === 'flow'
@@ -84,12 +91,12 @@ export function nodeCss(node: Node, parent: FrameNode | null, styles: DocStyles,
       }
       if (node.clip) css.overflow = 'hidden'
       // Contours inside/center : couche au-dessus des enfants (frameStrokeCss), pas sur le cadre.
-      paint(css, node.fills, node.stroke?.align === 'outside' ? node.stroke : undefined, node.shadows, styles)
+      paint(css, node.fills, node.stroke?.align === 'outside' ? node.stroke : undefined, node.shadows, styles, url)
       css.borderRadius = radiusCss(node.radius)
       break
     }
     case 'shape':
-      paint(css, node.fills, node.stroke, node.shadows, styles)
+      paint(css, node.fills, node.stroke, node.shadows, styles, url)
       css.borderRadius = node.shape === 'ellipse' ? '50%' : radiusCss(node.radius)
       break
     case 'image':
@@ -98,6 +105,14 @@ export function nodeCss(node: Node, parent: FrameNode | null, styles: DocStyles,
       css.objectFit = node.fit
       css.display = 'block'
       break
+    case 'vector': {
+      // Remplissages et contour sont dessinés par le SVG du calque (VectorView du canevas) ; les ombres suivent
+      // la forme du tracé (drop-shadow), sans étalement ni ombre intérieure.
+      const drops = node.shadows.filter((s) => !s.inset).map((s) => `drop-shadow(${px(s.x)} ${px(s.y)} ${px(s.blur)} ${resolveColor(s.color, styles)})`)
+      if (drops.length) css.filter = drops.join(' ')
+      css.display = 'block'
+      break
+    }
     case 'icon':
       // Le tracé (SVG en currentColor) prend la couleur de sa boîte.
       css.color = resolveColor(node.color, styles)
@@ -124,6 +139,9 @@ export function nodeCss(node: Node, parent: FrameNode | null, styles: DocStyles,
     }
   }
 
+  if ('blur' in node && node.blur) css.filter = [css.filter, `blur(${px(node.blur)})`].filter(Boolean).join(' ')
+  if ('backgroundBlur' in node && node.backgroundBlur) css.backdropFilter = `blur(${px(node.backgroundBlur)})`
+
   if (!node.visible) css.display = 'none'
   return css
 }
@@ -147,17 +165,34 @@ export function frameStrokeCss(node: FrameNode, styles: DocStyles): CSS | null {
   return css
 }
 
-/** Fond CSS d'une pile de remplissages (le dernier est au-dessus, comme dans Figma). */
-export function fillsCss(fills: Fill[], styles: DocStyles): CSS {
+/** Image sans fichier choisi : un gris neutre, pour que le remplissage reste visible. */
+const EMPTY_IMAGE = 'linear-gradient(#E5E5E5, #E5E5E5)'
+const IMAGE_SIZE = { cover: 'cover', contain: 'contain', fill: '100% 100%' } as const
+
+/**
+ * Fond CSS d'une pile de remplissages (le dernier est au-dessus, comme dans Figma). Une image est
+ * une couche centrée, sans répétition, à la taille de son `fit`.
+ */
+export function fillsCss(fills: Fill[], styles: DocStyles, url: AssetUrl = sameUrl): CSS {
   const color = (c: Color) => resolveColor(c, styles)
-  if (fills.length === 1 && !isGradient(fills[0]!)) return { backgroundColor: color(fills[0] as Color) }
+  if (fills.length === 1 && !isGradient(fills[0]!) && !isImageFill(fills[0]!)) return { backgroundColor: color(fills[0] as Color) }
   if (fills.length === 0) return {}
-  const layers = [...fills].reverse().map((f) => (isGradient(f) ? gradientCss(f, color) : `linear-gradient(${color(f)}, ${color(f)})`))
-  return { backgroundImage: layers.join(', ') }
+  const top = [...fills].reverse()
+  const layers = top.map((f) => {
+    if (isImageFill(f)) return f.src ? `url("${url(f.src).replace(/["\\]/g, '\\$&')}")` : EMPTY_IMAGE
+    return isGradient(f) ? gradientCss(f, color) : `linear-gradient(${color(f)}, ${color(f)})`
+  })
+  const css: CSS = { backgroundImage: layers.join(', ') }
+  if (top.some(isImageFill)) {
+    css.backgroundSize = top.map((f) => (isImageFill(f) && f.src ? IMAGE_SIZE[f.fit] : 'auto')).join(', ')
+    css.backgroundPosition = top.map(() => 'center').join(', ')
+    css.backgroundRepeat = top.map(() => 'no-repeat').join(', ')
+  }
+  return css
 }
 
-function paint(css: CSS, fills: Fill[], stroke: Stroke | undefined, shadows: Shadow[], styles: DocStyles): void {
-  Object.assign(css, fillsCss(fills, styles))
+function paint(css: CSS, fills: Fill[], stroke: Stroke | undefined, shadows: Shadow[], styles: DocStyles, url: AssetUrl = sameUrl): void {
+  Object.assign(css, fillsCss(fills, styles, url))
 
   const layers: string[] = []
   if (stroke) {

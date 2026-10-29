@@ -9,6 +9,7 @@ import { Icon, scrubWith } from './shared'
 const TYPES: { value: Gradient['type']; label: string }[] = [
   { value: 'linear', label: 'Linear' },
   { value: 'radial', label: 'Radial' },
+  { value: 'conic', label: 'Conic' },
 ]
 
 const ANGLE_GLYPH = 'M3 13h10M3 13 11 5M8.5 13a5.5 5.5 0 0 0-1.6-3.9'
@@ -32,7 +33,7 @@ export function toGradient(color: Color, styles: DocStyles): Gradient {
 }
 
 /**
- * Un remplissage en dégradé dans le panneau : aperçu, type (linéaire ou radial), angle, et les
+ * Un remplissage en dégradé dans le panneau : aperçu, type (linéaire, radial ou conique), angle, et les
  * arrêts (couleur, opacité, position), au moins deux.
  */
 export function GradientRow({ name, gradient, styles, apply, onRemove, opsFor }: {
@@ -49,9 +50,13 @@ export function GradientRow({ name, gradient, styles, apply, onRemove, opsFor }:
   const stops = gradient.stops
   const withStops = (next: GradientStop[]): Gradient => ({ ...gradient, stops: next })
   const setStop = (k: number, patch: Partial<GradientStop>) => withStops(stops.map((s, i) => (i === k ? { ...s, ...patch } : s)))
-  const setType = (type: Gradient['type']): Gradient =>
-    type === 'linear' ? { type, angle: gradient.type === 'linear' ? gradient.angle : 180, stops } : { type, stops }
-  const label = gradient.type === 'linear' ? `Linear ${Math.round(gradient.angle)}°` : 'Radial'
+  // L'angle passe d'un linéaire à un conique ; sinon celui par défaut du type (vers le bas, ou départ en haut).
+  const setType = (type: Gradient['type']): Gradient => {
+    if (type === 'radial') return { type, stops }
+    return { type, angle: gradient.type === 'radial' ? (type === 'linear' ? 180 : 0) : gradient.angle, stops }
+  }
+  const angled = gradient.type === 'radial' ? null : gradient
+  const label = gradient.type === 'linear' ? `Linear ${Math.round(gradient.angle)}°` : gradient.type === 'conic' ? `Conic ${Math.round(gradient.angle)}°` : 'Radial'
 
   const addStop = () => {
     // Au milieu du plus grand écart entre deux arrêts.
@@ -99,10 +104,10 @@ export function GradientRow({ name, gradient, styles, apply, onRemove, opsFor }:
           name="Gradient angle"
           label={<Icon d={ANGLE_GLYPH} />}
           suffix="°"
-          disabled={gradient.type !== 'linear'}
-          value={gradient.type === 'linear' ? gradient.angle : null}
-          onCommit={(v) => gradient.type === 'linear' && apply({ ...gradient, angle: ((v % 360) + 360) % 360 }, 'commit')}
-          scrub={gradient.type === 'linear' ? scrubWith('Dégradé', (v) => opsFor({ ...gradient, angle: ((v % 360) + 360) % 360 })) : undefined}
+          disabled={angled === null}
+          value={angled ? angled.angle : null}
+          onCommit={(v) => angled && apply({ ...angled, angle: ((v % 360) + 360) % 360 }, 'commit')}
+          scrub={angled ? scrubWith('Dégradé', (v) => opsFor({ ...angled, angle: ((v % 360) + 360) % 360 })) : undefined}
         />
       </div>
       {stops.map((s, k) => (

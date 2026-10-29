@@ -50,9 +50,28 @@ function chainTo(doc: MaquetteDocument, id: string): Node[] | null {
 const rectOf = (root: ParentNode, id: string) =>
   root.querySelector(`[data-node-id="${CSS.escape(id)}"]`)?.getBoundingClientRect() ?? null
 
+/** Charge une image (fond CSS) dans le cache du navigateur ; résolu aussi en cas d'échec. */
+const preload = (url: string) =>
+  new Promise<void>((r) => {
+    const img = new Image()
+    img.onload = () => r()
+    img.onerror = () => r()
+    img.src = url
+  })
+
+/** Les adresses `url("…")` des fonds des éléments (images en remplissage). */
+function backgroundUrls(root: HTMLElement): string[] {
+  const urls = new Set<string>()
+  for (const el of root.querySelectorAll<HTMLElement>('[data-node-id]')) {
+    // Adresses masset:// encodées (assetUrl) : ni guillemet ni barre oblique inverse.
+    for (const m of el.style.backgroundImage.matchAll(/url\("([^"]*)"\)/g)) urls.add(m[1]!)
+  }
+  return [...urls]
+}
+
 async function imagesLoaded(root: HTMLElement): Promise<void> {
-  await Promise.all(
-    [...root.querySelectorAll('img')].map((img) =>
+  await Promise.all([
+    ...[...root.querySelectorAll('img')].map((img) =>
       img.complete
         ? undefined
         : new Promise<void>((r) => {
@@ -60,7 +79,8 @@ async function imagesLoaded(root: HTMLElement): Promise<void> {
             img.addEventListener('error', () => r(), { once: true })
           }),
     ),
-  )
+    ...backgroundUrls(root).map(preload),
+  ])
 }
 
 /**

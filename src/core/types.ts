@@ -9,9 +9,18 @@ export interface GradientStop { color: Color; position: number }
 export interface LinearGradient { type: 'linear'; angle: number; stops: GradientStop[] }
 /** Dégradé radial, du centre vers les coins. */
 export interface RadialGradient { type: 'radial'; stops: GradientStop[] }
-export type Gradient = LinearGradient | RadialGradient
-/** Remplissage d'un cadre ou d'une forme : une couleur ou un dégradé. */
-export type Fill = Color | Gradient
+/** Dégradé conique autour du centre : `angle` = départ en degrés (0 = en haut, sens horaire), comme `conic-gradient(from …)`. */
+export interface ConicGradient { type: 'conic'; angle: number; stops: GradientStop[] }
+export type Gradient = LinearGradient | RadialGradient | ConicGradient
+/**
+ * Image en remplissage d'un cadre ou d'une forme. `src` suit les règles d'un élément image (« assets/… »
+ * à côté du fichier) ; `fit` comme `object-fit` : cover (recadre), contain (entière), fill (étirée).
+ */
+export interface ImageFill { type: 'image'; src: string; fit: 'cover' | 'contain' | 'fill' }
+/** Couleur ou dégradé (remplissage d'un vecteur). */
+export type Paint = Color | Gradient
+/** Remplissage d'un cadre ou d'une forme : une couleur, un dégradé ou une image. */
+export type Fill = Paint | ImageFill
 
 export interface Stroke { color: Color; width: number; align: 'inside' | 'outside' | 'center' }
 export interface Shadow { x: number; y: number; blur: number; spread: number; color: Color; inset: boolean }
@@ -52,7 +61,15 @@ export interface BaseNode {
   maxHeight?: number
 }
 
-export interface FrameNode extends BaseNode {
+/** Flous d'un cadre, d'une forme, d'une image ou d'un vecteur, en px (absents = aucun). */
+export interface Blurs {
+  /** Flou du calque lui-même (`filter: blur()`). */
+  blur?: number
+  /** Flou de ce qui est derrière le calque, visible à travers ses parties transparentes (`backdrop-filter: blur()`). */
+  backgroundBlur?: number
+}
+
+export interface FrameNode extends BaseNode, Blurs {
   type: 'frame'
   children: Node[]
   layout: Layout
@@ -78,7 +95,7 @@ export interface TextNode extends BaseNode {
   textSizing: 'auto' | 'auto-height' | 'fixed'
 }
 
-export interface ShapeNode extends BaseNode {
+export interface ShapeNode extends BaseNode, Blurs {
   type: 'shape'
   shape: 'rectangle' | 'ellipse'
   fills: Fill[]
@@ -87,7 +104,7 @@ export interface ShapeNode extends BaseNode {
   shadows: Shadow[]
 }
 
-export interface ImageNode extends BaseNode {
+export interface ImageNode extends BaseNode, Blurs {
   type: 'image'
   src: string
   fit: 'cover' | 'contain' | 'fill'
@@ -107,7 +124,22 @@ export interface IconNode extends BaseNode {
   strokeWidth: number
 }
 
-export type Node = FrameNode | TextNode | ShapeNode | ImageNode | IconNode
+/**
+ * Tracé vectoriel (attribut « d » d'un chemin SVG) étiré dans sa boîte : `viewBox` [x, y, largeur, hauteur]
+ * est la zone du tracé qui remplit la boîte. Le contour garde son épaisseur en px quelle que soit la taille.
+ */
+export interface VectorNode extends BaseNode, Blurs {
+  type: 'vector'
+  path: string
+  viewBox: [number, number, number, number]
+  fillRule: 'nonzero' | 'evenodd'
+  /** Couleurs et dégradés (pas d'image). */
+  fills: Paint[]
+  stroke?: Stroke
+  shadows: Shadow[]
+}
+
+export type Node = FrameNode | TextNode | ShapeNode | ImageNode | IconNode | VectorNode
 export type NodeType = Node['type']
 
 type Without<T> = Omit<T, 'id' | 'type' | 'children' | 'layout'>
@@ -118,6 +150,7 @@ export type NodeInput =
   | ({ type: 'shape' } & Partial<Without<ShapeNode>>)
   | ({ type: 'image' } & Partial<Without<ImageNode>>)
   | ({ type: 'icon' } & Partial<Without<IconNode>>)
+  | ({ type: 'vector' } & Partial<Without<VectorNode>>)
 
 export interface ColorStyle { id: Id; name: string; value: string }
 export interface TextStyle {

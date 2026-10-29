@@ -13,10 +13,11 @@ const TYPE_GLYPH = {
   ellipse: 'M8 2.75a5.25 5.25 0 1 0 0 10.5a5.25 5.25 0 1 0 0-10.5z',
   image: 'M2.5 3.5h11v9h-11zM2.5 10.5l3-3 3 3 2-2 3 3M10.5 6.25h.01',
   icon: 'M8 2.5l1.6 3.3 3.65.5-2.65 2.6.62 3.6L8 10.8l-3.22 1.7.62-3.6-2.65-2.6 3.65-.5z',
+  vector: 'M3.5 12C5 5 11 11 12.5 4M2.5 11h2v2h-2zM11.5 3h2v2h-2z',
   mixed: 'M5.5 5.5h8v8h-8zM2.5 10.5v-8h8',
 } as const
 
-const TYPE_NAME = { frame: 'Frame', column: 'Auto layout frame', row: 'Auto layout frame', text: 'Text', rectangle: 'Rectangle', ellipse: 'Ellipse', image: 'Image', icon: 'Icon', mixed: 'Layers' } as const
+const TYPE_NAME = { frame: 'Frame', column: 'Auto layout frame', row: 'Auto layout frame', text: 'Text', rectangle: 'Rectangle', ellipse: 'Ellipse', image: 'Image', icon: 'Icon', vector: 'Vector', mixed: 'Layers' } as const
 
 function kindOf(n: Node): keyof typeof TYPE_GLYPH {
   if (n.type === 'frame') return n.layout.mode === 'auto' ? n.layout.direction : 'frame'

@@ -57,7 +57,7 @@ export const DESIGN_TOOLS: ToolDef[] = [
   },
   {
     name: 'direction',
-    description: 'Direction artistique taste-skill : pour un secteur et un brief : 3 directions, puis choix:id pour la fiche (hero, typo, palette, sections). appliquer:true crée couleurs nommées et styles de texte (une annulation). sections : rôles dans l’ordre (intro, features, gallery, pricing, faq, contact, footer…).',
+    description: 'Direction artistique taste-skill : pour un secteur et un brief : 3 directions, puis choix:id pour la fiche (hero, typo, palette, sections). appliquer:true crée couleurs nommées et styles de texte (une annulation). sections : rôles dans l’ordre (intro, features, pricing, faq, footer…).',
     input: DESIGN_INPUTS.direction,
   },
 ]
