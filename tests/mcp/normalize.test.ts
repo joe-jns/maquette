@@ -125,6 +125,21 @@ describe('appliquer : formes naturelles acceptées', () => {
     expect(added(a.doc)).toMatchObject({ fills: ['#FF0000', '#00000080', '#AABBCC', '#11223344', '#FF6347', '#00000040'] })
   })
 
+  it('vecteur : type path, d ou geometry, windingRule de Figma ; flous sous leurs autres noms', async () => {
+    const a = await build(create({ type: 'path', d: 'M0 0H24V24Z', windingRule: 'EVENODD', fill: 'red', layerBlur: 2, backdropBlur: 8, x: 0, y: 0 }))
+    expect(a.r.isError, a.r.text).toBeFalsy()
+    expect(added(a.doc)).toMatchObject({ type: 'vector', path: 'M0 0H24V24Z', viewBox: [0, 0, 24, 24], fillRule: 'evenodd', fills: ['#FF0000'], blur: 2, backgroundBlur: 8 })
+    const b = await build(create({ type: 'vector', geometry: 'M0 0L10 5', fillRule: 'nonZero', x: 0, y: 0 }))
+    expect(b.r.isError, b.r.text).toBeFalsy()
+    expect(added(b.doc)).toMatchObject({ path: 'M0 0L10 5', fillRule: 'nonzero' })
+  })
+
+  it('remplissages image et dégradé conique, tels quels ou à la Figma', async () => {
+    const a = await build(create({ type: 'frame', fills: [{ type: 'IMAGE', url: 'assets/a.png', scaleMode: 'FIT' }, 'conic-gradient(from 90deg, red, blue)'] }))
+    expect(a.r.isError, a.r.text).toBeFalsy()
+    expect(added(a.doc)).toMatchObject({ fills: [{ type: 'image', src: 'assets/a.png', fit: 'contain' }, { type: 'conic', angle: 90 }] })
+  })
+
   it('alias d’update, typés par l’élément existant', async () => {
     const a = await build([
       { op: 'update', id: 'R1', set: { cornerRadius: 8, backgroundColor: 'navy', hidden: false } },

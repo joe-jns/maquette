@@ -177,4 +177,16 @@ describe('outil fichier', () => {
     expect(await runTool(h(), 'fichier', { action: 'enregistrer', chemin: 'C:/pris.maquette' })).toMatchObject({ isError: true, text: 'existe déjà' })
     expect(await runTool(host(scene()), 'fichier', { action: 'etat' })).toMatchObject({ isError: true })
   })
+
+  it('vecteur : créé par appliquer, lu par lire_elements (tracé long abrégé), trouvé par type', async () => {
+    const h = host(scene())
+    const long = `M0 0${' L10 10'.repeat(60)}Z`
+    const r = await runTool(h, 'appliquer', { operations: [{ op: 'create', parent: h.pageId(), node: { id: '$v', type: 'vector', path: long, fills: ['#000000'], stroke: { color: '#FF0000', width: 2, align: 'center' }, x: 0, y: 0, blur: 1 } }] })
+    expect(r.isError, r.text).toBeFalsy()
+    const id = JSON.parse(r.text).ids.$v as string
+    const lu = JSON.parse((await runTool(h, 'lire_elements', { ids: [id] })).text).elements[0]
+    expect(lu).toMatchObject({ type: 'vector', fills: ['#000000'], viewBox: [0, 0, 10, 10], blur: 1, pathLength: long.length })
+    expect(lu.path).toHaveLength(201)
+    expect(JSON.parse((await runTool(h, 'chercher', { type: 'vector' })).text).resultats).toEqual([[id, 'vector', 'Vector', null]])
+  })
 })

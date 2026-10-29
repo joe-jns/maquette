@@ -29,7 +29,7 @@ The design rules are kept; Pen's format and functions are replaced by Maquette's
 
 ## The model
 
-Elements: `frame` (the only container), `text`, `shape` (`rectangle`|`ellipse`), `image`. All sizes in px.
+Elements: `frame` (the only container), `text`, `shape` (`rectangle`|`ellipse`), `image`, `icon` (Lucide), `vector` (SVG path). All sizes in px.
 
 **Sizes** — `width`/`height` are a number, `{"mode":"hug"}` (fit the content: auto-layout frames and texts only) or `{"mode":"fill"}` (share the parent's space: in-flow children of an auto-layout frame only). A `hug` frame cannot contain a `fill` child on the same axis (circular). Prefer `hug`/`fill` over repeating pixel values; set explicit sizes on shapes and images.
 
@@ -41,7 +41,7 @@ Elements: `frame` (the only container), `text`, `shape` (`rectangle`|`ellipse`),
 - Single axis per frame; for grids use rows of `fill` children, or `wrap:true` with `rowGap`.
 - Centre children with `justify:"center"` + `align:"center"` on the parent.
 - `minWidth`/`maxWidth`/`minHeight`/`maxHeight` work on auto frames and their direct children.
-- Other properties: `radius` (number or [tl,tr,br,bl]), `stroke:{color,width,align:"inside"|"outside"|"center"}`, `shadows:[{x,y,blur,spread,color,inset}]`, `opacity`, `clip`.
+- Other properties: `radius` (number or [tl,tr,br,bl]), `stroke:{color,width,align:"inside"|"outside"|"center"}`, `shadows:[{x,y,blur,spread,color,inset}]`, `opacity`, `clip`, `blur` (px, blurs the layer), `backgroundBlur` (px, frosted glass: blurs what is behind; give the frame a translucent fill).
 
 **Texts** — `content`, `fontFamily` (every Google font loads), `fontWeight`, `fontStyle`, `fontSize`, `lineHeight` (px, not a ratio), `letterSpacing` (px), `textAlign`, `color`, `textStyle` (id of a text style).
 - `textSizing:"auto"` — one line, width and height `hug`: labels, buttons, tags.
@@ -50,6 +50,10 @@ Elements: `frame` (the only container), `text`, `shape` (`rectangle`|`ellipse`),
 - `textAlign` changes the lines inside the box, not the box's position: align the box with the parent's layout.
 
 **Colours** — `"#RRGGBB"` or `"#RRGGBBAA"`, or a named colour `{"style":"<id>"}`. Text style: `textStyle:"<id>"` (it drives family, weight, size, line height and spacing). The ids are in `lire_document` → `ids_styles`, and in the answer of `style`/`direction` with `appliquer:true`. Use the named colours and text styles everywhere; hard-coded hex only for one-off values.
+
+**Fills** — `fills` is a stack (last on top) on frames, shapes and vectors: a colour, a gradient `{type:"linear"|"conic", angle, stops:[{color, position:0..1}]}` or `{type:"radial", stops}` (CSS `linear-gradient(…)`/`conic-gradient(from 90deg, …)` strings are read too), or, on frames and shapes only, an image `{type:"image", src, fit:"cover"|"contain"|"fill"}` (a photo behind a frame's content, under a translucent colour fill for legible text).
+
+**Vectors** — `type:"vector"`, `path` (SVG `d` attribute), `viewBox:[x,y,w,h]` (the part of the path stretched to the box; omitted = the path's bounds, and the size defaults to it), `fillRule:"nonzero"|"evenodd"`, `fills` (colours, gradients), `stroke` (keeps its px width at any size), `shadows`, `blur`. For logos, blobs, dividers and custom marks; prefer `icon` for UI icons.
 
 **Images** — `type:"image"`, `src` (path or URL), `fit:"cover"|"contain"|"fill"`, explicit `width`/`height` (or `fill`), `radius`. Placing a real picture: `images` tool if present; otherwise an image element with an honest placeholder and say so.
 

@@ -59,7 +59,7 @@ const INPUTS = {
   },
   chercher: {
     nom: z.string().optional(),
-    type: z.enum(['frame', 'text', 'shape', 'image', 'icon']).optional(),
+    type: z.enum(['frame', 'text', 'shape', 'image', 'icon', 'vector']).optional(),
     texte: z.string().optional(),
     limite: z.number().int().min(1).max(100).optional(),
   },
@@ -92,13 +92,13 @@ export const TOOLS: ToolDef[] = [
   {
     name: 'lire_document',
     description:
-      'Résumé du document : pages et leurs éléments de premier niveau (l/h = largeur/hauteur en px, "hug" ou "fill" ; enfants = nombre), couleurs et styles de texte nommés (ids_styles : leurs identifiants, pour {"style":id} et textStyle). Point de départ avant toute modification.',
+      'Résumé du document : pages et leurs éléments de premier niveau (l/h = largeur/hauteur en px, "hug" ou "fill" ; enfants = nombre), couleurs et styles de texte nommés (ids_styles : leurs identifiants, pour {"style":id} et textStyle). À lire d’abord.',
     input: INPUTS.lire_document,
   },
   {
     name: 'lire_elements',
     description:
-      'Détail d’éléments par identifiant (1 à 20). Seules les propriétés différentes des valeurs par défaut sont renvoyées. Au-delà de « profondeur » (0 à 5, défaut 1), children devient "enfants":N.',
+      'Détail d’éléments par identifiant (1 à 20). Propriétés hors valeurs par défaut seulement. Au-delà de « profondeur » (0 à 5, défaut 1), children devient "enfants":N.',
     input: INPUTS.lire_elements,
   },
   {
@@ -117,12 +117,13 @@ export const TOOLS: ToolDef[] = [
       'delete {id}',
       'page.create {name,index?}, page.update {id,name}, page.delete {id}, page.move {id,index}',
       'style.color.set {id?,name,value}, style.text.set, style.delete {id}',
-      'id "$nom" = identifiant temporaire. Tailles : nombre|{mode:"hug"}|{mode:"fill"}. Tout en px.',    ].join('\n'),
+      'id "$nom" = identifiant temporaire. Tailles : nombre|{mode:"hug"}|{mode:"fill"}. Tout en px.',
+    ].join('\n'),
     input: INPUTS.appliquer,
   },
   {
     name: 'capture',
-    description: 'Image JPEG pour vérifier un rendu ou étudier des références : id, ou ids (1 à 10, une image légendée par élément). largeur 100 à 1600 px (défaut 800, 1024 pour une image). Seulement si utile.',
+    description: 'Image JPEG pour vérifier un rendu ou étudier des références : id, ou ids (1 à 10, une image légendée par élément). largeur en px (défaut 800, 1024 pour une image).',
     input: INPUTS.capture,
   },
   {
@@ -132,16 +133,17 @@ export const TOOLS: ToolDef[] = [
   },
   {
     name: 'verifier_gout',
-    description: 'Contrôle des règles taste-skill sur le rendu réel d’un cadre : [niveau, règle, message, correction] (au plus 15), "page" = cadre de la taille d’une page. ecran:"app" pour un écran d’application (tableau de bord, mobile) : les règles propres aux pages publiques (étiquettes, cartes, filets, photos…) sont ignorées.',
+    description: 'Contrôle des règles taste-skill sur le rendu réel d’un cadre : [niveau, règle, message, correction] (au plus 15), "page" = cadre de la taille d’une page. ecran:"app" pour un écran d’application (tableau de bord, mobile) : règles des pages publiques ignorées.',
     input: INPUTS.verifier_gout,
   },
   { name: 'images', description: IMAGES_DESCRIPTION, input: INPUTS.images },
   {
     name: 'icones',
     description: [
-      'Noms d’icônes Lucide pour une recherche (fr ou en : « flèche droite », « panier »), meilleurs d’abord.',
+      'Noms d’icônes Lucide (recherche en fr ou en : « panier »), meilleurs d’abord.',
       'Icône : node {type:"icon",icon:nom,color,strokeWidth?} (24 px par défaut).',
-      'Dégradé en remplissage : fills:[{type:"linear",angle,stops:[{color,position:0..1}]}], "radial" sans angle, ou "linear-gradient(…)".',
+      'fills : couleur, {type:"linear"|"conic",angle,stops:[{color,position}]}, "radial" sans angle, "linear-gradient(…)", {type:"image",src,fit}. blur, backgroundBlur.',
+      'vector {path (d SVG),viewBox?,fillRule?}.',
     ].join('\n'),
     input: INPUTS.icones,
   },
@@ -273,6 +275,9 @@ function defaultsFor(node: Node): Record<string, unknown> {
   return base
 }
 
+/** Au-delà, le tracé d'un vecteur est abrégé (économie de tokens) ; `pathLength` donne sa longueur. */
+const MAX_PATH = 200
+
 function compact(node: Node, depth: number): Record<string, unknown> {
   const out: Record<string, unknown> = { id: node.id, type: node.type, name: node.name }
   if (node.type === 'icon') out.icon = node.icon
@@ -280,6 +285,10 @@ function compact(node: Node, depth: number): Record<string, unknown> {
   for (const [key, value] of Object.entries(node)) {
     if (key in out || key === 'children') continue
     if (!same(value, base[key])) out[key] = value
+  }
+  if (node.type === 'vector' && node.path.length > MAX_PATH) {
+    out.path = `${node.path.slice(0, MAX_PATH)}…`
+    out.pathLength = node.path.length
   }
   if (node.type === 'frame' && node.children.length) {
     if (depth > 0) out.children = node.children.map((c) => compact(c, depth - 1))
@@ -325,7 +334,7 @@ const optIndex = z.number().int().optional()
 const OpSchema = z.discriminatedUnion('op', [
   z.strictObject({
     op: z.literal('create'), parent: str, index: optIndex,
-    node: z.looseObject({ type: z.enum(['frame', 'text', 'shape', 'image', 'icon']), id: str.optional() }),
+    node: z.looseObject({ type: z.enum(['frame', 'text', 'shape', 'image', 'icon', 'vector']), id: str.optional() }),
   }),
   z.strictObject({ op: z.literal('update'), id: str, set: z.record(z.string(), z.unknown()) }),
   z.strictObject({ op: z.literal('move'), id: str, parent: str, index: optIndex, x: num.optional(), y: num.optional() }),
