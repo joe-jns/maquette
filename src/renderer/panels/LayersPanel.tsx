@@ -84,6 +84,7 @@ const LayerRowView = memo(
           (tint === 'in' || tint === 'in-last') && 'is-in-selection',
           hover && 'is-hover',
           !row.visible && 'is-hidden',
+          (row.icon === 'component' || row.icon === 'instance') && 'is-component',
           dropZone && `drop-${dropZone}`,
         ].filter(Boolean).join(' ')}
         style={{ paddingLeft: 4 + row.depth * 16 }}

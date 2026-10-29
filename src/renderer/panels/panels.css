@@ -25,6 +25,9 @@
   --accent-text: #007be5;
   --accent-soft: #e5f4ff;
   --accent-soft-hover: #bde3ff;
+  /* Violet des composants (principal, instances), comme Figma. */
+  --component: #9747ff;
+  --component-text: #8638e5;
   --in-selection: #f2f9ff;
   --danger: #f24822;
   --danger-text: #dc3412;
@@ -151,6 +154,7 @@
 .twisty .icon.is-open { transform: rotate(90deg); }
 .layer-icon { flex: none; margin-right: 8px; color: var(--icon-muted); }
 .layer-row.is-selected .layer-icon { color: var(--icon); }
+.layer-row.is-component .layer-icon, .layer-row.is-component .layer-name { color: var(--component-text); }
 .layer-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Œil et cadenas : au survol, et en permanence quand l'élément est masqué ou verrouillé. */
 .layer-actions { display: flex; flex: none; }

@@ -15,7 +15,10 @@ export interface LayerRow {
   locked: boolean
   /** Le parent est en mise en page automatique. */
   auto: boolean
-  /** Icône du type (un cadre automatique montre sa direction) : calculée ici, pas de recherche par ligne. */
+  /**
+   * Icône du type (un cadre automatique montre sa direction, un composant ou une instance son losange) :
+   * calculée ici, pas de recherche par ligne.
+   */
   icon: IconName
   /** Ids des ancêtres, du parent à la racine (teinte des enfants de la sélection). */
   ancestors: string[]
@@ -24,6 +27,8 @@ export interface LayerRow {
 function iconOf(node: Node): IconName {
   switch (node.type) {
     case 'frame':
+      if (node.component) return 'component'
+      if (node.instanceOf !== undefined) return 'instance'
       return node.layout.mode === 'auto' ? (node.layout.direction === 'row' ? 'autoRow' : 'autoCol') : 'frame'
     case 'text':
       return 'text'

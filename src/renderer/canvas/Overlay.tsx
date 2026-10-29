@@ -1,5 +1,6 @@
-import { useLayoutEffect, useState } from 'react'
-import type { Rect } from '../../core/types'
+import { useLayoutEffect, useMemo, useState } from 'react'
+import { findNode } from '../../core/tree'
+import type { FrameNode, MaquetteDocument, Node, Rect } from '../../core/types'
 import { useDoc } from '../state/store'
 import { useUi } from '../state/ui'
 import { worldToScreen, type Camera } from './camera'
@@ -12,6 +13,24 @@ const HANDLE_HIT = 15
 const MIN_FOR_HANDLES = 10
 const ACCENT = '#0D99FF'
 const GUIDE = '#F24E1E'
+/** Violet des composants : contour d'un principal ou d'une instance, nom des principaux. */
+const COMPONENT = '#9747FF'
+
+/** Principal ou instance (racine ou imbriquée) : montré en violet. */
+const isComponentish = (doc: MaquetteDocument, id: string): boolean => {
+  const n = findNode(doc, id)?.node
+  return n?.type === 'frame' && (n.component === true || n.instanceOf !== undefined)
+}
+
+/** Principaux de la page, pour leur nom au-dessus d'eux. */
+function mainsOf(children: Node[], out: FrameNode[] = []): FrameNode[] {
+  for (const n of children) {
+    if (n.type !== 'frame') continue
+    if (n.component) out.push(n)
+    mainsOf(n.children, out)
+  }
+  return out
+}
 
 export type HandleName = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w'
 
@@ -42,15 +61,23 @@ export function Overlay() {
   const editing = useUi((s) => s.editingTextId)
   const extras = useUi((s) => s.extras)
   const viewport = useUi((s) => s.viewport)
-  const [rects, setRects] = useState<{ selected: Rect[]; hover: Rect | null }>({ selected: [], hover: null })
+  const pageId = useDoc((s) => s.pageId)
+  const [rects, setRects] = useState<{ selected: Rect[]; hover: Rect | null; mains: { id: string; name: string; r: Rect }[] }>({ selected: [], hover: null, mains: [] })
+  const mains = useMemo(() => mainsOf((doc.pages.find((p) => p.id === pageId) ?? doc.pages[0]!).children), [doc, pageId])
 
   // Les positions viennent du rendu : on les lit une fois le DOM à jour, avant l'affichage.
   useLayoutEffect(() => {
     const selected = selection.map(worldRectOf).filter((r) => r !== undefined)
     const hover = hoverId && !selection.includes(hoverId) ? (worldRectOf(hoverId) ?? null) : null
-    setRects({ selected, hover })
-  }, [doc, camera, selection, hoverId, viewport])
+    const labels = mains.flatMap((m) => {
+      const r = m.visible ? worldRectOf(m.id) : undefined
+      return r ? [{ id: m.id, name: m.name, r }] : []
+    })
+    setRects({ selected, hover, mains: labels })
+  }, [doc, camera, selection, hoverId, viewport, mains])
 
+  const selectColor = selection.length > 0 && selection.every((id) => isComponentish(doc, id)) ? COMPONENT : ACCENT
+  const hoverColor = hoverId && isComponentish(doc, hoverId) ? COMPONENT : ACCENT
   const bounds = union(rects.selected)
   const box = bounds ? toScreen(camera, bounds) : null
   const showHandles = box !== null && !editing && box.width >= MIN_FOR_HANDLES && box.height >= MIN_FOR_HANDLES
@@ -59,23 +86,28 @@ export function Overlay() {
     <svg className="overlay" data-testid="overlay" aria-hidden>
       {camera.zoom >= 4 && <PixelGrid camera={camera} />}
 
-      {rects.hover && <RectPath r={toScreen(camera, rects.hover)} stroke={ACCENT} width={1.5} testId="hover" />}
+      {rects.mains.map((m) => {
+        const r = toScreen(camera, m.r)
+        return <ComponentLabel key={m.id} id={m.id} x={r.x} y={r.y - 6} name={m.name} maxWidth={Math.max(r.width, 40)} />
+      })}
+
+      {rects.hover && <RectPath r={toScreen(camera, rects.hover)} stroke={hoverColor} width={1.5} testId="hover" />}
 
       {rects.selected.length > 1 &&
-        rects.selected.map((r, i) => <RectPath key={i} r={toScreen(camera, r)} stroke={ACCENT} width={1} />)}
+        rects.selected.map((r, i) => <RectPath key={i} r={toScreen(camera, r)} stroke={selectColor} width={1} />)}
 
-      {box && <RectPath r={box} stroke={ACCENT} width={1.5} />}
+      {box && <RectPath r={box} stroke={selectColor} width={1.5} testId="selection-box" />}
 
       {showHandles &&
         handlePoints(box).map(([name, x, y]) => (
           <g key={name} data-handle={name} style={{ cursor: CURSORS[name], pointerEvents: 'all' }}>
             <rect x={x - HANDLE_HIT / 2} y={y - HANDLE_HIT / 2} width={HANDLE_HIT} height={HANDLE_HIT} fill="transparent" />
-            <rect x={x - HANDLE / 2} y={y - HANDLE / 2} width={HANDLE} height={HANDLE} fill="#fff" stroke={ACCENT} strokeWidth={1} />
+            <rect x={x - HANDLE / 2} y={y - HANDLE / 2} width={HANDLE} height={HANDLE} fill="#fff" stroke={selectColor} strokeWidth={1} />
           </g>
         ))}
 
       {box && bounds && !editing && (
-        <SizeLabel x={box.x + box.width / 2} y={box.y + box.height + 8} text={`${round(bounds.width)} × ${round(bounds.height)}`} />
+        <SizeLabel x={box.x + box.width / 2} y={box.y + box.height + 8} text={`${round(bounds.width)} × ${round(bounds.height)}`} color={selectColor} />
       )}
 
       {extras.marquee && (
@@ -147,11 +179,29 @@ function RectPath({ r, stroke, width, testId }: { r: Rect; stroke: string; width
   return <rect data-testid={testId} {...rectAttrs(r)} fill="none" stroke={stroke} strokeWidth={width} />
 }
 
+/** Nom d'un composant principal au-dessus de lui, en violet, précédé de ses losanges (tronqué à sa largeur). */
+function ComponentLabel({ id, x, y, name, maxWidth }: { id: string; x: number; y: number; name: string; maxWidth: number }) {
+  const chars = Math.max(1, Math.floor((maxWidth - 16) / 6.2))
+  const text = name.length > chars ? `${name.slice(0, Math.max(1, chars - 1))}…` : name
+  return (
+    <g data-testid="component-label" data-component-id={id}>
+      <path
+        transform={`translate(${x} ${y - 9}) scale(0.5)`}
+        d="M12 4.5l2.5 2.5-2.5 2.5-2.5-2.5zM7 9.5l2.5 2.5L7 14.5 4.5 12zM17 9.5l2.5 2.5-2.5 2.5-2.5-2.5zM12 14.5l2.5 2.5-2.5 2.5-2.5-2.5z"
+        fill={COMPONENT}
+      />
+      <text x={x + 14} y={y} fill={COMPONENT} fontSize={11} fontWeight={500} fontFamily="'Inter Variable', system-ui, sans-serif">
+        {text}
+      </text>
+    </g>
+  )
+}
+
 function SizeLabel({ x, y, text, color = ACCENT }: { x: number; y: number; text: string; color?: string }) {
   // Chiffres tabulaires d'Inter à 11 px : ~6,6 px par signe, 6 px de marge de chaque côté.
   const w = text.length * 6.6 + 12
   return (
-    <g data-testid={color === ACCENT ? 'size-label' : undefined}>
+    <g data-testid={color !== GUIDE ? 'size-label' : undefined}>
       <rect x={x - w / 2} y={y} width={w} height={16} rx={2} fill={color} />
       <text
         x={x}
