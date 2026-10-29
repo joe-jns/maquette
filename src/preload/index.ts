@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
+import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from 'electron'
 import type { ChatEvent, ChatItem, ChatOptions, ConversationList, ConversationSwitch } from '../shared/chat'
 import type { ImageCredit, ImagePlace, ImageSearch } from '../shared/images'
 import type { ClipboardContent, DialogRequest, ExportJob, ExportMeasure, FontInfo, ImageImport, MaquetteApi, MenuCommand, OpenedFile, RenderedImage } from '../shared/ipc'
@@ -19,7 +19,9 @@ ipcRenderer.on('dialog:ask', (_e, id: number, request: DialogRequest) => {
 const api: MaquetteApi = {
   getInitialDocument: () => ipcRenderer.invoke('doc:initial') as Promise<OpenedFile | null>,
   openFile: () => ipcRenderer.invoke('file:open') as Promise<OpenedFile | null>,
-  documentLoaded: (path) => ipcRenderer.invoke('doc:loaded', path) as Promise<boolean>,
+  openPath: (path) => ipcRenderer.invoke('file:open-path', path) as Promise<OpenedFile | null>,
+  pathForFile: (file) => webUtils.getPathForFile(file),
+  documentLoaded: (path, importedFrom) => ipcRenderer.invoke('doc:loaded', path, importedFrom ?? null) as Promise<boolean>,
   saveFile: (path, text, opts) => ipcRenderer.invoke('file:save', { path, text, silent: opts?.silent === true }) as Promise<string | null>,
   mcpFile: {
     read: (path) => ipcRenderer.invoke('mcp:file-read', path),

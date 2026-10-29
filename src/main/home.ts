@@ -5,7 +5,7 @@ import { basename, dirname, sep } from 'node:path'
 import type { OpenedFile } from '../shared/ipc'
 import { shortFolder, type RecentEntry } from '../shared/home'
 import { isExportWindow } from './exportPng'
-import { listRecents, readForWindow, removeRecent } from './openFiles'
+import { listRecents, readDocForWindow, removeRecent } from './openFiles'
 import { thumbDataUrl, thumbInfo } from './thumbs'
 
 const sameKey = (p: string) => (process.platform === 'win32' ? p.toLowerCase() : p)
@@ -49,7 +49,7 @@ export function registerHomeIpc(): void {
     const known = fromEditor(event) ? await knownRecent(path) : null
     if (!known) return null
     try {
-      return await readForWindow(known)
+      return await readDocForWindow(known)
     } catch {
       return null
     }
