@@ -61,7 +61,15 @@ export interface BaseNode {
   maxHeight?: number
 }
 
-export interface FrameNode extends BaseNode {
+/** Flous d'un cadre, d'une forme, d'une image ou d'un vecteur, en px (absents = aucun). */
+export interface Blurs {
+  /** Flou du calque lui-même (`filter: blur()`). */
+  blur?: number
+  /** Flou de ce qui est derrière le calque, visible à travers ses parties transparentes (`backdrop-filter: blur()`). */
+  backgroundBlur?: number
+}
+
+export interface FrameNode extends BaseNode, Blurs {
   type: 'frame'
   children: Node[]
   layout: Layout
@@ -87,7 +95,7 @@ export interface TextNode extends BaseNode {
   textSizing: 'auto' | 'auto-height' | 'fixed'
 }
 
-export interface ShapeNode extends BaseNode {
+export interface ShapeNode extends BaseNode, Blurs {
   type: 'shape'
   shape: 'rectangle' | 'ellipse'
   fills: Fill[]
@@ -96,7 +104,7 @@ export interface ShapeNode extends BaseNode {
   shadows: Shadow[]
 }
 
-export interface ImageNode extends BaseNode {
+export interface ImageNode extends BaseNode, Blurs {
   type: 'image'
   src: string
   fit: 'cover' | 'contain' | 'fill'

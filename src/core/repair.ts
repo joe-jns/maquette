@@ -29,14 +29,15 @@ const COMMON_KEYS = [
   'id', 'type', 'name', 'visible', 'locked', 'opacity', 'width', 'height', 'x', 'y', 'position', 'alignSelf',
   'minWidth', 'maxWidth', 'minHeight', 'maxHeight',
 ]
+const BLUR_KEYS = ['blur', 'backgroundBlur']
 const NODE_KEYS: Record<NodeType, ReadonlySet<string>> = {
-  frame: new Set([...COMMON_KEYS, 'children', 'layout', 'fills', 'stroke', 'radius', 'shadows', 'clip']),
+  frame: new Set([...COMMON_KEYS, ...BLUR_KEYS, 'children', 'layout', 'fills', 'stroke', 'radius', 'shadows', 'clip']),
   text: new Set([
     ...COMMON_KEYS, 'content', 'fontFamily', 'fontWeight', 'fontStyle', 'fontSize', 'lineHeight', 'letterSpacing',
     'textAlign', 'color', 'textStyle', 'textSizing',
   ]),
-  shape: new Set([...COMMON_KEYS, 'shape', 'fills', 'stroke', 'radius', 'shadows']),
-  image: new Set([...COMMON_KEYS, 'src', 'fit', 'radius', 'stroke', 'shadows']),
+  shape: new Set([...COMMON_KEYS, ...BLUR_KEYS, 'shape', 'fills', 'stroke', 'radius', 'shadows']),
+  image: new Set([...COMMON_KEYS, ...BLUR_KEYS, 'src', 'fit', 'radius', 'stroke', 'shadows']),
   icon: new Set([...COMMON_KEYS, 'icon', 'set', 'color', 'strokeWidth']),
 }
 const AUTO_LAYOUT_KEYS = new Set(['mode', 'direction', 'gap', 'padding', 'justify', 'align', 'wrap', 'rowGap', 'reverseZ'])

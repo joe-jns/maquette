@@ -2,7 +2,7 @@ import { useUi } from '../state/ui'
 import { AutoLayoutSection } from './design/AutoLayoutSection'
 import { CheckSection } from './design/CheckSection'
 import { IconSection } from './design/IconSection'
-import { FillSection, ShadowSection, StrokeSection } from './design/PaintSections'
+import { EffectsSection, FillSection, ShadowSection, StrokeSection } from './design/PaintSections'
 import { PositionSection } from './design/PositionSection'
 import { SelectionHeader } from './design/SelectionHeader'
 import { TextSection } from './design/TextSection'
@@ -26,6 +26,7 @@ export function RightPanel() {
           <FillSection />
           <StrokeSection />
           <ShadowSection />
+          <EffectsSection />
           <CheckSection />
         </div>
       ) : (

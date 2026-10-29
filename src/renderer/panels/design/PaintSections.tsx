@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import type { Op } from '../../../core/ops'
 import { isGradient, isImageFill } from '../../../core/paint'
-import type { Color, Fill, Shadow, Stroke } from '../../../core/types'
+import type { Blurs, Color, Fill, Shadow, Stroke } from '../../../core/types'
 import { docStore, useDoc } from '../../state/store'
 import { Checkbox } from '../../ui/Checkbox'
 import { Select } from '../../ui/Select'
@@ -259,3 +259,37 @@ export function ShadowSection() {
     </Section>
   )
 }
+
+/** Flous : du calque (layer blur) et de ce qui est derrière lui (background blur). 0 = aucun. */
+export function EffectsSection() {
+  const { nodes } = useSelection()
+  if (nodes.length === 0 || nodes.some((n) => n.type === 'text' || n.type === 'icon')) return null
+  const ids = nodes.map((n) => n.id)
+  const value = (key: 'blur' | 'backgroundBlur') => {
+    const v = mixed(nodes.map((n) => ('blur' in n || 'backgroundBlur' in n ? ((n as Blurs)[key] ?? 0) : 0)))
+    return v === 'mixed' ? 'mixed' : v
+  }
+  const set = (key: 'blur' | 'backgroundBlur', v: number) => setOps(ids, { [key]: v > 0 ? Math.round(v * 10) / 10 : null })
+  const field = (key: 'blur' | 'backgroundBlur', name: string, glyph: string, label: string) => (
+    <NumberField
+      name={name}
+      label={<Icon d={glyph} />}
+      title={name}
+      min={0}
+      value={value(key)}
+      onCommit={(v) => commit(set(key, Math.max(0, v)), label)}
+      scrub={scrubWith(label, (v) => set(key, Math.max(0, v)))}
+    />
+  )
+  return (
+    <Section title="Effects">
+      <div className="field-grid">
+        {field('blur', 'Layer blur', FIELD_GLYPH.blur, 'Flou')}
+        {field('backgroundBlur', 'Background blur', BACKGROUND_BLUR_GLYPH, 'Flou d’arrière-plan')}
+      </div>
+    </Section>
+  )
+}
+
+/** Glyphe « flou d'arrière-plan » : une goutte derrière une vitre. */
+const BACKGROUND_BLUR_GLYPH = 'M2.5 2.5h11v11h-11zM8 5c1.3 1.7 2.5 3 2.5 4.4a2.5 2.5 0 0 1-5 0C5.5 8 6.7 6.7 8 5z'

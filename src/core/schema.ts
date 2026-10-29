@@ -54,9 +54,12 @@ const base = {
   maxHeight: Px.optional(),
 }
 
+const blurs = { blur: Px.optional(), backgroundBlur: Px.optional() }
+
 const FrameSchema = z.strictObject({
   ...base,
   type: z.literal('frame'),
+  ...blurs,
   children: z.array(z.lazy((): z.ZodType<Node> => NodeSchema)),
   layout: LayoutSchema,
   fills: z.array(FillSchema),
@@ -85,6 +88,7 @@ const TextSchema = z.strictObject({
 const ShapeSchema = z.strictObject({
   ...base,
   type: z.literal('shape'),
+  ...blurs,
   shape: z.enum(['rectangle', 'ellipse']),
   fills: z.array(FillSchema),
   stroke: StrokeSchema.optional(),
@@ -95,6 +99,7 @@ const ShapeSchema = z.strictObject({
 const ImageSchema = z.strictObject({
   ...base,
   type: z.literal('image'),
+  ...blurs,
   src: z.string(),
   fit: z.enum(['cover', 'contain', 'fill']),
   radius: RadiusSchema,

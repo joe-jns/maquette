@@ -131,6 +131,9 @@ export function nodeCss(node: Node, parent: FrameNode | null, styles: DocStyles,
     }
   }
 
+  if ('blur' in node && node.blur) css.filter = [css.filter, `blur(${px(node.blur)})`].filter(Boolean).join(' ')
+  if ('backgroundBlur' in node && node.backgroundBlur) css.backdropFilter = `blur(${px(node.backgroundBlur)})`
+
   if (!node.visible) css.display = 'none'
   return css
 }
