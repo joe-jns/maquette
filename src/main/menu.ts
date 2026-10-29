@@ -16,9 +16,13 @@ export function setRecentFiles(list: string[]): void {
   buildMenu()
 }
 
+const mac = process.platform === 'darwin'
+
 export function buildMenu(): void {
   Menu.setApplicationMenu(
     Menu.buildFromTemplate([
+      // macOS : le premier menu porte le nom de l'app (À propos, Masquer, Quitter).
+      ...(mac ? [{ role: 'appMenu' as const }] : []),
       {
         label: 'File',
         submenu: [
@@ -47,8 +51,8 @@ export function buildMenu(): void {
           },
           { type: 'separator' },
           { label: 'Connect to Claude Code…', click: () => void connectClaudeCode(BrowserWindow.getFocusedWindow() ?? undefined) },
-          { type: 'separator' },
-          { label: 'Quit', role: 'quit' },
+          // macOS : Quitter est dans le menu de l'app.
+          ...(mac ? [] : [{ type: 'separator' as const }, { label: 'Quit', role: 'quit' as const }]),
         ],
       },
       {
@@ -57,6 +61,17 @@ export function buildMenu(): void {
           // Raccourcis affichés mais gérés par le canevas (sinon l'annulation se ferait deux fois).
           { label: 'Undo', accelerator: 'CmdOrCtrl+Z', registerAccelerator: false, click: send('undo') },
           { label: 'Redo', accelerator: 'CmdOrCtrl+Y', registerAccelerator: false, click: send('redo') },
+          // macOS : sans ces rôles, Cmd+C, Cmd+V et Cmd+A ne marchent pas dans les champs de texte. Sur le canevas,
+          // la page traite la touche d'abord (preventDefault) : le menu ne la reçoit pas.
+          ...(mac
+            ? [
+                { type: 'separator' as const },
+                { role: 'cut' as const },
+                { role: 'copy' as const },
+                { role: 'paste' as const },
+                { role: 'selectAll' as const },
+              ]
+            : []),
         ],
       },
       {
