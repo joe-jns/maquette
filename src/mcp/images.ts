@@ -33,7 +33,8 @@ export const IMAGES_INPUT = {
   cherche: z.string().trim().min(1).max(200).optional(),
   n: z.number().int().min(1).max(12).optional(),
   planche: z.boolean().optional(),
-  poser: z.union([z.string().trim().min(1), z.number().int().min(1)]).optional(),
+  // Numéro dans la dernière recherche (12 résultats au plus).
+  poser: z.union([z.string().trim().min(1), z.number().int().min(1).max(12)]).optional(),
   dans: z.string().optional(),
   parent: z.string().optional(),
   index: z.number().int().optional(),

@@ -107,7 +107,7 @@ describe('banc d’essai tokens', () => {
 
   /**
    * Définitions des outils (noms, descriptions, schémas JSON) : envoyées à chaque tour de Claude.
-   * 12 outils (7 d’édition + images, icones, guide, style, direction) : ~7 300 caractères mesurés, plafond 8 000 (~2 300 tokens).
+   * 12 outils (7 d’édition + images, icones, guide, style, direction) : ~7 950 caractères mesurés, plafond 8 000 (~2 300 tokens).
    */
   it('définitions des outils : moins de 8 000 caractères', () => {
     const size = TOOLS.reduce((n, t) => n + JSON.stringify({ name: t.name, description: t.description, inputSchema: z.toJSONSchema(z.object(t.input)) }).length, 0)

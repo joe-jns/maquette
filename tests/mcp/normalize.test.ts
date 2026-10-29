@@ -282,6 +282,20 @@ describe('appliquer : icônes et dégradés', () => {
     expect(added(b.doc)).toMatchObject({ type: 'icon', icon: 'star' })
   })
 
+  it('icône d’un autre jeu : nom de bibliothèque Pen, graisse numérique, jeu inconnu', async () => {
+    const a = await build(create({ type: 'icon', library: 'phosphor', icon: 'caret-right', weight: 600 }))
+    expect(a.r.isError, a.r.text).toBeFalsy()
+    expect(added(a.doc)).toMatchObject({ set: 'phosphor', icon: 'caret-right', weight: 'bold' })
+    expect(a.data.adapte).toEqual(expect.arrayContaining(['library→set']))
+    const b = await build(create({ type: 'icon_font', iconFontFamily: 'Material Symbols Rounded', iconFontName: 'inventory_2', weight: 300 }))
+    expect(added(b.doc)).toMatchObject({ set: 'material-rounded', icon: 'inventory_2', weight: 300 })
+    const c = await build(create({ type: 'icon', set: 'fontawesome', icon: 'home' }))
+    expect(c.r.isError, c.r.text).toBeFalsy()
+    expect(added(c.doc)).toMatchObject({ set: 'lucide', icon: 'house' })
+    const d = await build(create({ type: 'icon', set: 'feather', name: 'clock' }))
+    expect(added(d.doc)).toMatchObject({ set: 'feather', icon: 'clock' })
+  })
+
   it('icône inconnue : remplacée, signalée, jamais refusée', async () => {
     const a = await build(create({ type: 'icon', icon: 'licorne-volante' }))
     expect(a.r.isError, a.r.text).toBeFalsy()
@@ -316,6 +330,22 @@ describe('appliquer : icônes et dégradés', () => {
     expect(data.noms.every((n) => n.includes('arrow') || n.includes('chevron'))).toBe(true)
     expect(data.plus).toBe(true)
     expect(r.text.length).toBeLessThan(200)
+  })
+
+  it('outil icones : recherche dans un jeu donné', async () => {
+    const ph = JSON.parse((await runTool(host(scene()), 'icones', { cherche: 'caret right', jeu: 'phosphor', limite: 3 })).text) as { noms: string[] }
+    expect(ph.noms[0]).toBe('caret-right')
+    const ma = JSON.parse((await runTool(host(scene()), 'icones', { cherche: 'ciseaux', jeu: 'material-rounded' })).text) as { noms: string[] }
+    expect(ma.noms).toContain('content_cut')
+    expect((await runTool(host(scene()), 'icones', { cherche: 'x', jeu: 'fontawesome' })).isError).toBe(true)
+  })
+
+  it('lire_elements montre le jeu et la variante hors valeurs par défaut', async () => {
+    const a = await build(create({ id: '$i', type: 'icon', set: 'material-rounded', icon: 'yard', filled: true }))
+    const id = (a.data.ids as Record<string, string>).$i!
+    const r = JSON.parse((await runTool(host(a.doc), 'lire_elements', { ids: [id] })).text) as { elements: Record<string, unknown>[] }
+    expect(r.elements[0]).toMatchObject({ type: 'icon', icon: 'yard', set: 'material-rounded', filled: true })
+    expect(r.elements[0]).not.toHaveProperty('weight')
   })
 
   it('lire_elements montre toujours le nom de l’icône', async () => {
