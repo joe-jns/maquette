@@ -28,10 +28,10 @@ export type LeaveChoice = 'clean' | 'saved' | 'discard' | 'cancel'
  * enregistré sans question ; sinon on demande Enregistrer / Ne pas enregistrer / Annuler, comme à la fermeture.
  */
 export async function askLeave(): Promise<LeaveChoice> {
-  const { dirty, filePath } = docStore.getState()
+  const { dirty, filePath, untitledName } = docStore.getState()
   if (!dirty) return 'clean'
   if (filePath && autoSaveStore.getState().enabled && (await save(false, true))) return 'saved'
-  const name = filePath ? filePath.split(/[\\/]/).pop()!.replace(/\.maquette$/i, '') : 'Untitled'
+  const name = filePath ? filePath.split(/[\\/]/).pop()!.replace(/\.maquette$/i, '') : (untitledName ?? 'Untitled')
   const answer = await ask({
     message: `Save changes to ${name}?`,
     detail: 'Your changes will be lost if you don’t save them.',
@@ -111,8 +111,13 @@ export async function runCommand(cmd: MenuCommand): Promise<void> {
     }
     case 'open': {
       if (!(await confirmLeave())) return
-      const file = await window.maquette.openFile()
-      if (file) await openDocument(file)
+      try {
+        const file = await window.maquette.openFile()
+        if (file) await openDocument(file)
+      } catch (e) {
+        // .pen illisible (pas du JSON, autre format…) : le message de la conversion.
+        store.showError(`Could not open the file: ${remoteMessage(e)}`)
+      }
       return
     }
     case 'save':

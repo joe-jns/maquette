@@ -1,6 +1,6 @@
 import { serializeDocument } from '../../core/format'
 import type { MaquetteDocument } from '../../core/types'
-import { fileName } from './openDocument'
+import { docName } from './openDocument'
 import { docStore } from './store'
 import { uiStore } from './ui'
 
@@ -31,9 +31,9 @@ export function startAutosave(): () => void {
 
   // Un texte en cours de frappe n'est dans le document qu'à sa validation : il compte comme un changement.
   const report = () => {
-    const { dirty, filePath } = docStore.getState()
+    const { dirty, filePath, untitledName } = docStore.getState()
     const typing = uiStore.getState().editingTextId !== null
-    window.maquette.docState({ dirty: dirty || typing, name: fileName(filePath), path: filePath })
+    window.maquette.docState({ dirty: dirty || typing, name: docName({ filePath, untitledName }), path: filePath })
   }
   report()
   const unsubscribeUi = uiStore.subscribe((s, prev) => s.editingTextId !== prev.editingTextId && report())
