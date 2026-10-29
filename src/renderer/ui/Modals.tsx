@@ -1,10 +1,11 @@
 import { useEffect, useRef } from 'react'
 import { createStore, useStore } from 'zustand'
+import { ComponentsPanel } from '../panels/ComponentsPanel'
 import { DocumentPanel } from '../panels/design/DocumentPanel'
 import { DirectionPanel } from '../panels/direction/DirectionPanel'
 
-/** Fenêtres de l'éditeur : Variables (barre du bas) et Direction (menu du fichier). */
-export type ModalId = 'variables' | 'direction'
+/** Fenêtres de l'éditeur : Variables et Components (barre du bas), Direction (menu du fichier). */
+export type ModalId = 'variables' | 'components' | 'direction'
 
 export const modalStore = createStore<{ open: ModalId | null; toggle(id: ModalId): void; close(): void }>()((set, get) => ({
   open: null,
@@ -13,7 +14,7 @@ export const modalStore = createStore<{ open: ModalId | null; toggle(id: ModalId
 }))
 export const useModal = () => useStore(modalStore, (s) => s.open)
 
-const TITLES: Record<ModalId, string> = { variables: 'Variables', direction: 'Art direction' }
+const TITLES: Record<ModalId, string> = { variables: 'Variables', components: 'Components', direction: 'Art direction' }
 
 const CLOSE_ICON = (
   <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden>
@@ -63,7 +64,9 @@ function Modal({ id }: { id: ModalId }) {
             {CLOSE_ICON}
           </button>
         </header>
-        <div className="modal-body">{id === 'variables' ? <DocumentPanel /> : <DirectionPanel />}</div>
+        <div className="modal-body">
+          {id === 'variables' ? <DocumentPanel /> : id === 'components' ? <ComponentsPanel /> : <DirectionPanel />}
+        </div>
       </div>
     </div>
   )

@@ -143,6 +143,18 @@ export function Toolbar() {
         <Icon name="variables" />
         <span className="visually-hidden">Variables</span>
       </button>
+      <button
+        type="button"
+        className="tool-button"
+        data-floating-button="components"
+        aria-pressed={modal === 'components'}
+        aria-haspopup="dialog"
+        data-tooltip="Components"
+        onClick={() => modalStore.getState().toggle('components')}
+      >
+        <Icon name="component" />
+        <span className="visually-hidden">Components</span>
+      </button>
       {picking && (
         <IconPicker
           className="is-floating"
