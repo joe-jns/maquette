@@ -60,6 +60,8 @@ function FileHeader() {
             { id: 'save-as', label: 'Save as…', shortcut: 'Ctrl+Shift+S', onSelect: () => void runCommand('save-as') },
             { id: 'auto-save', label: 'Auto-save', checked: autoSave, onSelect: () => autoSaveStore.getState().toggle() },
             'separator',
+            { id: 'versions', label: 'Version history…', shortcut: shortcutKeys('versionHistory'), onSelect: () => modalStore.getState().toggle('versions') },
+            'separator',
             { id: 'direction', label: 'Art direction (taste-skill)…', onSelect: () => modalStore.getState().toggle('direction') },
           ]}
         />
