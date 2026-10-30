@@ -286,3 +286,6 @@
   .chat-caret, .chat-dot { animation: none; }
   .chat-button, .chat-send { transition: none; }
 }
+
+/* « Undo » sous une réponse qui a modifié le document. */
+.chat-reply-actions { display: flex; justify-content: flex-start; }

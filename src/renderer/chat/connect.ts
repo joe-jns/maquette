@@ -8,6 +8,7 @@ import { docStore } from '../state/store'
 import { uiStore } from '../state/ui'
 import { agentStore, CLAUDE } from '../agents/agentStore'
 import { chatStore } from './chatStore'
+import { replyGroup } from './replies'
 
 /** API du chat, absente dans certains tests : tout le panneau devient alors inerte. */
 export const chatApi = (): ChatApi | undefined => (globalThis as { maquette?: { chat?: ChatApi } }).maquette?.chat
@@ -133,6 +134,29 @@ export async function openOtherConversation(other: OtherConversation): Promise<b
     return false
   }
   return openDocument(file)
+}
+
+/**
+ * Bouton « Undo » d'une réponse : annule toutes ses modifications. D'autres modifications faites après
+ * elle sont annulées aussi, après accord (question de l'app).
+ */
+export async function undoReply(turnId: string): Promise<void> {
+  const group = replyGroup(turnId)
+  if (docStore.getState().groupDepth(group) === null) return
+  if (docStore.getState().groupDepth(group)! > 0) {
+    const answer = await ask({
+      message: 'Undo this reply?',
+      detail: 'Changes made after it will be undone too.',
+      buttons: [{ label: 'Cancel' }, { label: 'Undo', kind: 'danger' }],
+      cancelIndex: 0,
+      defaultIndex: 0,
+    })
+    if (answer !== 1) return
+  }
+  // Relu après la question : l'historique a pu bouger pendant qu'elle était affichée.
+  const depth = docStore.getState().groupDepth(group)
+  if (depth === null) return
+  for (let i = 0; i <= depth; i++) docStore.getState().undo()
 }
 
 /** Change des réglages de la conversation : affiché tout de suite, enregistré par le principal. */

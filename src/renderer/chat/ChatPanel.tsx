@@ -7,7 +7,8 @@ import { docStore, useDoc } from '../state/store'
 import { useUi } from '../state/ui'
 import { chatStore, MAX_IMAGES, useChat } from './chatStore'
 import { Checkbox } from '../ui/Checkbox'
-import { BUSY_NOTICE, changeOptions, chatApi, newConversation, refreshConversations, selectionContext, selectionLabel } from './connect'
+import { BUSY_NOTICE, changeOptions, chatApi, newConversation, refreshConversations, selectionContext, selectionLabel, undoReply } from './connect'
+import { replyGroup } from './replies'
 import { ConversationMenu } from './ConversationMenu'
 import { imageFiles, readImage } from './images'
 import { MessageText } from './MessageText'
@@ -309,6 +310,24 @@ function Item({ item, last, busy }: { item: ChatItem; last: boolean; busy: boole
   }
 }
 
+/**
+ * « Undo » sous une réponse qui a modifié le document, tant que ses modifications sont annulables
+ * (il revient après un Ctrl+Y). Seulement pour les réponses de cette session.
+ */
+function ReplyUndo({ turnId }: { turnId: string }) {
+  const edited = useChat((s) => s.edited.includes(turnId))
+  // Relu à chaque changement du document : undo, redo et modifications déplacent le groupe.
+  const undoable = useDoc((s) => edited && s.doc && docStore.getState().groupDepth(replyGroup(turnId)) !== null)
+  if (!undoable) return null
+  return (
+    <div className="chat-reply-actions">
+      <button type="button" className="chat-button" data-testid="chat-reply-undo" data-tooltip="Undo all the changes of this reply" onClick={() => void undoReply(turnId)}>
+        Undo
+      </button>
+    </div>
+  )
+}
+
 /** Les outils qui se suivent forment un seul groupe compact. */
 function groupItems(items: ChatItem[]): ChatItem[][] {
   const groups: ChatItem[][] = []
@@ -319,6 +338,22 @@ function groupItems(items: ChatItem[]): ChatItem[][] {
     else groups.push([item])
   }
   return groups
+}
+
+/** Place du bouton « Undo » de chaque réponse (l'id de sa demande) : après elle, pas pendant qu'elle s'écrit. */
+function withReplyUndo(groups: ChatItem[][], busy: boolean): (ChatItem[] | string)[] {
+  const out: (ChatItem[] | string)[] = []
+  let turn: string | null = null
+  for (const group of groups) {
+    const first = group[0]!
+    if (first.kind === 'user') {
+      if (turn) out.push(turn)
+      turn = first.id
+    }
+    out.push(group)
+  }
+  if (turn && !busy) out.push(turn)
+  return out
 }
 
 function Welcome() {
@@ -597,8 +632,10 @@ export function ChatPanel() {
           <Welcome />
         ) : (
           <>
-            {groupItems(items).map((group) =>
-              group.length > 1 ? (
+            {withReplyUndo(groupItems(items), busy).map((group) =>
+              typeof group === 'string' ? (
+                <ReplyUndo key={`undo-${group}`} turnId={group} />
+              ) : group.length > 1 ? (
                 <div key={group[0]!.id} className="chat-tools">
                   {group.map((item) => <Item key={item.id} item={item} last={false} busy={busy} />)}
                 </div>
