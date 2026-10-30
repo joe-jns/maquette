@@ -6,7 +6,8 @@ import type { McpOrigin } from '../../mcp/pipe'
 import { runTool, type ToolHost, type ToolResult } from '../../mcp/tools'
 import { agentStore, CLAUDE } from '../agents/agentStore'
 import { chatStore } from '../chat/chatStore'
-import { replyGroup, replyLabel } from '../chat/replies'
+import { beforeClaudeName, replyGroup, replyLabel } from '../chat/replies'
+import { serializeDocument } from '../../core/format'
 import { revealCreated } from '../agents/reveal'
 import { ensureFont } from '../fonts/fontLoader'
 import { docStore } from '../state/store'
@@ -48,9 +49,9 @@ let externalSeq = 0
  * cette réponse. Claude Code extérieur (pas de tours) : ses modifications successives forment un groupe,
  * fermé dès qu'autre chose (l'utilisateur, une réponse du chat, un undo) passe au sommet.
  */
-function groupFor(origin: McpOrigin): { group: string; label?: string; turn?: string } {
+function groupFor(origin: McpOrigin): { group: string; label?: string; turn?: { id: string; text: string } } {
   const turn = origin === 'chat' ? chatStore.getState().turn : null
-  if (turn) return { group: replyGroup(turn.id), label: replyLabel(turn.text), turn: turn.id }
+  if (turn) return { group: replyGroup(turn.id), label: replyLabel(turn.text), turn }
   if (!externalGroup || docStore.getState().topGroup() !== externalGroup) externalGroup = `mcp:${++externalSeq}`
   return { group: externalGroup }
 }
@@ -61,9 +62,14 @@ function apply(ops: Op[], toolLabel: string, origin: McpOrigin) {
     return { ok: false as const, errors: [{ path: 'operations', message: 'l’utilisateur déplace un élément en ce moment : réessayez dans quelques secondes' }] }
   }
   const { group, label = toolLabel, turn } = groupFor(origin)
-  const result = docStore.getState().dispatch(ops, label, group)
+  const before = docStore.getState()
+  const result = before.dispatch(ops, label, group)
   if (result.ok) {
-    if (turn) chatStore.getState().markEdited(turn)
+    if (turn && !chatStore.getState().edited.includes(turn.id)) {
+      // Première modification de la réponse : version automatique du document d'avant (fichier enregistré seulement).
+      chatStore.getState().markEdited(turn.id)
+      if (before.filePath) void window.maquette.versions?.save(serializeDocument(before.doc), beforeClaudeName(turn.text), true).catch(() => null)
+    }
     const touched = ops.flatMap((op) => ('id' in op && typeof op.id === 'string' ? [result.ids[op.id] ?? op.id] : []))
     // Éléments créés (avec ou sans identifiant temporaire) : les patchs d'ajout, au plus haut niveau.
     const added = result.patches.flatMap((p) => {
