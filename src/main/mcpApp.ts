@@ -1,7 +1,7 @@
 import { BrowserWindow, ipcMain } from 'electron'
 import { noteMcpCall } from './headless'
 import { startBridge, type Bridge } from './mcpBridge'
-import { ensureToken, pipePath, userDataDir, type ToolResult } from '../mcp/pipe'
+import { ensureToken, pipePath, userDataDir, type McpOrigin, type ToolResult } from '../mcp/pipe'
 
 const CALL_TIMEOUT_MS = 30_000
 
@@ -23,7 +23,7 @@ export async function startMcp(editorWindow: () => BrowserWindow | undefined): P
     pending.delete(id)
   })
 
-  const handle = (tool: string, args: Record<string, unknown>): Promise<ToolResult> => {
+  const handle = (tool: string, args: Record<string, unknown>, origin: McpOrigin): Promise<ToolResult> => {
     noteMcpCall()
     const win = editorWindow()
     if (!win || win.webContents.isLoading() || !ready.has(win.webContents)) return Promise.resolve({ text: 'Maquette démarre encore : réessayez dans un instant.', isError: true })
@@ -37,7 +37,7 @@ export async function startMcp(editorWindow: () => BrowserWindow | undefined): P
         clearTimeout(timer)
         resolve(result)
       })
-      win.webContents.send('mcp:call', id, tool, args)
+      win.webContents.send('mcp:call', id, tool, args, origin)
     })
   }
 

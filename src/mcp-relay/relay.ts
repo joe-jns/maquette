@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process'
 import { basename, resolve } from 'node:path'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
-import { pipePath, readToken, userDataDir } from '../mcp/pipe'
+import { ORIGIN_ENV, pipePath, readToken, userDataDir } from '../mcp/pipe'
 import { connectBridge } from '../mcp/pipeClient'
 import { MCP_INSTRUCTIONS } from '../mcp/design/instructions'
 import { TOOLS, type ToolResult } from '../mcp/tools'
@@ -27,7 +27,8 @@ function getBridge(): Promise<Bridge> {
   bridge ??= (async () => {
     const token = await readToken(userDataDir())
     if (!token) throw Object.assign(new Error(APP_CLOSED), { code: 'APP_FERMEE' })
-    return connectBridge({ path: pipePath(), token })
+    // Relais du chat intégré : ses modifications vont dans le groupe de la réponse en cours.
+    return connectBridge({ path: pipePath(), token, origin: process.env[ORIGIN_ENV] === 'chat' ? 'chat' : 'external' })
   })()
   bridge.catch(() => (bridge = null))
   return bridge

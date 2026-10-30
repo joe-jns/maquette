@@ -1,5 +1,5 @@
 import { connect } from 'node:net'
-import { createLineReader, encodeLine, MAX_LINE_BYTES, parseMessage, type ToolResult } from './pipe'
+import { createLineReader, encodeLine, MAX_LINE_BYTES, parseMessage, type McpOrigin, type ToolResult } from './pipe'
 
 export type BridgeErrorCode = 'APP_FERMEE' | 'JETON_REFUSE' | 'DELAI' | 'PROTOCOLE'
 
@@ -42,8 +42,8 @@ function isToolResult(v: unknown): v is ToolResult {
   return !!v && typeof v === 'object' && typeof (v as ToolResult).text === 'string'
 }
 
-/** Rejoint l'app par son pipe nommé et s'authentifie avec le jeton. */
-export function connectBridge(opts: { path: string; token: string; timeoutMs?: number; maxLineBytes?: number }): Promise<BridgeClient> {
+/** Rejoint l'app par son pipe nommé et s'authentifie avec le jeton ; `origin` : qui appelle (Claude Code extérieur par défaut). */
+export function connectBridge(opts: { path: string; token: string; origin?: McpOrigin; timeoutMs?: number; maxLineBytes?: number }): Promise<BridgeClient> {
   const timeoutMs = opts.timeoutMs ?? 30000
   return new Promise<BridgeClient>((resolveConnect, rejectConnect) => {
     const socket = connect(opts.path)
@@ -95,7 +95,7 @@ export function connectBridge(opts: { path: string; token: string; timeoutMs?: n
       else p.reject(bridgeError('PROTOCOLE'))
     }
 
-    socket.on('connect', () => socket.write(encodeLine({ hello: opts.token })))
+    socket.on('connect', () => socket.write(encodeLine(opts.origin === 'chat' ? { hello: opts.token, origin: 'chat' } : { hello: opts.token })))
     socket.on('data', createLineReader(onLine, () => finish(bridgeError('PROTOCOLE')), opts.maxLineBytes ?? MAX_LINE_BYTES))
     socket.on('error', (e: NodeJS.ErrnoException) => {
       // Avant la poignée de main, toute erreur de pipe veut dire que l'app n'est pas joignable.

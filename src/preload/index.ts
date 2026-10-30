@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from 'ele
 import type { ChatEvent, ChatItem, ChatOptions, ConversationList, ConversationSwitch } from '../shared/chat'
 import type { ImageCredit, ImagePlace, ImageSearch } from '../shared/images'
 import type { ClipboardContent, DialogRequest, ExportJob, ExportMeasure, FontInfo, ImageImport, MaquetteApi, MenuCommand, OpenedFile, RenderedImage } from '../shared/ipc'
+import type { McpOrigin } from '../mcp/pipe'
 
 // Questions du principal : arrivées avant que la fenêtre écoute (démarrage), elles l'attendent.
 let onAsk: ((request: DialogRequest) => Promise<number>) | null = null
@@ -82,8 +83,8 @@ const api: MaquetteApi = {
   },
   reloadFile: (path) => ipcRenderer.invoke('file:reload', path),
   onMcpCall: (cb) => {
-    const handler = (_e: IpcRendererEvent, id: number, tool: string, args: Record<string, unknown>) => {
-      void cb(tool, args).then((result) => ipcRenderer.send('mcp:result', id, result))
+    const handler = (_e: IpcRendererEvent, id: number, tool: string, args: Record<string, unknown>, origin: McpOrigin) => {
+      void cb(tool, args, origin === 'chat' ? 'chat' : 'external').then((result) => ipcRenderer.send('mcp:result', id, result))
     }
     ipcRenderer.on('mcp:call', handler)
     return () => ipcRenderer.removeListener('mcp:call', handler)

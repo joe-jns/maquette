@@ -3,6 +3,7 @@ import type { ChatApi } from './chat'
 import type { ImagesApi } from './images'
 import type { RecentEntry } from './home'
 import type { ToolResult } from '../mcp/tools'
+import type { McpOrigin } from '../mcp/pipe'
 import type { DirectionOption, DirectionSheet } from '../taste/direction'
 
 /** Résultat d'un tirage taste-skill : valeur, ou message à afficher. */
@@ -144,7 +145,8 @@ export interface MaquetteApi {
   onFileChanged(cb: (path: string) => void): () => void
   /** Relit le fichier courant sur le disque. */
   reloadFile(path: string): Promise<OpenedFile | null>
-  onMcpCall(cb: (tool: string, args: Record<string, unknown>) => Promise<ToolResult>): () => void
+  /** `origin` : le chat intégré ou un Claude Code extérieur. */
+  onMcpCall(cb: (tool: string, args: Record<string, unknown>, origin: McpOrigin) => Promise<ToolResult>): () => void
   /** Écran d'accueil : fichiers récents (seuls ceux de la liste sont lus, montrés ou retirés). */
   home: {
     list(): Promise<RecentEntry[]>

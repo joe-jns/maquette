@@ -30,6 +30,18 @@ describe('canal MCP', () => {
     await bridge.close()
   })
 
+  it('origine annoncée à la connexion : chat intégré, sinon Claude Code extérieur', async () => {
+    const path = testPipe()
+    const bridge = await startBridge({ path, token: 'a'.repeat(64), handle: async (_tool, _args, origin) => ({ text: origin }) })
+    const chat = await connectBridge({ path, token: 'a'.repeat(64), origin: 'chat' })
+    const ext = await connectBridge({ path, token: 'a'.repeat(64) })
+    expect((await chat.call('x', {})).text).toBe('chat')
+    expect((await ext.call('x', {})).text).toBe('external')
+    chat.close()
+    ext.close()
+    await bridge.close()
+  })
+
   it('mauvais jeton refusé, aucun outil exécuté', async () => {
     const path = testPipe()
     let calls = 0

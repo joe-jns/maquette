@@ -3,7 +3,7 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { basename, dirname, join } from 'node:path'
 import { DEFAULT_CHAT_OPTIONS, type ChatEvent, type ChatImage, type ChatItem, type ChatOptions, type ChatSend, type ConversationSwitch, type PermissionDecision } from '../../shared/chat'
-import { createLineReader } from '../../mcp/pipe'
+import { createLineReader, ORIGIN_ENV } from '../../mcp/pipe'
 import type { ChatImages } from './chatImages'
 import { chatKey, type ChatStore, type Conversation } from './chatStore'
 import { claudeArgs, claudeCommand, NOT_FOUND_CODES, NOT_FOUND_TEXT } from './command'
@@ -271,7 +271,7 @@ export class ChatSession {
     const { userData, relayPath } = this.deps
     await mkdir(userData, { recursive: true })
     const mcpConfig = join(userData, 'chat-mcp.json')
-    const env: Record<string, string> = { ELECTRON_RUN_AS_NODE: '1' }
+    const env: Record<string, string> = { ELECTRON_RUN_AS_NODE: '1', [ORIGIN_ENV]: 'chat' }
     if (process.env.MAQUETTE_USER_DATA) env.MAQUETTE_USER_DATA = process.env.MAQUETTE_USER_DATA
     if (process.env.MAQUETTE_PIPE) env.MAQUETTE_PIPE = process.env.MAQUETTE_PIPE
     await writeFile(mcpConfig, JSON.stringify({ mcpServers: { maquette: { command: process.execPath, args: [relayPath], env } } }, null, 2), 'utf8')
