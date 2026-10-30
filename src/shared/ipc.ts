@@ -4,6 +4,7 @@ import type { ImagesApi } from './images'
 import type { RecentEntry } from './home'
 import type { ToolResult } from '../mcp/tools'
 import type { McpOrigin } from '../mcp/pipe'
+import type { VersionsApi } from './versions'
 import type { DirectionOption, DirectionSheet } from '../taste/direction'
 
 /** Résultat d'un tirage taste-skill : valeur, ou message à afficher. */
@@ -54,7 +55,7 @@ export interface DialogRequest {
   defaultIndex: number
 }
 
-export type MenuCommand = 'home' | 'new' | 'open' | 'save' | 'save-as' | 'undo' | 'redo' | 'export-png-1' | 'export-png-2' | 'export-png-3' | 'save-and-close' | 'toggle-chat'
+export type MenuCommand = 'home' | 'new' | 'open' | 'save' | 'save-as' | 'undo' | 'redo' | 'export-png-1' | 'export-png-2' | 'export-png-3' | 'save-and-close' | 'toggle-chat' | 'version-history'
 
 export interface RenderOptions {
   scale: number
@@ -160,6 +161,8 @@ export interface MaquetteApi {
   }
   /** Chat avec Claude (panneau de droite). */
   chat: ChatApi
+  /** Historique de versions du fichier ouvert. */
+  versions: VersionsApi
   /** Questions posées par le principal (fermeture, fichier introuvable…) ; la réponse repart au principal. */
   onDialogAsk(cb: (request: DialogRequest) => Promise<number>): () => void
 }

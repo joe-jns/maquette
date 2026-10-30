@@ -56,24 +56,32 @@ async function drain(hash: string): Promise<void> {
   }
 }
 
-async function render(hash: string, text: string): Promise<void> {
+/**
+ * Image d'aperçu (JPEG) d'un texte de document : premier cadre de la première page, ou la page.
+ * 'empty' : page vide ; null : texte illisible ou rendu impossible.
+ */
+export async function renderPreview(text: string): Promise<Buffer | 'empty' | null> {
   const parsed = parseDocument(text)
-  if (!parsed.ok) return
+  if (!parsed.ok) return null
   const target = thumbnailTarget(parsed.doc)
-  if (!target) {
-    // Page vidée : l'ancien aperçu ne correspond plus à rien.
-    await rm(thumbFile(hash), { force: true })
-    return
-  }
+  if (!target) return 'empty'
   const r = await renderNode(target.doc, target.nodeId, { scale: 4, format: 'jpeg', maxWidth: THUMB_WIDTH })
-  if (!r) return
+  if (!r) return null
   let image = nativeImage.createFromBuffer(r.buffer)
-  if (image.isEmpty()) return
+  if (image.isEmpty()) return null
   const { width, height } = image.getSize()
   const keep = thumbCropHeight(width, height, target.designWidth)
   if (keep < height) image = image.crop({ x: 0, y: 0, width, height: keep })
+  return image.toJPEG(82)
+}
+
+async function render(hash: string, text: string): Promise<void> {
+  const image = await renderPreview(text)
+  // Page vidée : l'ancien aperçu ne correspond plus à rien.
+  if (image === 'empty') await rm(thumbFile(hash), { force: true })
+  if (!image || image === 'empty') return
   await mkdir(thumbDir(), { recursive: true })
-  await writeBytesAtomic(thumbFile(hash), image.toJPEG(82))
+  await writeBytesAtomic(thumbFile(hash), image)
 }
 
 /** Aperçu existant d'un fichier : son empreinte et la date de l'image (pour rafraîchir l'affichage). */

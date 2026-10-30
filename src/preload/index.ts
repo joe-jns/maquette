@@ -96,6 +96,14 @@ const api: MaquetteApi = {
     remove: (path) => ipcRenderer.invoke('home:remove', path),
     reveal: (path) => ipcRenderer.invoke('home:reveal', path),
   },
+  versions: {
+    list: () => ipcRenderer.invoke('versions:list'),
+    save: (text, name, auto) => ipcRenderer.invoke('versions:save', text, name, auto),
+    read: (id) => ipcRenderer.invoke('versions:read', id),
+    rename: (id, name) => ipcRenderer.invoke('versions:rename', id, name),
+    remove: (id) => ipcRenderer.invoke('versions:remove', id),
+    preview: (id) => ipcRenderer.invoke('versions:preview', id),
+  },
   chat: {
     open: (path) => ipcRenderer.invoke('chat:open', path) as Promise<ChatItem[]>,
     send: (message) => ipcRenderer.send('chat:send', message),

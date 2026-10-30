@@ -9,6 +9,7 @@ import { carryAssets } from './pendingAssets'
 import { aboutToWrite, documentShown, readDocForWindow, readForWindow } from './openFiles'
 import { isOpenablePath, saveDefaultPath, withMaquetteExt } from './penOpen'
 import { updateThumb } from './thumbs'
+import { carryVersions } from './versionsIpc'
 import { acceptPath, allowedSavePath, getAssetDir, getCurrentPath, getImportedFrom, offerPath, savedTo } from './state'
 
 const FILTERS = [{ name: 'Maquette', extensions: ['maquette'] }]
@@ -133,6 +134,9 @@ async function writeDocument(target: string, text: string): Promise<string> {
   if (assets) await carryAssets(assets, dirname(target), text)
   aboutToWrite(text)
   await writeFileAtomic(target, text)
+  // « Enregistrer sous » un autre chemin : l'historique de versions suit le document.
+  const previous = getCurrentPath()
+  if (previous && previous !== target) await carryVersions(previous, target)
   savedTo(target)
   documentShown(target)
   // Aperçu de l'accueil : en arrière-plan, l'enregistrement n'attend pas (et n'échoue jamais pour lui).
