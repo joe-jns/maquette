@@ -122,3 +122,20 @@ describe('chatStore', () => {
     expect(store.getState()).toMatchObject({ draft: '', images: [] })
   })
 })
+
+describe('chatStore : tour en cours', () => {
+  beforeEach(() => vi.unstubAllGlobals())
+
+  it('le tour est la dernière demande pendant la réponse ; oublié à la fin', async () => {
+    const store = await freshStore(memoryStorage())
+    store.getState().applyEvent({ type: 'item', item: user })
+    store.getState().applyEvent({ type: 'item', item: { kind: 'user', id: 'u2', text: 'Dessine', images: 0 } })
+    store.getState().applyEvent({ type: 'busy', busy: true })
+    expect(store.getState().turn).toEqual({ id: 'u2', text: 'Dessine' })
+    store.getState().markEdited('u2')
+    store.getState().markEdited('u2')
+    expect(store.getState().edited).toEqual(['u2'])
+    store.getState().applyEvent({ type: 'busy', busy: false })
+    expect(store.getState().turn).toBeNull()
+  })
+})
