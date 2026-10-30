@@ -9,7 +9,7 @@ Décidée avec l'utilisateur le 2026-10-28. Le nouveau look passe en dernier et 
 - Dépôt public github.com/joe-jns/maquette, release Windows + Mac (2026-10-29).
 
 ## Chantiers, dans l'ordre (revu le 2026-10-30 : la livraison remonte, les Claude en parallèle descendent)
-1. **Annuler toute la réponse de Claude** et **historique de versions nommées**.
+1. ~~**Annuler toute la réponse de Claude** et **historique de versions nommées**~~ — fait le 2026-10-31 (un Ctrl+Z par réponse, bouton Undo dans le chat, versions auto avant chaque réponse, Ctrl+Alt+H).
 2. **Responsive** (ordinateur, tablette, mobile), puis **export Astro + Tailwind** et export HTML en un seul fichier (pour WordPress).
 3. **Bibliothèque perso** : marque par client (couleurs, polices, logo) appliquée à chaque nouvelle page ; sections réutilisables d'un fichier à l'autre, utilisables par Claude.
 4. **Site → maquette** (adresse d'un site client → calques modifiables, vrais textes, images, couleurs) ; capture → maquette.
