@@ -8,6 +8,7 @@ import { autoSaveStore } from './autoSaveFile'
 import { openDocument } from './openDocument'
 import { docStore } from './store'
 import { uiStore } from './ui'
+import { modalStore } from '../ui/Modals'
 
 /** Document modifié : demande avant de le remplacer (Annuler par défaut, rien n'est perdu sur Entrée). */
 export const confirmDiscard = async (): Promise<boolean> =>
@@ -144,6 +145,9 @@ export async function runCommand(cmd: MenuCommand): Promise<void> {
       return exportSelection(3)
     case 'toggle-chat':
       chatStore.getState().toggle()
+      return
+    case 'version-history':
+      modalStore.getState().toggle('versions')
       return
   }
 }

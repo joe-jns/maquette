@@ -3,6 +3,7 @@ import { containsId, findNode } from '../../core/tree'
 import type { FrameNode, MaquetteDocument, Node, Rect } from '../../core/types'
 import { chatStore } from '../chat/chatStore'
 import { docStore } from '../state/store'
+import { modalStore } from '../ui/Modals'
 import { tasteStore } from '../taste/tasteStore'
 import { uiStore, type Tool } from '../state/ui'
 import { assetUrl } from './assetUrl'
@@ -989,6 +990,9 @@ export class InteractionController {
         return true
       case 'toggleChat':
         chatStore.getState().toggle()
+        return true
+      case 'versionHistory':
+        modalStore.getState().toggle('versions')
         return true
       case 'insertIcon':
         ui().setIconPicker(!ui().iconPicker)

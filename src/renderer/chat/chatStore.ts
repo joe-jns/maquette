@@ -15,6 +15,10 @@ interface ChatState {
   items: ChatItem[]
   /** Claude travaille : le bouton Envoyer devient Stop. */
   busy: boolean
+  /** Tour en cours : la demande de l'utilisateur à laquelle Claude répond (null hors réponse). */
+  turn: { id: string; text: string } | null
+  /** Tours de cette session dont la réponse a modifié le document (bouton « Undo » sous la réponse). */
+  edited: string[]
   draft: string
   images: PendingImage[]
   /** La sélection part avec le prochain message (remis à vrai à chaque nouvelle sélection). */
@@ -32,6 +36,8 @@ interface ChatState {
   setOpen(open: boolean): void
   toggle(): void
   setItems(items: ChatItem[]): void
+  /** La réponse à cette demande vient de modifier le document. */
+  markEdited(turnId: string): void
   applyEvent(event: ChatEvent): void
   setDraft(draft: string): void
   /** Ajoute une image ; false si la limite est atteinte. */
@@ -65,6 +71,8 @@ export const chatStore = createStore<ChatState>()((set, get) => ({
   open: readOpen(),
   items: [],
   busy: false,
+  turn: null,
+  edited: [],
   draft: '',
   images: [],
   contextAttached: true,
@@ -81,7 +89,10 @@ export const chatStore = createStore<ChatState>()((set, get) => ({
   toggle() {
     get().setOpen(!get().open)
   },
-  setItems: (items) => set({ items, busy: false, preview: null }),
+  setItems: (items) => set({ items, busy: false, turn: null, preview: null }),
+  markEdited: (turnId) => {
+    if (!get().edited.includes(turnId)) set({ edited: [...get().edited, turnId] })
+  },
   applyEvent(event) {
     const items = get().items
     switch (event.type) {
@@ -102,9 +113,12 @@ export const chatStore = createStore<ChatState>()((set, get) => ({
         set({ items: items.map((it, k) => (k === i ? { ...current, text: current.text + event.text } : it)) })
         return
       }
-      case 'busy':
-        set({ busy: event.busy })
+      case 'busy': {
+        // Le principal envoie la demande puis « busy » : le tour est celui de la dernière demande.
+        const last = event.busy ? items.findLast((it) => it.kind === 'user') : undefined
+        set({ busy: event.busy, turn: last ? { id: last.id, text: last.text } : null })
         return
+      }
     }
   },
   setDraft: (draft) => set({ draft }),

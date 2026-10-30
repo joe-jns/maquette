@@ -1,4 +1,4 @@
-import { freeze } from 'immer'
+import { freeze, produceWithPatches } from 'immer'
 import { createStore, useStore } from 'zustand'
 import { History } from '../../core/history'
 import { applyOps, type ApplyResult, type Measure, type Op } from '../../core/ops'
@@ -20,9 +20,16 @@ export interface DocState {
   inGesture: boolean
   load(doc: MaquetteDocument, path: string | null, untitledName?: string | null): void
   showError(message: string): void
-  dispatch(ops: Op[], label: string): ApplyResult
+  /** `group` : l'entrée d'historique fusionne avec la précédente du même groupe (réponse de Claude). */
+  dispatch(ops: Op[], label: string, group?: string): ApplyResult
   undo(): void
   redo(): void
+  /** Entrées d'historique au-dessus du groupe (0 : au sommet) ; null s'il n'est plus annulable. */
+  groupDepth(group: string): number | null
+  /** Groupe de la dernière entrée d'historique (undefined : aucune, ou sans groupe). */
+  topGroup(): string | undefined
+  /** Remplace tout le document (version restaurée) en une seule étape annulable. */
+  replaceDocument(doc: MaquetteDocument, label: string): void
   markSaved(path: string): void
   setMeasure(fn: Measure): void
   /** Page affichée (sans historique : ce n'est pas une modification du document). */
@@ -81,11 +88,11 @@ export const docStore = createStore<DocState>()((set, get) => ({
     set({ notice: message })
   },
 
-  dispatch(ops, label) {
+  dispatch(ops, label, group) {
     if (gesture) get().commitGesture(IMPLICIT_LABEL)
     const result = applyOps(get().doc, ops, { measure })
     if (result.ok) {
-      history.push({ label, patches: result.patches, inversePatches: result.inversePatches })
+      history.push({ label, patches: result.patches, inversePatches: result.inversePatches, group })
       set({ doc: result.doc, dirty: true, canUndo: history.canUndo(), canRedo: history.canRedo() })
     }
     return result
@@ -101,6 +108,18 @@ export const docStore = createStore<DocState>()((set, get) => ({
     if (gesture) get().commitGesture(IMPLICIT_LABEL)
     const r = history.redo(get().doc)
     if (r) set({ doc: r.doc, pageId: livePage(r.doc, get().pageId), dirty: true, canUndo: history.canUndo(), canRedo: history.canRedo() })
+  },
+
+  groupDepth: (group) => history.depthOf(group),
+  topGroup: () => history.topGroup(),
+
+  replaceDocument(doc, label) {
+    if (gesture) get().commitGesture(IMPLICIT_LABEL)
+    freeze(doc, true)
+    // Patch racine : annuler remet tout l'ancien document d'un coup.
+    const [next, patches, inversePatches] = produceWithPatches(get().doc, () => doc)
+    history.push({ label, patches, inversePatches })
+    set({ doc: next, pageId: livePage(next, get().pageId), dirty: true, canUndo: history.canUndo(), canRedo: history.canRedo() })
   },
 
   markSaved(path) {

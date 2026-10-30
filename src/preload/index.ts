@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from 'ele
 import type { ChatEvent, ChatItem, ChatOptions, ConversationList, ConversationSwitch } from '../shared/chat'
 import type { ImageCredit, ImagePlace, ImageSearch } from '../shared/images'
 import type { ClipboardContent, DialogRequest, ExportJob, ExportMeasure, FontInfo, ImageImport, MaquetteApi, MenuCommand, OpenedFile, RenderedImage } from '../shared/ipc'
+import type { McpOrigin } from '../mcp/pipe'
 
 // Questions du principal : arrivées avant que la fenêtre écoute (démarrage), elles l'attendent.
 let onAsk: ((request: DialogRequest) => Promise<number>) | null = null
@@ -82,8 +83,8 @@ const api: MaquetteApi = {
   },
   reloadFile: (path) => ipcRenderer.invoke('file:reload', path),
   onMcpCall: (cb) => {
-    const handler = (_e: IpcRendererEvent, id: number, tool: string, args: Record<string, unknown>) => {
-      void cb(tool, args).then((result) => ipcRenderer.send('mcp:result', id, result))
+    const handler = (_e: IpcRendererEvent, id: number, tool: string, args: Record<string, unknown>, origin: McpOrigin) => {
+      void cb(tool, args, origin === 'chat' ? 'chat' : 'external').then((result) => ipcRenderer.send('mcp:result', id, result))
     }
     ipcRenderer.on('mcp:call', handler)
     return () => ipcRenderer.removeListener('mcp:call', handler)
@@ -94,6 +95,14 @@ const api: MaquetteApi = {
     open: (path) => ipcRenderer.invoke('home:open', path),
     remove: (path) => ipcRenderer.invoke('home:remove', path),
     reveal: (path) => ipcRenderer.invoke('home:reveal', path),
+  },
+  versions: {
+    list: () => ipcRenderer.invoke('versions:list'),
+    save: (text, name, auto) => ipcRenderer.invoke('versions:save', text, name, auto),
+    read: (id) => ipcRenderer.invoke('versions:read', id),
+    rename: (id, name) => ipcRenderer.invoke('versions:rename', id, name),
+    remove: (id) => ipcRenderer.invoke('versions:remove', id),
+    preview: (id) => ipcRenderer.invoke('versions:preview', id),
   },
   chat: {
     open: (path) => ipcRenderer.invoke('chat:open', path) as Promise<ChatItem[]>,

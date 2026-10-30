@@ -40,6 +40,8 @@ export function buildMenu(): void {
           { type: 'separator' },
           { label: 'Save', accelerator: 'CmdOrCtrl+S', click: send('save') },
           { label: 'Save as…', accelerator: 'CmdOrCtrl+Shift+S', click: send('save-as') },
+          // Raccourci affiché mais géré par la fenêtre, comme Annuler (sinon la fenêtre s'ouvrirait et se refermerait).
+          { label: 'Version history…', accelerator: 'CmdOrCtrl+Alt+H', registerAccelerator: false, click: send('version-history') },
           { type: 'separator' },
           {
             label: 'Export selection as PNG',

@@ -95,3 +95,40 @@ describe('gestes', () => {
     expect(docStore.getState().canUndo).toBe(false)
   })
 })
+
+describe('docStore : groupes et document remplacé', () => {
+  const name = () => docStore.getState().doc.pages[0]!.children[0]!.name
+
+  it('les modifications d’un groupe s’annulent d’un coup ; groupDepth et topGroup suivent', () => {
+    const s = docStore.getState()
+    s.dispatch([{ op: 'update', id: 'r00001', set: { name: 'B' } }], 'Claude', 'claude:1')
+    s.dispatch([{ op: 'update', id: 'r00001', set: { name: 'C' } }], 'Claude', 'claude:1')
+    expect(s.groupDepth('claude:1')).toBe(0)
+    expect(s.topGroup()).toBe('claude:1')
+    s.dispatch([{ op: 'update', id: 'r00001', set: { name: 'D' } }], 'Renommer')
+    expect(s.groupDepth('claude:1')).toBe(1)
+    expect(s.topGroup()).toBeUndefined()
+    docStore.getState().undo()
+    docStore.getState().undo()
+    expect(name()).toBe('A')
+    expect(s.groupDepth('claude:1')).toBeNull()
+  })
+
+  it('remplacer le document : une étape annulable, page affichée gardée si elle existe', () => {
+    const s = docStore.getState()
+    const before = s.doc
+    const other = docWith([rect('r00002', { x: 5, y: 5, name: 'Z' })])
+    s.replaceDocument(other, 'Restaurer')
+    expect(name()).toBe('Z')
+    expect(docStore.getState()).toMatchObject({ dirty: true, canUndo: true })
+    expect(docStore.getState().pageId).toBe(docStore.getState().doc.pages[0]!.id)
+    docStore.getState().undo()
+    expect(docStore.getState().doc).toEqual(before)
+    docStore.getState().redo()
+    expect(name()).toBe('Z')
+    // Après un remplacement, les modifications ordinaires continuent de marcher.
+    expect(docStore.getState().dispatch([{ op: 'update', id: 'r00002', set: { name: 'Y' } }], 'Renommer').ok).toBe(true)
+    docStore.getState().undo()
+    expect(name()).toBe('Z')
+  })
+})

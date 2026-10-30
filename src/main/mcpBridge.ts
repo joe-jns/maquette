@@ -1,11 +1,12 @@
 import { connect, createServer, type Socket } from 'node:net'
 import { rm } from 'node:fs/promises'
-import { createLineReader, encodeLine, MAX_LINE_BYTES, parseMessage, tokensEqual, type ToolResult } from '../mcp/pipe'
+import { createLineReader, encodeLine, MAX_LINE_BYTES, parseMessage, tokensEqual, type McpOrigin, type ToolResult } from '../mcp/pipe'
 
 export interface BridgeOptions {
   path: string
   token: string
-  handle(tool: string, args: Record<string, unknown>): Promise<ToolResult>
+  /** `origin` : annoncée par le client avec son jeton (`external` s'il ne dit rien). */
+  handle(tool: string, args: Record<string, unknown>, origin: McpOrigin): Promise<ToolResult>
   /** Délai pour envoyer `{"hello":…}` après la connexion (5 s). */
   authTimeoutMs?: number
   maxLineBytes?: number
@@ -58,6 +59,7 @@ export async function startBridge(opts: BridgeOptions): Promise<Bridge> {
     }
     sockets.add(socket)
     let authed = false
+    let origin: McpOrigin = 'external'
     let closing = false
 
     const send = (message: unknown) => {
@@ -82,6 +84,7 @@ export async function startBridge(opts: BridgeOptions): Promise<Bridge> {
       if (!authed) {
         if (msg && tokensEqual(msg.hello, opts.token)) {
           authed = true
+          if (msg.origin === 'chat') origin = 'chat'
           authedSockets.add(socket)
           clearTimeout(authTimer)
           send({ ok: true })
@@ -104,7 +107,7 @@ export async function startBridge(opts: BridgeOptions): Promise<Bridge> {
       }
       const args = (rawArgs ?? {}) as Record<string, unknown>
       Promise.resolve()
-        .then(() => opts.handle(tool, args))
+        .then(() => opts.handle(tool, args, origin))
         .then(
           (result) => send({ id, result }),
           (e: unknown) => send({ id, error: errorMessage(e) }),

@@ -134,6 +134,15 @@ export function createLineReader(
   }
 }
 
+/**
+ * D'où vient un appel d'outil : le chat intégré de Maquette (`chat`, son relais le dit à la connexion)
+ * ou un Claude Code lancé ailleurs (`external`).
+ */
+export type McpOrigin = 'chat' | 'external'
+
+/** Variable d'environnement du relais lancé par le chat intégré : son origine annoncée à l'app. */
+export const ORIGIN_ENV = 'MAQUETTE_MCP_ORIGIN'
+
 /** Analyse une ligne JSON ; renvoie undefined si elle n'est pas un objet. */
 export function parseMessage(line: string): Record<string, unknown> | undefined {
   try {

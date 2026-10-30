@@ -3,9 +3,10 @@ import { createStore, useStore } from 'zustand'
 import { ComponentsPanel } from '../panels/ComponentsPanel'
 import { DocumentPanel } from '../panels/design/DocumentPanel'
 import { DirectionPanel } from '../panels/direction/DirectionPanel'
+import { VersionsPanel } from '../panels/VersionsPanel'
 
-/** Fenêtres de l'éditeur : Variables et Components (barre du bas), Direction (menu du fichier). */
-export type ModalId = 'variables' | 'components' | 'direction'
+/** Fenêtres de l'éditeur : Variables et Components (barre du bas), Direction et Version history (menu du fichier). */
+export type ModalId = 'variables' | 'components' | 'direction' | 'versions'
 
 export const modalStore = createStore<{ open: ModalId | null; toggle(id: ModalId): void; close(): void }>()((set, get) => ({
   open: null,
@@ -14,7 +15,7 @@ export const modalStore = createStore<{ open: ModalId | null; toggle(id: ModalId
 }))
 export const useModal = () => useStore(modalStore, (s) => s.open)
 
-const TITLES: Record<ModalId, string> = { variables: 'Variables', components: 'Components', direction: 'Art direction' }
+const TITLES: Record<ModalId, string> = { variables: 'Variables', components: 'Components', direction: 'Art direction', versions: 'Version history' }
 
 const CLOSE_ICON = (
   <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden>
@@ -65,7 +66,7 @@ function Modal({ id }: { id: ModalId }) {
           </button>
         </header>
         <div className="modal-body">
-          {id === 'variables' ? <DocumentPanel /> : id === 'components' ? <ComponentsPanel /> : <DirectionPanel />}
+          {id === 'variables' ? <DocumentPanel /> : id === 'components' ? <ComponentsPanel /> : id === 'versions' ? <VersionsPanel /> : <DirectionPanel />}
         </div>
       </div>
     </div>

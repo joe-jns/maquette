@@ -13,7 +13,7 @@ export type CommandId =
   | 'zoomIn' | 'zoomOut' | 'zoom100' | 'zoomFit' | 'zoomSelection'
   | 'nudgeLeft' | 'nudgeRight' | 'nudgeUp' | 'nudgeDown'
   | 'nudgeLeft10' | 'nudgeRight10' | 'nudgeUp10' | 'nudgeDown10'
-  | 'help' | 'tasteCheck' | 'toggleChat' | 'insertIcon' | 'createComponent'
+  | 'help' | 'tasteCheck' | 'toggleChat' | 'insertIcon' | 'createComponent' | 'versionHistory'
 
 export interface Shortcut {
   id: CommandId
@@ -79,6 +79,7 @@ const TABLE: Record<CommandId, Omit<Shortcut, 'id'>> = {
   help: { keys: '?', label: 'Show keyboard shortcuts', group: 'View' },
   tasteCheck: { keys: 'Ctrl+Alt+V', label: 'Check frame with taste-skill', group: 'View' },
   toggleChat: { keys: 'Ctrl+L', label: 'Open or close the Claude chat', group: 'View' },
+  versionHistory: { keys: 'Ctrl+Alt+H', label: 'Version history', group: 'View' },
 }
 
 export const SHORTCUTS: Shortcut[] = (Object.keys(TABLE) as CommandId[]).map((id) => ({ id, ...TABLE[id] }))
@@ -130,6 +131,7 @@ const BINDINGS: Binding[] = [
   letter('tasteCheck', 'v', { ctrl: true, alt: true }),
   letter('createComponent', 'k', { ctrl: true, alt: true }),
   letter('toggleChat', 'l', { ctrl: true }),
+  letter('versionHistory', 'h', { ctrl: true, alt: true }),
   letter('addAutoLayout', 'a', { shift: true }),
   code('forward', ['BracketRight'], { ctrl: true }),
   code('backward', ['BracketLeft'], { ctrl: true }),

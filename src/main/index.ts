@@ -7,6 +7,7 @@ import { closeExportWindow, isExportWindow, registerExportIpc, renderNode } from
 import { FONT_SCHEME, handleFonts, registerFontIpc } from './fontService'
 import { registerFileIpc } from './ipc'
 import { registerHomeIpc } from './home'
+import { registerVersionIpc } from './versionsIpc'
 import { registerImageIpc } from './imageSearch'
 import { registerImagePasteIpc } from './imagePaste'
 import { guardClose, registerSessionIpc } from './docSession'
@@ -95,6 +96,7 @@ const editorWindows = () => BrowserWindow.getAllWindows().filter((w) => !isExpor
 
 registerFileIpc(fileArg)
 registerHomeIpc()
+registerVersionIpc()
 registerFontIpc()
 registerExportIpc()
 registerTasteIpc()

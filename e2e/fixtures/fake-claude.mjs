@@ -139,6 +139,23 @@ async function turn(content) {
     }
     text(m, 0, ['Fait.'])
     result('Fait.')
+  } else if (/trois calques|un bouton/i.test(said)) {
+    // Plusieurs appels d'outil dans la même réponse : un seul pas d'annulation dans l'app.
+    const names = /trois calques/i.test(said) ? ['Calque 1', 'Calque 2', 'Calque 3'] : ['Bouton']
+    const client = await mcp()
+    try {
+      const doc = JSON.parse((await client.tool('lire_document', {})).text)
+      for (const [i, name] of names.entries()) {
+        const input = { libelle: name, operations: [{ op: 'create', parent: doc.pages[0].id, node: { type: 'shape', shape: 'rectangle', name, x: 20 + i * 40, y: 400, width: 30, height: 30, fills: ['#2563EB'] } }] }
+        toolUse(`toolu_calque${i}`, 'mcp__maquette__appliquer', input)
+        const r = await client.tool('appliquer', input)
+        toolResult(`toolu_calque${i}`, r.isError, r.text)
+      }
+    } finally {
+      client.close()
+    }
+    text(m, 0, ['Fait.'])
+    result('Fait.')
   } else if (/commande/i.test(said)) {
     toolUse('toolu_bash', 'Bash', { command: 'echo hi' })
     const requestId = `perm-${randomUUID().slice(0, 8)}`
