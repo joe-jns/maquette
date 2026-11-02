@@ -2,7 +2,7 @@
 
 Éditeur de maquettes de sites, dans l'esprit de Figma, pensé pour travailler avec **Claude**.
 On dessine à la main, ou on demande à Claude dans le chat intégré : il crée et modifie les calques
-sous vos yeux, avec son propre curseur.
+sous vos yeux.
 
 ![Un fichier .pen ouvert dans Maquette (à droite), comparé à l'original (à gauche)](docs/captures/import-pen/autolog-pro_pwofW.png)
 
