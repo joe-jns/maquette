@@ -4,11 +4,10 @@ import type { FullSheet } from '../../mcp/design/direction'
 import type { TasteDraw } from '../../shared/ipc'
 import type { McpOrigin } from '../../mcp/pipe'
 import { runTool, type ToolHost, type ToolResult } from '../../mcp/tools'
-import { agentStore, CLAUDE } from '../agents/agentStore'
+import { activityStore } from '../agents/activityStore'
 import { chatStore } from '../chat/chatStore'
 import { beforeClaudeName, replyGroup, replyLabel } from '../chat/replies'
 import { serializeDocument } from '../../core/format'
-import { revealCreated } from '../agents/reveal'
 import { ensureFont } from '../fonts/fontLoader'
 import { docStore } from '../state/store'
 import { uiStore } from '../state/ui'
@@ -18,14 +17,6 @@ import { imageHost } from './imageHost'
 
 /** Au-delà, une police encore en téléchargement est signalée « non chargée » (l'appel MCP ne patiente pas plus). */
 const FONT_WAIT_MS = 8000
-
-/** Éléments visés par un appel d'outil en lecture (lire_elements, capture, verifier_gout) : le curseur de Claude y va. */
-function readTargets(tool: string, args: unknown): string[] {
-  const a = (args ?? {}) as { id?: unknown; ids?: unknown }
-  if (tool !== 'lire_elements' && tool !== 'capture' && tool !== 'verifier_gout') return []
-  const ids = Array.isArray(a.ids) ? a.ids : typeof a.id === 'string' ? [a.id] : []
-  return ids.filter((x): x is string => typeof x === 'string')
-}
 
 /** Guides, styles et tirages taste-skill pour les outils guide, style et direction. */
 const design: DesignHost = {
@@ -70,15 +61,6 @@ function apply(ops: Op[], toolLabel: string, origin: McpOrigin) {
       chatStore.getState().markEdited(turn.id)
       if (before.filePath) void window.maquette.versions?.save(serializeDocument(before.doc), beforeClaudeName(turn.text), true).catch(() => null)
     }
-    const touched = ops.flatMap((op) => ('id' in op && typeof op.id === 'string' ? [result.ids[op.id] ?? op.id] : []))
-    // Éléments créés (avec ou sans identifiant temporaire) : les patchs d'ajout, au plus haut niveau.
-    const added = result.patches.flatMap((p) => {
-      const v = p.op === 'add' ? (p.value as { id?: unknown } | undefined) : undefined
-      return typeof v?.id === 'string' ? [v.id] : []
-    })
-    // Ce qu'il crée apparaît pièce par pièce, son curseur passant de l'une à l'autre ; sinon le curseur va à ce qu'il modifie.
-    if (added.length) revealCreated(added, CLAUDE.id)
-    else agentStore.getState().activity(CLAUDE.id, [...new Set([...Object.values(result.ids), ...touched])])
   }
   return result
 }
@@ -104,7 +86,9 @@ const hostFor = (origin: McpOrigin): ToolHost => ({
 export function serveMcp(): () => void {
   window.maquette.mcpReady(false)
   return window.maquette.onMcpCall((tool, args, origin): Promise<ToolResult> => {
-    agentStore.getState().activity(CLAUDE.id, readTargets(tool, args))
-    return runTool(hostFor(origin), tool, args).catch((e: unknown) => ({ text: `Erreur : ${(e as Error).message}`, isError: true }))
+    activityStore.getState().toolStarted()
+    return runTool(hostFor(origin), tool, args)
+      .catch((e: unknown) => ({ text: `Erreur : ${(e as Error).message}`, isError: true }))
+      .finally(() => activityStore.getState().toolEnded())
   })
 }

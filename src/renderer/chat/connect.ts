@@ -6,7 +6,7 @@ import { confirmLeave } from '../state/commands'
 import { fileName, openDocument } from '../state/openDocument'
 import { docStore } from '../state/store'
 import { uiStore } from '../state/ui'
-import { agentStore, CLAUDE } from '../agents/agentStore'
+import { activityStore } from '../agents/activityStore'
 import { chatStore } from './chatStore'
 import { replyGroup } from './replies'
 
@@ -55,9 +55,9 @@ export function startChat(): () => void {
     // Début et fin de tour : le titre (premier message) et l'ordre des conversations changent.
     if (event.type === 'busy') refreshConversations()
   })
-  // Pendant une réponse, le curseur de Claude reste affiché (et « pense » entre deux outils).
+  // Pendant une réponse, la pastille « Claude is working » reste affichée.
   const offBusy = chatStore.subscribe((s, prev) => {
-    if (s.busy !== prev.busy) agentStore.getState().setBusy(CLAUDE.id, s.busy)
+    if (s.busy !== prev.busy) activityStore.getState().setBusy(s.busy)
   })
   return () => {
     seq++

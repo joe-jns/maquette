@@ -1,36 +1,15 @@
-/* Curseurs des agents (Claude) : au-dessus du canevas, jamais cliquables. */
-.agent-layer { position: absolute; inset: 0; z-index: 4; overflow: hidden; pointer-events: none; }
-
-.agent-cursor {
-  position: absolute; left: 0; top: 0; display: flex; align-items: flex-start; will-change: transform;
-  animation: agent-in 200ms ease-out; transition: opacity 300ms ease-out;
+/* Pastille « Claude travaille » : en haut du canevas, jamais cliquable. */
+.claude-working {
+  position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 5; display: flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: var(--radius-lg); background: var(--panel-bg); box-shadow: var(--elevation-100); pointer-events: none;
+  color: var(--panel-text); font: var(--fw) var(--fs) / var(--lh) var(--font-ui); letter-spacing: var(--ls); white-space: nowrap;
 }
-.agent-cursor svg { flex: none; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25)); }
-.agent-cursor.is-leaving { opacity: 0; }
-@keyframes agent-in { from { opacity: 0; } }
-
-.agent-label {
-  display: flex; align-items: center; gap: 4px; margin: 17px 0 0 -4px; padding: 2px 7px; border-radius: 4px 9px 9px 9px;
-  background: var(--agent); color: #fff; font: 600 11px / 16px var(--font-ui); white-space: nowrap;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-}
-.agent-thinking { display: inline-flex; gap: 2px; }
-.agent-thinking i { width: 3px; height: 3px; border-radius: 50%; background: currentColor; animation: agent-dot 1s ease-in-out infinite; }
-.agent-thinking i:nth-child(2) { animation-delay: 0.15s; }
-.agent-thinking i:nth-child(3) { animation-delay: 0.3s; }
-@keyframes agent-dot { 0%, 60%, 100% { opacity: 0.35; transform: none; } 30% { opacity: 1; transform: translateY(-2px); } }
-
-/* Zone touchée : cadre de la couleur de l'agent, qui s'efface. */
-.agent-target {
-  position: absolute; box-sizing: border-box; border: 2px solid var(--agent); border-radius: 2px;
-  animation: agent-target 1.4s ease-out forwards;
-}
-@keyframes agent-target { 0% { opacity: 0; } 12%, 55% { opacity: 1; } 100% { opacity: 0; } }
-
-/* Élément dévoilé par l'apparition progressive (reveal.ts). */
-@keyframes agent-reveal { from { opacity: 0; } }
+.claude-working-dots { display: inline-flex; gap: 3px; }
+.claude-working-dots i { width: 4px; height: 4px; border-radius: 50%; background: #D97757; animation: claude-dot 1s ease-in-out infinite; }
+.claude-working-dots i:nth-child(2) { animation-delay: 0.15s; }
+.claude-working-dots i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes claude-dot { 0%, 60%, 100% { opacity: 0.35; } 30% { opacity: 1; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .agent-cursor, .agent-target, .agent-thinking i { animation: none; }
-  .agent-target { opacity: 0; }
+  .claude-working-dots i { animation: none; }
 }
